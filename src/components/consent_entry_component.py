@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from models.models import ConsentStatus, ConsentTemplate, ConsentEntry
+from models.db_models import ConsentStatus, ConsentTemplate, ConsentEntry
 from models.controller import update_entry
 import logging
 

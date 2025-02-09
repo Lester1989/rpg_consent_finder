@@ -6,7 +6,7 @@ from components.consent_entry_component import (
     CategoryEntryComponent,
     ConsentEntryComponent,
 )
-from models.models import (
+from models.db_models import (
     ConsentStatus,
     ConsentTemplate,
     ConsentEntry,
@@ -18,11 +18,13 @@ from models.controller import get_all_consent_topics, update_entry, update_conse
 class SheetDisplayComponent(ui.grid):
     sheet: ConsentSheet = None
     sheets: list[ConsentSheet] = None
+    redact_name: bool
 
     def __init__(
         self,
         consent_sheet: ConsentSheet = None,
         consent_sheets: list[ConsentSheet] = None,
+        redact_name: bool = False,
     ):
         super().__init__(columns=3)
         if consent_sheet is None:
@@ -30,6 +32,7 @@ class SheetDisplayComponent(ui.grid):
         else:
             self.sheet = consent_sheet
 
+        self.redact_name = redact_name
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
         self.categories = sorted(list(set(topic.category for topic in self.topics)))
         self.grouped_topics = {
@@ -42,6 +45,8 @@ class SheetDisplayComponent(ui.grid):
 
     @property
     def sheet_name(self):
+        if self.redact_name:
+            return f"Consent Sheet"
         return (
             self.sheet.human_name
             if self.sheet
@@ -64,10 +69,15 @@ class SheetDisplayComponent(ui.grid):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
             if self.sheet and self.sheet.public_share_id:
-                ui.link(
-                    "Link to this sheet",
-                    f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
-                )
+                with ui.row():
+                    ui.link(
+                        "Link to this sheet",
+                        f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
+                    )
+                    ui.image(
+                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}"
+                    )
+
             else:
                 ui.label("")
 

@@ -66,6 +66,27 @@ class ConsentStatus(str, Enum):
         }[self]
 
 
+class UserFAQ(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    question: str = Field(default=None)
+    created_at: datetime = Field(default=datetime.now())
+
+
+class UserContentQuestion(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    question: str = Field(default=None)
+    created_at: datetime = Field(default=datetime.now())
+
+
+class FAQItem(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    question: str = Field(default=None, index=True)
+    answer: str = Field(default=None)
+
+    def __repr__(self):
+        return f"<FAQItem {self.id} {self.question[:20]}... -> {self.answer[:20]}...>"
+
+
 class ConsentTemplate(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     category: str | None = Field(default=None, index=True)

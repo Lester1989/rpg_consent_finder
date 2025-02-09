@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from models.models import (
+from models.db_models import (
     ConsentEntry,
     ConsentSheet,
     ConsentTemplate,
@@ -8,11 +8,50 @@ from models.models import (
     User,
     GroupConsentSheetLink,
     UserGroupLink,
+    FAQItem,
+    UserContentQuestion,
+    UserFAQ,
 )
 from models.model_utils import engine
 from sqlmodel import Session, select, delete
 import random
 import string
+
+
+def store_faq_question(question: str):
+    logging.debug(f"store_faq_question {question}")
+    with Session(engine) as session:
+        faq = UserFAQ(question=question)
+        session.add(faq)
+        session.commit()
+        session.refresh(faq)
+        return faq
+    
+def get_all_faq_questions():
+    logging.debug("get_all_faq_questions")
+    with Session(engine) as session:
+        return session.exec(select(UserFAQ)).all()
+    
+def get_all_content_questions():
+    logging.debug("get_all_content_questions")
+    with Session(engine) as session:
+        return session.exec(select(UserContentQuestion)).all()
+
+
+def store_content_question(question: str):
+    logging.debug(f"store_content_question {question}")
+    with Session(engine) as session:
+        content_question = UserContentQuestion(question=question)
+        session.add(content_question)
+        session.commit()
+        session.refresh(content_question)
+        return content_question
+
+
+def get_all_faq():
+    logging.debug("get_all_faq")
+    with Session(engine) as session:
+        return session.exec(select(FAQItem)).all()
 
 
 def get_status():

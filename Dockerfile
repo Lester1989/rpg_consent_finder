@@ -9,7 +9,7 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-WORKDIR /app
+WORKDIR /src
 
 COPY pyproject.toml poetry.lock ./
 RUN touch readme.md
@@ -21,12 +21,12 @@ FROM python:3.13-slim AS runtime
 RUN apt-get update && apt-get install libpq5 -y; apt-get -y install curl
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
-ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+ENV VIRTUAL_ENV=/src/.venv \
+    PATH="/src/.venv/bin:$PATH"
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-COPY app ./app
+COPY src ./src
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 RUN mkdir /db

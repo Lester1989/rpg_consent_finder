@@ -8,7 +8,7 @@ from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
 
 from components.consent_display_component import ConsentDisplayComponent
-from models.models import (
+from models.db_models import (
     ConsentEntry,
     ConsentSheet,
     ConsentStatus,

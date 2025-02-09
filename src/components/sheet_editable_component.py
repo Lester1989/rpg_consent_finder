@@ -5,7 +5,7 @@ from components.consent_entry_component import (
     CategoryEntryComponent,
     ConsentEntryComponent,
 )
-from models.models import (
+from models.db_models import (
     ConsentStatus,
     ConsentTemplate,
     ConsentEntry,

@@ -1,6 +1,6 @@
 from nicegui import ui, app
 
-from models.models import (
+from models.db_models import (
     User,
 )
 from models.controller import get_user_by_id_name

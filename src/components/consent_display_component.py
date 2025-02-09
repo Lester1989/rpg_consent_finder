@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from models.models import ConsentEntry
+from models.db_models import ConsentEntry
 import logging
 
 

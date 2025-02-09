@@ -1,9 +1,16 @@
+import io
 import random
 import string
 from fastapi.responses import JSONResponse
 from nicegui import ui, app
-from models.models import User
-from models.controller import get_status, get_user_by_id_name, update_user
+from models.db_models import User
+from models.controller import (
+    get_all_content_questions,
+    get_all_faq_questions,
+    get_status,
+    get_user_by_id_name,
+    update_user,
+)
 from models.seeder import seed_consent_questioneer
 from pages.questioneer import content as questioneer_content
 from pages.group_overview import content as group_overview_content
@@ -11,11 +18,13 @@ from pages.public_sheet import content as public_sheet_content
 from pages.home import content as home_content
 from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.discord import DiscordSSO
 import logging
 import os
+
+from public_share_qr import generate_sheet_share_qr_code
 
 
 logging.basicConfig(
@@ -93,6 +102,11 @@ def header():
             )
 
 
+def update_user_and_go_home(new_user: User):
+    update_user(new_user)
+    ui.navigate.to("/home")
+
+
 @app.get("/healthcheck_and_heartbeat")
 def healthcheck_and_heartbeat(request: Request):
     logging.debug("healthcheck_and_heartbeat")
@@ -131,7 +145,7 @@ def startup():
                     nickname="",
                 )
                 ui.input("Your name").bind_value(new_user, "nickname")
-                ui.button("Save", on_click=lambda: update_user(new_user))
+                ui.button("Save", on_click=lambda: update_user_and_go_home(new_user))
             else:
                 ui.navigate.to("/home")
         else:
@@ -158,6 +172,18 @@ def startup():
             with ui.row():
                 ui.label(f"{table} {table_count_and_clear_func[0]}")
                 ui.button("clear", color="red").on_click(table_count_and_clear_func[1])
+
+        ui.label("Open FAQ")
+        with ui.grid(columns=2):
+            for faq in get_all_faq_questions():
+                ui.label(faq.created_at)
+                ui.label(faq.question)
+
+        ui.label("Open Content")
+        with ui.grid(columns=2):
+            for content in get_all_content_questions():
+                ui.label(content.created_at)
+                ui.label(content.question)
 
     @ui.page("/logout")
     def logout():
@@ -215,6 +241,13 @@ def startup():
     @ui.page("/discord/login")
     async def discord_login(discord_sso: DiscordSSO = Depends(get_discord_sso)):
         return await discord_sso.get_login_redirect()
+
+
+@app.get("/api/qr")
+def qr(share_id: str, sheet_id: str):
+    img_byte_arr = io.BytesIO()
+    generate_sheet_share_qr_code(share_id, sheet_id).save(img_byte_arr, format="PNG")
+    return Response(content=img_byte_arr.getvalue(), media_type="image/png")
 
 
 app.on_startup(startup)

@@ -1,8 +1,8 @@
-"""initial
+"""new start
 
-Revision ID: 79b50df2294f
+Revision ID: 4ec9bf632b41
 Revises: 
-Create Date: 2025-02-06 23:48:39.540390
+Create Date: 2025-02-09 23:27:43.059136
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '79b50df2294f'
+revision: str = '4ec9bf632b41'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,6 +32,15 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f('ix_consenttemplate_category'), ['category'], unique=False)
         batch_op.create_index(batch_op.f('ix_consenttemplate_topic'), ['topic'], unique=False)
 
+    op.create_table('faqitem',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('question', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('answer', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('faqitem', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_faqitem_question'), ['question'], unique=False)
+
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('id_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -41,8 +50,20 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('user', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_user_id_name'), ['id_name'], unique=False)
+        batch_op.create_index(batch_op.f('ix_user_id_name'), ['id_name'], unique=True)
 
+    op.create_table('usercontentquestion',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('question', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('userfaq',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('question', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('consentsheet',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('unique_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -71,6 +92,7 @@ def upgrade() -> None:
     op.create_table('rpggroup',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('invite_code', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('gm_user_id', sa.Integer(), nullable=False),
     sa.Column('gm_consent_sheet_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['gm_consent_sheet_id'], ['consentsheet.id'], ),
@@ -104,10 +126,16 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_consentsheet_unique_name'))
 
     op.drop_table('consentsheet')
+    op.drop_table('userfaq')
+    op.drop_table('usercontentquestion')
     with op.batch_alter_table('user', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_user_id_name'))
 
     op.drop_table('user')
+    with op.batch_alter_table('faqitem', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_faqitem_question'))
+
+    op.drop_table('faqitem')
     with op.batch_alter_table('consenttemplate', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_consenttemplate_topic'))
         batch_op.drop_index(batch_op.f('ix_consenttemplate_category'))

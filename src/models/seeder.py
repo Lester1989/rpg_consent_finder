@@ -1,7 +1,7 @@
 import logging
 import random
 import string
-from models.models import (
+from models.db_models import (
     ConsentEntry,
     ConsentStatus,
     ConsentTemplate,
@@ -10,6 +10,7 @@ from models.models import (
     User,
     UserGroupLink,
     GroupConsentSheetLink,
+    FAQItem,
 )
 from models.model_utils import engine, questioneer_id, hash_password
 from sqlmodel import Session, select, delete
@@ -85,6 +86,92 @@ def seed_consent_questioneer():
         all_templates = session.exec(select(ConsentTemplate)).all()
         logging.debug(f"Templates: {len(all_templates)}")
     # seed_users()
+    seed_faq()
+
+
+def seed_faq():
+    faqs = {
+        "Was ist das hier?": """
+        Das ist ein Tool, um einen Konsent über Inhalte für Rollenspiele zu verwalten.
+
+        Dabei ist es egal, ob es sich um ein Pen&Paper-Rollenspiel, ein LARP oder ein Computerspiel handelt.
+        Das Tool hilft dabei, die Grenzen und Wünsche der Spieler:innen zu klären und zu dokumentieren.
+
+        """,
+        "Was sind Inhalte/Content?": """
+        Inhalte sind alle Dinge, die in einem Rollenspiel vorkommen können und für einige Menschen belastend sind.
+
+        Das können zum Beispiel Gewalt, Sex, Horror, Krankheiten, Diskriminierung oder andere Themen sein.
+
+        Jede Person hat andere Grenzen und Wünsche, was sie in einem Rollenspiel erleben möchte.
+
+        Deshalb ist es wichtig, dass alle Spieler:innen darüber sprechen und sich einigen, was im Spiel vorkommen darf und was nicht.
+        Für eine Liste schau Oben in der Menüleiste unter `Content Trigger` nach.
+
+        Zu jedem Inhalt gibt es 4 Einstufungen, eine Kommentarfunktion und ein "❔"->"nicht beantwortet".
+        Um möglichst treffsicher einen Konsent zu bilden, wähle bitte eine Einstufung aus.
+        Du kannst die Einstufung in einer Kategorie für alle Inhalte gleichzeitig setzen, indem du in der Kopfzeile auf die Einstufung klickst.
+        Dabei wird die Einstufung von "❔" auf die gewählte Einstufung geändert. Inhalte, die bereits eine Einstufung haben, werden nicht verändert.
+        """,
+        """Bei den Inhalten fehlt etwas oder ist falsch. Was kann ich tun?""": """
+        Unterhalb der `Content Trigger` findest du ein Formular, in dem du deine Frage oder dein Problem eingeben kannst.
+
+        Bedenke, dass dieses Tool ein Hobbyprojekt von einem Vater mit Kleinkind ist und Antworten ein paar Tage dauern können.
+        """,
+        "Was ist ein Konsent?": """
+        Ein Konsent ist eine Einigung zwischen Beteiligten, bei der sich alle wohlfühlen.
+
+        Nicht zu verwechseln mit einem Kompromiss, bei dem sich irgendwo in der Mitte getroffen.
+
+        Ein Konsent ist also eine klare und eindeutige Zustimmung zu etwas.
+        """,
+        "Was kann ich hier machen?": """
+        Du kannst hier deine eigenen Grenzen für ein Rollenspiel festlegen und dokumentieren. Du kannst dazu `Consent Sheets` erstellen und pflegen.
+
+        Diese Sheets kannst du entweder über einen Links teilen (öffentlich einsehbar) oder zu Gruppen zuordnen (nur für die Gruppe sichtbar).
+        """,
+        "Wie funktionieren Gruppen?": """
+        Nachdem du dich angemeldet hast, kannst du Gruppen erstellen oder ihnen über einen Code beitreten.
+
+        Gruppen, die du erstellst, verwaltest du, kannst also den Einladungscode sehen und erneuern oder Gruppenmitglieder entfernen.
+        Außderm musst du einen `Consent Sheet` für die Gruppe erstellen. Du kannst deine Gruppen auch löschen.
+
+        Gruppen, denen du begetreten bist, indem du den Einladungscode eingegeben hast, kannst du verlassen oder ihnen einen `Consent Sheet` zuweisen.
+
+        In einer Gruppe wird automatisch der Konsent Aller gebildet und angezeigt.
+        """,
+        "Was ist ein Consent Sheet?": """
+        Ein Consent Sheet ist eine Liste von Themen, die in einem Rollenspiel vorkommen können mit deinem Level des Wohlfühlens bei diesem Thema.
+
+        Du kannst mehrere Sheets haben, z.B. für verschiedene Gruppen bzw. oder Öffentlichkeit.
+        Versuch, es nicht zu übertreiben und nicht mehr als 10 Sheets zu haben. Gib den Sheets passende Namen, damit du sie wiederfindest.
+        Da dieses Tool gratis ist, läuft es mit begrenzten Ressourcen, die Ich gerne fair verteilen nutzen möchte.
+        Ich behalte mir vor, bei Missbrauch oder Überlastung, die Anzahl der Sheets zu limitieren und zu reduzieren.
+
+        Wenn du einen Sheet öffentlich teilst, erhältst du einen Link und einen QR-Code, den du weitergeben kannst.
+        Jeder mit diesem Link (erraten oder geteilt) kann deinen Sheet sehen, dabei werden weder dein Name, noch der Sheetname angezeigt.
+        Die Kommentare sind jedoch sichtbar.
+        """,
+        """Eine Frage oder ein Problem, welches hier nicht beantwortet wird. Was kann ich tun?""": """
+        Gib deine Frage unten ein und klick auf `Abschicken`. Ich werde versuchen, dir so schnell wie möglich zu antworten. Und die Frage in die FAQ aufnehmen.
+
+        Wenn du deine Emailadresse oder Discord-ID angibst, kann ich dir auch direkt antworten.
+        """,
+    }
+    with Session(engine) as session:
+        session.exec(delete(FAQItem))
+        session.commit()
+        for question in faqs:
+            logging.debug(f"Question: {question[:20]}... -> {faqs[question][:20]}...")
+            existing_faq = session.exec(
+                select(FAQItem).where(FAQItem.question == question)
+            ).first()
+            if not existing_faq:
+                logging.debug("Creating FAQ")
+                session.add(FAQItem(question=question, answer=faqs[question]))
+        session.commit()
+        all_faqs = session.exec(select(FAQItem)).all()
+        logging.debug(f"FAQs: {len(all_faqs)}")
 
 
 def seed_users():

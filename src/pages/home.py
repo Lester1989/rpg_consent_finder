@@ -1,6 +1,6 @@
 from nicegui import ui, app
 
-from models.models import (
+from models.db_models import (
     ConsentSheet,
     RPGGroup,
     User,
@@ -43,7 +43,6 @@ def content(**kwargs):
         logging.debug("No user found")
         ui.navigate.to("/welcome")
         return
-    ui.label(user.nickname)
     with ui.grid(columns=2).classes("gap-4 mx-auto"):
         # list groups with button to leave and button to show details
         with ui.card():
