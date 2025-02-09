@@ -1,0 +1,32 @@
+version: '3.4'
+
+services:
+  rpgconsentfinder:
+    image: rpgconsentfinder
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      - LOGLEVEL=INFO
+      - GOOGLE_CLIENT_ID=abc123
+      - GOOGLE_CLIENT_SECRET=xxx
+      - DISCORD_CLIENT_ID=abc123
+      - DISCORD_CLIENT_SECRET=xxx
+      - BASE_URL=http://localhost:8080
+      - ADMINS=abc
+      - SEED_ON_STARTUP=true
+      - RELOAD=false
+    volumes:
+      - rpgconsentfinder-db:/db
+    command: sh -c "alembic upgrade head && python app/main.py"
+    healthcheck:
+      test: curl -f http://localhost:8080/healthcheck_and_heartbeat || exit 1
+      interval: 5m
+      timeout: 30s
+      retries: 2
+      start_period: 30s
+
+volumes:
+  rpgconsentfinder-db:

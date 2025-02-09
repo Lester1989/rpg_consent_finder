@@ -1,0 +1,15 @@
+{
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "pylint.args": [
+        "--generated-members",
+        "alembic.*",
+        "sqlalchemy"
+    ],
+    "[python]": {
+        "editor.formatOnSave": true
+    }
+}

@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "rpg-consent-finder"
+version = "0.1.0"
+description = ""
+authors = ["Lester1989 <l.ester@gmx.de>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+nicegui = "^2.9.0"
+sqlmodel = "^0.0.22"
+alembic = "^1.14.0"
+qrcode = "^8.0"
+pyotp = "^2.9.0"
+pillow = "^11.1.0"
+bcrypt = "^4.2.1"
+fastapi-sso = "^0.17.0"
+colorama = "^0.4.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
