@@ -327,6 +327,19 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
         session.add(sheet)
         session.commit()
         session.refresh(sheet)
+        templates = session.exec(select(ConsentTemplate)).all()
+        for template in templates:
+            entry = ConsentEntry(
+                consent_sheet_id=sheet.id,
+                consent_sheet=sheet,
+                consent_template_id=template.id,
+                consent_template=template,
+            )
+            session.add(entry)
+            sheet.consent_entries.append(entry)
+        session.commit()
+        session.refresh(sheet)
+
         return sheet
 
 

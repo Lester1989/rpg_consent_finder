@@ -22,10 +22,12 @@ def seed_consent_questioneer():
         "Horror-Gore": "Gewalt oder Brutalität mit Blutvergießen oder Verstümmelung oder ernsthafte Verletzungen",
         "Horror-Verletzen von Tieren": "Verletzen oder Töten von Tieren. Das kann auch das Zeigen von Tierkadavern oder das Beschreiben von Tierquälerei sein. Es geht vor allen um Säugetiere, Vögel, Reptilien, Fische und Amphibien. Insekten, Spinnen oder Würmer sollten im Kommentarfeld genannt werden, falls sie für dich relevant sind.",
         "Horror-Verletzen von Kindern": "Gewalt oder Missbrauch an Kindern. Hier sind sowohl physische als auch psychische Gewalt gemeint. Jugendliche sind mitgemeint, die Grenze ist in etwa 18 Jahre, geht aber vor allem bei Kindlicher Darstellung auch darüber hinaus.",
+        "Horror-Pädophile": "Das Zeigen oder Beschreiben von Pädophilen oder deren Überlebenden. ",
         "Horror-Verletzen von Hilflosen": "Gewalt oder Missbrauch an Personen, die sich nicht wehren können. Das kann auch das Zeigen von Hilflosigkeit oder das Ausnutzen von Hilflosigkeit sein. Physische und psychische Gewalt sind gleichermaßen gemeint.",
         "Horror-Ratten": "Ratten oder andere Nagetiere(bitte als Kommentar angeben), die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Ratten oder das Beschreiben von Ratten sein.",
         "Horror-Spinnen / Insekten": "Spinnen oder Insekten, die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Spinnen oder Insekten oder das Beschreiben von Spinnen oder Insekten sein.",
         "Horror-Hilflosigkeit": "Hilflosigkeit oder Ausgeliefertsein in einem Horror-Kontext.",
+        "Horror-Bedeutungslosigkeit": "Das Gefühl, dass das eigene Leben oder das Leben anderer keine Bedeutung hat. Alles was SCs wie unbedeutende Mikroben wirken lässt oder mit echter Unendlichkeit spielt.",
         "Romantik-Schwarzblende": "Romantik, die nicht explizit beschrieben wird, sondern nur angedeutet und z.B. durch eine Schwarzblende/Zeitsprung übersprungen wird.",
         "Romantik-Explizit": "Das explizite Beschreiben von romantischen Szenen.",
         "Romantik-Zwischen SC und NSC": "Romantik, die zwischen einem SC und einem NSC stattfindet.",
@@ -37,12 +39,17 @@ def seed_consent_questioneer():
         "Sex-Zwischen SCs": "Sex, der zwischen zwei SCs stattfindet.",
         "Sex-Mit meinem Charakter": "Sex, der mit dem eigenen Charakter stattfindet.",
         "Kulturell und Sozial-Queerfeindlichkeit": "Vorurteile, Diskriminierung oder Gewalt gegenüber queeren Menschen. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
-        "Kulturell und Sozial-Rassismus": "Vorurteile, Diskriminierung oder Gewalt gegenüber Menschen aufgrund ihrer Hautfarbe oder Herkunft. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
+        "Kulturell und Sozial-Rassismus Real": "Vorurteile, Diskriminierung oder Gewalt gegenüber Menschen aufgrund ihrer Hautfarbe oder Herkunft. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
+        "Kulturell und Sozial-Rassismus Fiction": "Vorurteile, Diskriminierung oder Gewalt gegenüber Lebensformen mit Bewusstsein aufgrund ihrer Hautfarbe oder Herkunft. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint. Z.b. Orks, Ferengi oder andere fiktive Rassen.\n\n (Bedenke Grundsätzlich, dass viele fiktive Völker stark von realen rassistischen Vorurteilen beeinflusst sind) ",
         "Kulturell und Sozial-Sexismus": "Vorurteile, Diskriminierung oder Gewalt gegenüber Menschen aufgrund ihres Geschlechts. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
         "Kulturell und Sozial-reale Religion": "Das Darstellen von realen Religionen oder religiösen Praktiken. Dabei ist auch das Verwenden von religiösen Symbolen oder das Beschreiben von religiösen Ritualen gemeint.",
         "Kulturell und Sozial-Völkermord": "Das Darstellen von Völkermord oder Genozid.",
+        "Kulturell und Sozial-Inzest": "Das Darstellen von Inzest oder sexuellen Beziehungen zwischen Verwandten.",
         "Kulturell und Sozial-Mobbing": "Gruppenbezogene Menschenfeindlichkeit, die sich in Form von Mobbing oder Ausgrenzung äußert.",
+        "Kulturell und Sozial-Dickenfeindlichkeit": "Vorurteile, Diskriminierung oder Gewalt gegenüber dicken Menschen. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
+        "Kulturell und Sozial-Behindertenfeindlichkeit": "Vorurteile, Diskriminierung oder Gewalt gegenüber Menschen mit Behinderungen. Dabei sind auch herabsetzende Bemerkungen, Witze oder das Verwenden von Schimpfwörtern gemeint.",
         "Kulturell und Sozial-Naturkatastrophen": "Das Darstellen von Naturkatastrophen oder Umweltkatastrophen.",
+        "Gesundheit-Tod und Sterben": "Das Darstellen von Tod oder Sterben. Dabei sind sowohl natürliche als auch unnatürliche Tode gemeint. Auch das Auslöschen von Bewusstsein (Löschen von KI, Zerstören von fühlenden Robotern, vernichten von Untoten) ist gemeint.",
         "Gesundheit-Tödliche Krankheiten": "Das Darstellen von tödlichen Krankheiten oder Epidemien.",
         "Gesundheit-Psychische Krankheiten": "Das Darstellen von psychischen Erkrankungen.",
         "Gesundheit-Platzangst": "Das Darstellen von Platzangst oder klaustrophobischen Situationen.",
@@ -56,13 +63,13 @@ def seed_consent_questioneer():
         "Gesundheit-Abtreibung": "Das Darstellen von Abtreibung oder Schwangerschaftsabbruch.",
         "Gesundheit-Polizeigewalt": "Szenen, in denen Polizeigewalt oder Gewalt durch Sicherheitskräfte/Militär dargestellt wird.",
         "Gesundheit-Selbstverletzendes Verhalten": "Beschreibungen oder Darstellungen von selbstverletzendem Verhalten oder der Folgen davon.",
+        "Gesundheit-Suizid/Selbstmord": "Beschreibungen oder Darstellungen von Selbstmord. Dabei ist der Versuch oder die Absicht mit gemeint",
         "Gesundheit-Sexuelle Gewalt": "Gewalt oder Missbrauch in sexueller Form. Dabei sind sowohl physische als auch psychische Gewalt gemeint.",
         "Gesundheit-Psychische Gewalt": "Gewalt oder Missbrauch in psychischer Form. Dabei sind sowohl verbal als auch online Gewalt gemeint.",
         "Gesundheit-Folter": "Gewalt oder Missbrauch in Form von Folter. Dabei sind alle Formen Gewalt gemeint: Emotional, physisch, psychisch, sexuell.",
+        "Gesundheit-Verwahrlosung": "Das Darstellen von Verwahrlosung oder Vernachlässigung.",
     }
     with Session(engine) as session:
-        session.exec(delete(ConsentEntry))
-        session.commit()
         for raw_topic in topics:
             logging.debug(f"Topic: {raw_topic}")
             category, topic = (

@@ -69,7 +69,7 @@ class SheetDisplayComponent(ui.grid):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
             if self.sheet and self.sheet.public_share_id:
-                with ui.row():
+                with ui.expansion("Share Link"):
                     ui.link(
                         "Link to this sheet",
                         f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
