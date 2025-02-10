@@ -1,11 +1,13 @@
 from nicegui import ui
 
-from models.db_models import ConsentEntry
+from models.controller import get_consent_template_by_id
+from models.db_models import ConsentEntry, ConsentTemplate
 import logging
 
 
 class ConsentDisplayComponent(ui.row):
     consents: list[ConsentEntry]
+    consent_template: ConsentTemplate
 
     def __init__(self, consents: list[ConsentEntry]):
         super().__init__()
@@ -13,6 +15,9 @@ class ConsentDisplayComponent(ui.row):
             logging.debug("No consents found")
             return
         self.consents = consents
+        self.consent_template = get_consent_template_by_id(
+            self.consents[0].consent_template_id
+        )
         self.content()
 
     @ui.refreshable
@@ -24,9 +29,9 @@ class ConsentDisplayComponent(ui.row):
             else None
         )
         with self.classes("w-full"):
-            ui.label(self.consents[0].consent_template.topic).classes(
-                "text-md"
-            ).tooltip(self.consents[0].consent_template.explanation)
+            ui.label(self.consent_template.topic).classes("text-md").tooltip(
+                self.consent_template.explanation
+            )
             ui.space()
             ui.label(f"{group_consent.preference.as_emoji}").tooltip(
                 group_consent.preference.explanation_de

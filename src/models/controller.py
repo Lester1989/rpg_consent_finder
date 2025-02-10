@@ -26,12 +26,14 @@ def store_faq_question(question: str):
         session.commit()
         session.refresh(faq)
         return faq
-    
+
+
 def get_all_faq_questions():
     logging.debug("get_all_faq_questions")
     with Session(engine) as session:
         return session.exec(select(UserFAQ)).all()
-    
+
+
 def get_all_content_questions():
     logging.debug("get_all_content_questions")
     with Session(engine) as session:
@@ -258,6 +260,12 @@ def update_entry(entry: ConsentEntry):
             entry.consent_template_id = new_entry.consent_template_id
 
 
+def get_consent_template_by_id(template_id: int) -> ConsentTemplate:
+    logging.debug(f"get_consent_template_by_id {template_id}")
+    with Session(engine) as session:
+        return session.get(ConsentTemplate, template_id)
+
+
 def get_all_consent_topics() -> list[ConsentTemplate]:
     logging.debug("get_all_consent_topics")
     with Session(engine) as session:
@@ -362,11 +370,18 @@ def create_new_group(user: User) -> RPGGroup:
             gm_consent_sheet=sheet,
             users=[user],
             consent_sheets=[sheet],
+            invite_code="-".join(
+                [
+                    "?",
+                    "".join(random.choices(string.digits, k=3)),
+                    "".join(random.choices(string.digits, k=3)),
+                ]
+            ),
         )
         session.add(group)
         session.commit()
         session.refresh(group)
-        return group
+    return regenerate_invite_code(group)
 
 
 def update_group(group: RPGGroup):
