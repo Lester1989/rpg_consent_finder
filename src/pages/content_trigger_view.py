@@ -42,7 +42,7 @@ def content(**kwargs):
                 ui.space()
                 ui.markdown(topic.explanation or "coming \n\n soon")
     with ui.card().classes("w-5/6 mx-auto"):
-        user_question = ui.textarea("Frage oder Anmerkung")
+        user_question = ui.textarea("Frage oder Anmerkung").classes("w-full")
         ui.button("Abschicken").on_click(
             lambda: store_user_question(user_question.value)
         )

@@ -24,5 +24,5 @@ def content(**kwargs):
         for faq_item in faq_items:
             FAQElementComponent(faq_item.question, faq_item.answer)
     with ui.card().classes("w-5/6 mx-auto"):
-        user_faq = ui.textarea("Neue Frage")
+        user_faq = ui.textarea("Neue Frage").classes("w-full")
         ui.button("Abschicken").on_click(lambda: store_user_faq(user_faq.value))
