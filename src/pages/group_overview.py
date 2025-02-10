@@ -44,15 +44,17 @@ def content(group_name_id: str = None, **kwargs):
     if user.id == group.gm_user_id:
         with ui.tabs() as tabs:
             display_tab = ui.tab("Consent")
-            edit_tab = ui.tab("Edit")
+            if is_gm:
+                edit_tab = ui.tab("Edit")
             general_tab = ui.tab("General")
         with ui.tab_panels(tabs, value=display_tab).classes("w-full") as panels:
             with ui.tab_panel(display_tab):
                 sheet_display = SheetDisplayComponent(
                     consent_sheets=group.consent_sheets
                 )
-            with ui.tab_panel(edit_tab):
-                SheetEditableComponent(group.gm_consent_sheet)
+            if is_gm:
+                with ui.tab_panel(edit_tab):
+                    SheetEditableComponent(group.gm_consent_sheet)
             with ui.tab_panel(general_tab):
                 ui.input("Group Name").bind_value(group, "name").on(
                     "focusout", lambda _: update_group(group)

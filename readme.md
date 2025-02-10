@@ -22,6 +22,7 @@ BASE_URL used to set the base url. Default is `http://localhost:8080`.
 ADMINS comma separated list of user ids that are admins. Default is no admin.
 SEED_ON_STARTUP used to seed the database on startup. Default is `False`.
 RELOAD used to reload the server on code changes. Default is `False`.
+STORAGE_SECRET used to encrypt the storage. Default is random string on every restart.
 
 # User Stories
 ## GENERAL: new User

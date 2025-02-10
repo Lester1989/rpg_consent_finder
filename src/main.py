@@ -255,6 +255,9 @@ ui.run(
     title="RPG Content Consent Finder",
     dark=True,
     favicon="🔍",
-    storage_secret="".join(random.choices(string.ascii_letters + string.digits, k=32)),
+    storage_secret=os.getenv(
+        "STORAGE_SECRET",
+        "".join(random.choices(string.ascii_letters + string.digits, k=32)),
+    ),
     reload=RELOAD,
 )
