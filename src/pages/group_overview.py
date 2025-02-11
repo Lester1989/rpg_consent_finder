@@ -44,8 +44,7 @@ def content(group_name_id: str = None, **kwargs):
     if user.id == group.gm_user_id:
         with ui.tabs() as tabs:
             display_tab = ui.tab("Consent")
-            if is_gm:
-                edit_tab = ui.tab("Edit")
+            edit_tab = ui.tab("Edit")
             general_tab = ui.tab("General")
         with ui.tab_panels(tabs, value=display_tab).classes("w-full") as panels:
             with ui.tab_panel(display_tab):
@@ -55,10 +54,25 @@ def content(group_name_id: str = None, **kwargs):
             if is_gm:
                 with ui.tab_panel(edit_tab):
                     SheetEditableComponent(group.gm_consent_sheet)
+            else:
+                user_sheet = next(
+                    (
+                        sheet
+                        for sheet in group.consent_sheets
+                        if sheet.user_id == user.id
+                    ),
+                    None,
+                )
+                with ui.tab_panel(edit_tab):
+                    if user_sheet:
+                        SheetEditableComponent(user_sheet)
+                    else:
+                        ui.label("No Consent Sheet assigned yet")
+
             with ui.tab_panel(general_tab):
                 ui.input("Group Name").bind_value(group, "name").on(
                     "focusout", lambda _: update_group(group)
-                )
+                ).classes("lg:w-1/2 w-full")
                 with ui.row():
                     ui.label("Group Join Code")
                     ui.label(group.invite_code).bind_text(group, "invite_code")
@@ -66,7 +80,7 @@ def content(group_name_id: str = None, **kwargs):
                         "New Code", on_click=lambda: regenerate_invite_code(group)
                     ).tooltip("[GM only] Generate a new invite code").set_enabled(is_gm)
 
-                with ui.grid(columns=3):
+                with ui.grid().classes("lg:grid-cols-3 grid-cols-1 gap-4"):
                     for player in group.users:
                         ui.label(player.nickname)
                         if any(

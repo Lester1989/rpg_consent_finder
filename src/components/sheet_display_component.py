@@ -1,18 +1,16 @@
 import logging
-from nicegui import ui
+from nicegui import app, ui
 
 from components.consent_display_component import ConsentDisplayComponent
-from components.consent_entry_component import (
-    CategoryEntryComponent,
-    ConsentEntryComponent,
-)
+
 from models.db_models import (
-    ConsentStatus,
     ConsentTemplate,
-    ConsentEntry,
     ConsentSheet,
 )
-from models.controller import get_all_consent_topics, update_entry, update_consent_sheet
+from models.controller import (
+    duplicate_sheet,
+    get_all_consent_topics,
+)
 
 
 class SheetDisplayComponent(ui.grid):
@@ -26,7 +24,7 @@ class SheetDisplayComponent(ui.grid):
         consent_sheets: list[ConsentSheet] = None,
         redact_name: bool = False,
     ):
-        super().__init__(columns=3)
+        super().__init__()
         if consent_sheet is None:
             self.sheets = consent_sheets
         else:
@@ -61,11 +59,20 @@ class SheetDisplayComponent(ui.grid):
             else "\n---\n".join(sheet.comment for sheet in self.sheets if sheet.comment)
         )
 
+    def button_duplicate(self, user_id_name):
+        logging.debug(f"Duplicating {self.sheet}")
+        duplicate = duplicate_sheet(self.sheet, user_id_name)
+        if duplicate:
+            ui.navigate.to("/home")
+            ui.notify(f"Sheet {duplicate.human_name} duplicated")
+        else:
+            ui.notify("Sheet could not be duplicated")
+
     @ui.refreshable
     def content(self):
         logging.debug(f"SheetDisplayComponent {self.sheet} {self.sheets}")
         self.clear()
-        with self:
+        with self.classes("lg:grid-cols-3 grid-cols-1"):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
             if self.sheet and self.sheet.public_share_id:
@@ -95,3 +102,12 @@ class SheetDisplayComponent(ui.grid):
                         ui.label(category).classes("text-xl")
                         for topic in templates:
                             ConsentDisplayComponent(lookup_consents[topic.id])
+            user_id_name = app.storage.user.get("user_id")
+            if not user_id_name:
+                ui.label("Login to Duplicate")
+                return
+            if self.sheet:
+                ui.button(
+                    "Duplicate",
+                    on_click=lambda: self.button_duplicate(user_id_name),
+                )

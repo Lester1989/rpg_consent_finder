@@ -41,7 +41,7 @@ def content(questioneer_id: str = None, **kwargs):
     else:
         sheet = get_consent_sheet_by_id(int(questioneer_id))
     ui.label("Consent Levels").classes("text-2xl mx-auto")
-    with ui.grid(rows=1, columns=5).classes("gap-2 w-5/6 mx-auto"):
+    with ui.grid().classes("lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"):
         for preference in ConsentStatus:
             with ui.column().classes(
                 "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"

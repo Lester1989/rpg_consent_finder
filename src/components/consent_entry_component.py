@@ -19,7 +19,7 @@ class ConsentEntryComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
-        with self.classes("w-full"):
+        with self.classes("w-full pt-6 lg:pt-1 gap-0 lg:gap-2"):
             self.comment_toggle = ui.checkbox("🗨️")
             ui.label(self.consent_entry.consent_template.topic).classes(
                 "text-md"

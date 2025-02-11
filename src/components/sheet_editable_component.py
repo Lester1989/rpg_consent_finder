@@ -6,16 +6,13 @@ from components.consent_entry_component import (
     ConsentEntryComponent,
 )
 from models.db_models import (
-    ConsentStatus,
     ConsentTemplate,
-    ConsentEntry,
     ConsentSheet,
 )
 from models.controller import (
     create_share_id,
     get_all_consent_topics,
     update_consent_sheet,
-    update_entry,
 )
 
 
@@ -26,7 +23,7 @@ class SheetEditableComponent(ui.grid):
     grouped_topics: dict[str, list[ConsentTemplate]]
 
     def __init__(self, consent_sheet: ConsentSheet):
-        super().__init__(columns=3)
+        super().__init__()
         self.sheet = consent_sheet
         logging.debug(self.sheet)
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
@@ -52,7 +49,7 @@ class SheetEditableComponent(ui.grid):
     @ui.refreshable
     def content(self):
         self.clear()
-        with self:
+        with self.classes("lg:grid-cols-3 grid-cols-1"):
             ui.input("Sheet Name").bind_value(self.sheet, "human_name").on(
                 "focusout", lambda _: update_consent_sheet(self.sheet)
             )

@@ -43,7 +43,7 @@ def content(**kwargs):
         logging.debug("No user found")
         ui.navigate.to("/welcome")
         return
-    with ui.grid(columns=2).classes("gap-4 mx-auto"):
+    with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 mx-auto"):
         # list groups with button to leave and button to show details
         with ui.card():
             ui.label("Groups")
@@ -79,7 +79,7 @@ def content(**kwargs):
         # list consent sheets with icons for public or private and button to remove or to copy/duplicate
         with ui.card():
             ui.label("Consent Sheets")
-            with ui.grid(columns=2):
+            with ui.grid().classes("grid-cols-1 lg:grid-cols-2"):
                 for sheet in user.consent_sheets:
                     sheet: ConsentSheet = get_consent_sheet_by_id(sheet.id)
                     with ui.row().classes("bg-gray-700 p-2 rounded-lg"):

@@ -20,7 +20,7 @@ def store_user_faq(user_faq: str):
 @ui.refreshable
 def content(**kwargs):
     faq_items = get_all_faq()
-    with ui.grid(columns=2).classes("gap-4 mx-auto"):
+    with ui.grid().classes("gap-4 mx-auto lg:grid-cols-2 grid-cols-1"):
         for faq_item in faq_items:
             FAQElementComponent(faq_item.question, faq_item.answer)
     with ui.card().classes("w-5/6 mx-auto"):

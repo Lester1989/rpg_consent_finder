@@ -28,6 +28,59 @@ def store_faq_question(question: str):
         return faq
 
 
+def remove_faq_question(faq_question: UserFAQ):
+    logging.debug(f"remove_faq_question {faq_question}")
+    with Session(engine) as session:
+        session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))
+        session.commit()
+
+
+def remove_content_question(content_question: UserContentQuestion):
+    logging.debug(f"remove_content_question {content_question}")
+    with Session(engine) as session:
+        session.exec(
+            delete(UserContentQuestion).where(
+                UserContentQuestion.id == content_question.id
+            )
+        )
+        session.commit()
+
+
+def store_content_answer(
+    category: str,
+    topic: str,
+    explanation: str,
+    recommendation: UserContentQuestion = None,
+):
+    logging.debug(f"store_content_answer {category} {topic} {explanation}")
+    with Session(engine) as session:
+        if recommendation:
+            session.exec(
+                delete(UserContentQuestion).where(
+                    UserContentQuestion.id == recommendation.id
+                )
+            )
+        content_template = ConsentTemplate(
+            category=category, topic=topic, explanation=explanation
+        )
+        session.add(content_template)
+        session.commit()
+        session.refresh(content_template)
+        return content_template
+
+
+def store_faq_answer(question: str, answer: str, faq_question: UserFAQ = None):
+    logging.debug(f"store_faq_answer {question} to {faq_question.id}")
+    with Session(engine) as session:
+        if faq_question:
+            session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))
+        faq = FAQItem(question=question, answer=answer)
+        session.add(faq)
+        session.commit()
+        session.refresh(faq)
+        return faq
+
+
 def get_all_faq_questions():
     logging.debug("get_all_faq_questions")
     with Session(engine) as session:
@@ -152,16 +205,19 @@ def update_user(user: User):
             logging.debug(f"added {new_user}")
 
 
-def get_user_by_id_name(user_id: str) -> User:
+def get_user_by_id_name(user_id: str, session: Session = None) -> User:
     logging.debug(f"get_user_by_id_name {user_id}")
-    with Session(engine) as session:
-        found = session.exec(select(User).where(User.id_name == user_id)).first()
-        if found:
-            return found
-        logging.debug(f"User not found {user_id}")
-        all_users = session.exec(select(User)).all()
-        for user in all_users:
-            logging.debug(str(user))
+    if not session:
+        with Session(engine) as session:
+            return get_user_by_id_name(user_id, session)
+
+    found = session.exec(select(User).where(User.id_name == user_id)).first()
+    if found:
+        return found
+    logging.debug(f"User not found {user_id}")
+    all_users = session.exec(select(User)).all()
+    for user in all_users:
+        logging.debug(str(user))
 
 
 def get_consent_sheet_by_id(sheet_id: int) -> ConsentSheet:
@@ -306,18 +362,11 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
         random.choices(string.ascii_letters + string.digits, k=8)
     )
     with Session(engine) as session:
-        collision = session.exec(
-            select(ConsentSheet).where(ConsentSheet.unique_name == sheet_unique_name)
-        ).first()
-        while collision:
+        possible_collision = set(session.exec(select(ConsentSheet.unique_name)).all())
+        while sheet_unique_name in possible_collision:
             sheet_unique_name = "".join(
                 random.choices(string.ascii_letters + string.digits, k=8)
             )
-            collision = session.exec(
-                select(ConsentSheet).where(
-                    ConsentSheet.unique_name == sheet_unique_name
-                )
-            ).first()
 
         sheet = ConsentSheet(
             unique_name=sheet_unique_name,
@@ -339,8 +388,51 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
             sheet.consent_entries.append(entry)
         session.commit()
         session.refresh(sheet)
-
         return sheet
+
+
+def duplicate_sheet(sheet_id: int, user_id_name):
+    logging.debug(f"duplicate_sheet {sheet_id} {user_id_name}")
+
+    sheet_unique_name = "".join(
+        random.choices(string.ascii_letters + string.digits, k=8)
+    )
+    with Session(engine) as session:
+        possible_collision = set(session.exec(select(ConsentSheet.unique_name)).all())
+        while sheet_unique_name in possible_collision:
+            sheet_unique_name = "".join(
+                random.choices(string.ascii_letters + string.digits, k=8)
+            )
+        sheet = session.get(ConsentSheet, sheet_id)
+        user = get_user_by_id_name(user_id_name)
+        user = session.merge(user)
+        new_sheet = ConsentSheet(
+            unique_name=sheet_unique_name,
+            user_id=user.id,
+            user=user,
+            human_name=f"Copy of {sheet.display_name}",
+            comment=sheet.comment,
+        )
+        session.add(new_sheet)
+        session.commit()
+        session.refresh(new_sheet)
+        blueprint_entries = session.exec(
+            select(ConsentEntry).where(ConsentEntry.consent_sheet_id == sheet_id)
+        ).all()
+        for blueprint in blueprint_entries:
+            entry = ConsentEntry(
+                consent_sheet_id=new_sheet.id,
+                consent_sheet=new_sheet,
+                consent_template_id=blueprint.consent_template_id,
+                consent_template=blueprint.consent_template,
+                preference=blueprint.preference,
+                comment=blueprint.comment,
+            )
+            session.add(entry)
+            new_sheet.consent_entries.append(entry)
+        session.commit()
+        session.refresh(new_sheet)
+        return new_sheet
 
 
 def assign_consent_sheet_to_group(sheet: ConsentSheet, group: RPGGroup):

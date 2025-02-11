@@ -21,7 +21,7 @@ def store_user_question(question: str):
 def content(**kwargs):
     topics = get_all_consent_topics()
     ui.label("Consent Levels").classes("text-2xl mx-auto")
-    with ui.grid(rows=1, columns=5).classes("gap-2 w-5/6 mx-auto"):
+    with ui.grid().classes("lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"):
         for preference in ConsentStatus:
             with ui.column().classes(
                 "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"
@@ -32,7 +32,7 @@ def content(**kwargs):
                 ui.markdown(preference.explanation_de)
     ui.separator()
     ui.label("Consent Topics").classes("text-2xl mx-auto")
-    with ui.grid(columns=2).classes("gap-4 w-5/6 mx-auto"):
+    with ui.grid().classes("lg:grid-cols-2 gap-4 lg:w-5/6 w-full grid-cols-1 mx-auto"):
         for topic in topics:
             with ui.column().classes(
                 "w-full gap-0 p-2 rounded-lg shadow-sm shadow-white"

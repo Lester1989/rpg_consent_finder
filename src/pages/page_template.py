@@ -6,6 +6,11 @@ from models.db_models import (
 from models.controller import get_user_by_id_name
 
 
+def reload_after(func, *args, **kwargs):
+    func(*args, **kwargs)
+    content.refresh()
+
+
 @ui.refreshable
 def content(**kwargs):
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))

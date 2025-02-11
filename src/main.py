@@ -5,9 +5,6 @@ from fastapi.responses import JSONResponse
 from nicegui import ui, app
 from models.db_models import User
 from models.controller import (
-    get_all_content_questions,
-    get_all_faq_questions,
-    get_status,
     get_user_by_id_name,
     update_user,
 )
@@ -18,6 +15,7 @@ from pages.public_sheet import content as public_sheet_content
 from pages.home import content as home_content
 from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
+from pages.admin_page import content as admin_page_content
 from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.discord import DiscordSSO
@@ -41,12 +39,13 @@ DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "...")
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8080")
 
-ADMINS = os.getenv("ADMINS", "").split(",")
 SEED_ON_STARTUP = os.getenv("SEED_ON_STARTUP", "False").lower() == "true"
 if SEED_ON_STARTUP:
     seed_consent_questioneer()
 
 RELOAD = os.getenv("RELOAD", "False").lower() == "true"
+
+ADMINS = os.getenv("ADMINS", "").split(",")
 
 
 def get_google_sso() -> GoogleSSO:
@@ -66,31 +65,33 @@ def get_discord_sso() -> DiscordSSO:
     )
 
 
-def header():
+def header(current_page=None):
+    link_classes = "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
+    highlight = " shadow-md shadow-yellow-500"
     with ui.row().classes("m-0 w-full bg-gray-800 text-white p-4"):
-        ui.label("RPG Content Consent Finder").classes("text-3xl")
+        ui.label("RPG Content Consent Finder").classes("text-xl lg:text-3xl")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
-            ui.label(f"Hello {user.nickname}").classes("text-xl mt-1")
+            ui.label(f"Hello {user.nickname}").classes("text-md lg:text-xl mt-1")
         ui.space()
         ui.link("Home", "/home").classes(
-            "text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-2 rounded"
+            link_classes + (highlight if current_page == "home" else "")
         )
-        ui.link("Content Trigger", "/content_trigger").classes(
-            "text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-2 rounded"
+        ui.link("Contents", "/content_trigger").classes(
+            link_classes + (highlight if current_page == "content_trigger" else "")
         )
         ui.link("FAQ", "/faq").classes(
-            "text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-2 rounded"
+            link_classes + (highlight if current_page == "faq" else "")
         )
         if user_id in ADMINS:
-            ui.link("Dev", "/dev").classes(
-                "text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-2 rounded"
+            ui.link("Admin", "/admin").classes(
+                link_classes + (highlight if current_page == "admin" else "")
             )
         ui.space()
         if user_id:
             ui.link("Logout", "/logout").classes(
-                "text-xl text-white hover:text-gray-300 no-underline bg-red-800 p-2 rounded"
+                link_classes.replace("bg-gray-600", "bg-red-800")
             )
         else:
             ui.button(
@@ -120,17 +121,17 @@ def startup():
 
     @ui.page("/faq")
     def faq():
-        header()
+        header("faq")
         faq_content()
 
     @ui.page("/content_trigger")
     def content_trigger():
-        header()
+        header("content_trigger")
         content_trigger_view()
 
     @ui.page("/home")
     def home():
-        header()
+        header("home")
         home_content()
 
     @ui.page("/welcome")
@@ -158,32 +159,10 @@ def startup():
                 on_click=lambda: ui.navigate.to("/discord/login"),
             )
 
-    @ui.page("/dev")
-    def dev():
-        header()
-        user_id = app.storage.user.get("user_id")
-        if user_id not in ADMINS:
-            ui.label("Not an admin")
-            ui.link("Home", "/home")
-            return
-        ui.button("Seed ", on_click=seed_consent_questioneer)
-
-        for table, table_count_and_clear_func in get_status().items():
-            with ui.row():
-                ui.label(f"{table} {table_count_and_clear_func[0]}")
-                ui.button("clear", color="red").on_click(table_count_and_clear_func[1])
-
-        ui.label("Open FAQ")
-        with ui.grid(columns=2):
-            for faq in get_all_faq_questions():
-                ui.label(faq.created_at)
-                ui.label(faq.question)
-
-        ui.label("Open Content")
-        with ui.grid(columns=2):
-            for content in get_all_content_questions():
-                ui.label(content.created_at)
-                ui.label(content.question)
+    @ui.page("/admin")
+    def admin():
+        header("admin")
+        admin_page_content()
 
     @ui.page("/logout")
     def logout():
