@@ -11,6 +11,7 @@ from models.db_models import (
     FAQItem,
     UserContentQuestion,
     UserFAQ,
+    LocalizedText,
 )
 from models.model_utils import engine
 from sqlmodel import Session, select, delete
@@ -389,6 +390,18 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
         session.commit()
         session.refresh(sheet)
         return sheet
+
+
+def get_localized_text(id: int) -> LocalizedText:
+    logging.debug(f"get_localized_text {id}")
+    with Session(engine) as session:
+        return session.get(LocalizedText, id)
+
+
+def get_all_localized_texts() -> dict[int, LocalizedText]:
+    logging.debug("get_all_localized_texts")
+    with Session(engine) as session:
+        return {text.id: text for text in session.exec(select(LocalizedText)).all()}
 
 
 def duplicate_sheet(sheet_id: int, user_id_name):

@@ -45,7 +45,10 @@ def content(**kwargs):
                 lambda: reload_after(table_count_and_clear_func[1])
             )
     templates = get_all_consent_topics()
-    categories = list(set(template.category for template in templates))
+    categories = {
+        template.category_id: template.category_local.get_text("de")
+        for template in templates
+    }
     ui.separator()
     ui.label("Open FAQ")
     with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4"):

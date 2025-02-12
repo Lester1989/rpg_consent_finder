@@ -3,13 +3,12 @@ from nicegui import app, ui
 
 from components.consent_display_component import ConsentDisplayComponent
 
-from models.db_models import (
-    ConsentTemplate,
-    ConsentSheet,
-)
+from localization.language_manager import get_localization, make_localisable
+from models.db_models import ConsentTemplate, ConsentSheet, LocalizedText
 from models.controller import (
     duplicate_sheet,
     get_all_consent_topics,
+    get_all_localized_texts,
 )
 
 
@@ -17,38 +16,46 @@ class SheetDisplayComponent(ui.grid):
     sheet: ConsentSheet = None
     sheets: list[ConsentSheet] = None
     redact_name: bool
+    categories: list[int]
+    grouped_topics: dict[int, list[ConsentTemplate]]
+    lang: str
+    text_lookup: dict[int, LocalizedText]
 
     def __init__(
         self,
         consent_sheet: ConsentSheet = None,
         consent_sheets: list[ConsentSheet] = None,
         redact_name: bool = False,
+        lang: str = "en",
     ):
         super().__init__()
         if consent_sheet is None:
             self.sheets = consent_sheets
         else:
             self.sheet = consent_sheet
-
+        self.lang = lang
+        self.text_lookup = get_all_localized_texts()
         self.redact_name = redact_name
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
-        self.categories = sorted(list(set(topic.category for topic in self.topics)))
+        self.categories = sorted(list({topic.category_id for topic in self.topics}))
         self.grouped_topics = {
-            category: [
-                template for template in self.topics if template.category == category
+            category_id: [
+                template
+                for template in self.topics
+                if template.category_id == category_id
             ]
-            for category in self.categories
+            for category_id in self.categories
         }
         self.content()
 
     @property
     def sheet_name(self):
         if self.redact_name:
-            return f"Consent Sheet"
+            return "Consent Sheet"
         return (
             self.sheet.human_name
             if self.sheet
-            else f"Consent of {len(self.sheets)} players"
+            else get_localization("consent_of", self.lang) + str(len(self.sheets))
         )
 
     @property
@@ -59,14 +66,15 @@ class SheetDisplayComponent(ui.grid):
             else "\n---\n".join(sheet.comment for sheet in self.sheets if sheet.comment)
         )
 
-    def button_duplicate(self, user_id_name):
+    def button_duplicate(self, user_id_name: str):
         logging.debug(f"Duplicating {self.sheet}")
-        duplicate = duplicate_sheet(self.sheet, user_id_name)
-        if duplicate:
-            ui.navigate.to("/home")
-            ui.notify(f"Sheet {duplicate.human_name} duplicated")
+        if duplicate := duplicate_sheet(self.sheet, user_id_name):
+            ui.navigate.to(f"/home?lang={self.lang}")
+            ui.notify(
+                duplicate.human_name + get_localization("sheet_duplicated", self.lang)
+            )
         else:
-            ui.notify("Sheet could not be duplicated")
+            ui.notify(get_localization("sheet_not_duplicated", self.lang))
 
     @ui.refreshable
     def content(self):
@@ -76,10 +84,17 @@ class SheetDisplayComponent(ui.grid):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
             if self.sheet and self.sheet.public_share_id:
-                with ui.expansion("Share Link"):
-                    ui.link(
-                        "Link to this sheet",
-                        f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
+                with ui.expansion("Share Link") as share_expansion:
+                    make_localisable(
+                        share_expansion, key="share_link_expansion", language=self.lang
+                    )
+                    make_localisable(
+                        ui.link(
+                            "Link to this sheet",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
+                        ),
+                        key="share_link",
+                        language=self.lang,
                     )
                     ui.image(
                         f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}"
@@ -88,8 +103,8 @@ class SheetDisplayComponent(ui.grid):
             else:
                 ui.label("")
 
-            for category in self.categories:
-                templates = self.grouped_topics[category]
+            for category_id in self.categories:
+                templates = self.grouped_topics[category_id]
                 lookup_consents = {
                     template.id: [
                         sheet.consent_entries_dict.get(template.id)
@@ -99,15 +114,25 @@ class SheetDisplayComponent(ui.grid):
                 }
                 with ui.card().classes(f"row-span-{(len(templates) // 3) + 1} "):
                     with ui.row().classes("w-full pt-6"):
-                        ui.label(category).classes("text-xl")
+                        ui.label(
+                            self.text_lookup[category_id].get_text(self.lang)
+                        ).classes("text-xl")
                         for topic in templates:
-                            ConsentDisplayComponent(lookup_consents[topic.id])
+                            ConsentDisplayComponent(
+                                lookup_consents[topic.id], self.lang
+                            )
             user_id_name = app.storage.user.get("user_id")
             if not user_id_name:
-                ui.label("Login to Duplicate")
+                make_localisable(
+                    ui.label(), key="login_to_duplicate", language=self.lang
+                )
                 return
             if self.sheet:
-                ui.button(
-                    "Duplicate",
-                    on_click=lambda: self.button_duplicate(user_id_name),
+                make_localisable(
+                    ui.button(
+                        "Duplicate",
+                        on_click=lambda: self.button_duplicate(user_id_name),
+                    ),
+                    key="duplicate",
+                    language=self.lang,
                 )

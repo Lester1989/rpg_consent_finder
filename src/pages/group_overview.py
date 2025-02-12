@@ -1,25 +1,16 @@
 import logging
-import random
-import string
 from nicegui import ui, app
 
-from components.consent_entry_component import CategoryEntryComponent
 from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
 
-from components.consent_display_component import ConsentDisplayComponent
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
-    ConsentEntry,
-    ConsentSheet,
-    ConsentStatus,
-    ConsentTemplate,
     RPGGroup,
     User,
 )
 from models.controller import (
-    create_new_consentsheet,
     create_new_group,
-    get_all_consent_topics,
     get_group_by_name_id,
     get_user_by_id_name,
     leave_group,
@@ -30,30 +21,34 @@ from models.model_utils import questioneer_id
 
 
 @ui.refreshable
-def content(group_name_id: str = None, **kwargs):
+def content(lang: str = "en", group_name_id: str = None, **kwargs):
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     if not user:
-        ui.navigate.to("/welcome")
+        ui.navigate.to(f"/welcome?lang={lang}")
         return
     logging.debug(f"{group_name_id}")
     if not group_name_id:
         group = create_new_group(user)
         group_name_id = questioneer_id(group)
     group: RPGGroup = get_group_by_name_id(group_name_id)
-    is_gm = user.id == group.gm_user_id
     if user.id == group.gm_user_id:
         with ui.tabs() as tabs:
             display_tab = ui.tab("Consent")
             edit_tab = ui.tab("Edit")
             general_tab = ui.tab("General")
+            make_localisable(display_tab, key="display", language=lang)
+            make_localisable(edit_tab, key="edit", language=lang)
+            make_localisable(general_tab, key="general", language=lang)
+        is_gm = user.id == group.gm_user_id
         with ui.tab_panels(tabs, value=display_tab).classes("w-full") as panels:
             with ui.tab_panel(display_tab):
                 sheet_display = SheetDisplayComponent(
-                    consent_sheets=group.consent_sheets
+                    consent_sheets=group.consent_sheets,
+                    lang=lang,
                 )
             if is_gm:
                 with ui.tab_panel(edit_tab):
-                    SheetEditableComponent(group.gm_consent_sheet)
+                    SheetEditableComponent(group.gm_consent_sheet, lang)
             else:
                 user_sheet = next(
                     (
@@ -65,38 +60,71 @@ def content(group_name_id: str = None, **kwargs):
                 )
                 with ui.tab_panel(edit_tab):
                     if user_sheet:
-                        SheetEditableComponent(user_sheet)
+                        SheetEditableComponent(user_sheet, lang)
                     else:
-                        ui.label("No Consent Sheet assigned yet")
+                        make_localisable(
+                            ui.label("No Consent Sheet assigned yet"),
+                            key="no_sheet_assigned",
+                            language=lang,
+                        )
 
             with ui.tab_panel(general_tab):
-                ui.input("Group Name").bind_value(group, "name").on(
-                    "focusout", lambda _: update_group(group)
-                ).classes("lg:w-1/2 w-full")
+                make_localisable(
+                    ui.input("Group Name")
+                    .bind_value(group, "name")
+                    .on("focusout", lambda _: update_group(group))
+                    .classes("lg:w-1/2 w-full"),
+                    key="group_name",
+                    language=lang,
+                )
                 with ui.row():
-                    ui.label("Group Join Code")
+                    make_localisable(
+                        ui.label("Group Join Code"),
+                        key="group_join_code",
+                        language=lang,
+                    )
                     ui.label(group.invite_code).bind_text(group, "invite_code")
-                    ui.button(
+                    new_button = ui.button(
                         "New Code", on_click=lambda: regenerate_invite_code(group)
-                    ).tooltip("[GM only] Generate a new invite code").set_enabled(is_gm)
+                    ).tooltip(get_localization("gm_only_invite_code", lang))
+                    new_button.set_enabled(is_gm)
+                    make_localisable(
+                        new_button,
+                        key="new_code",
+                        language=lang,
+                    )
 
                 with ui.grid().classes("lg:grid-cols-3 grid-cols-1 gap-4"):
                     for player in group.users:
                         ui.label(player.nickname)
-                        if any(
+                        has_sheet_in_consent = any(
                             sheet
                             for sheet in group.consent_sheets
                             if sheet.user_id == player.id
-                        ):
-                            ui.label("Part of Consent")
-                        else:
-                            ui.label("Consent Sheet missing")
+                        )
+                        make_localisable(
+                            ui.label("Part of Consent"),
+                            key="part_of_consent"
+                            if has_sheet_in_consent
+                            else "sheet_missing_in_consent",
+                            language=lang,
+                        )
                         if player.id == group.gm_user_id:
                             ui.label("GM")
                         else:
-                            ui.button("Remove Player", color="red").on_click(
-                                lambda player=player: leave_group(group, player)
-                            ).tooltip(
-                                "[GM only] Removes Player from Group"
-                            ).set_enabled(is_gm)
+                            remove_button = (
+                                ui.button("Remove Player", color="red")
+                                .on_click(
+                                    lambda player=player: leave_group(group, player)
+                                )
+                                .tooltip(
+                                    get_localization("gm_only_remove_player", lang)
+                                )
+                            )
+                            remove_button.set_enabled(is_gm)
+                            make_localisable(
+                                remove_button,
+                                key="remove_player",
+                                language=lang,
+                            )
         panels.on_value_change(lambda: sheet_display.content.refresh())

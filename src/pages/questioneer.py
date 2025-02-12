@@ -4,9 +4,11 @@ from components.consent_entry_component import (
     CategoryEntryComponent,
     ConsentEntryComponent,
 )
+from components.consent_legend_component import consent_legend_component
 from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
 
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     ConsentEntry,
     ConsentSheet,
@@ -28,40 +30,36 @@ import logging
 
 
 @ui.refreshable
-def content(questioneer_id: str = None, **kwargs):
+def content(questioneer_id: str = None, lang: str = "en", **kwargs):
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     logging.debug(f"{questioneer_id} {kwargs}")
     if not user:
-        ui.navigate.to("/welcome")
+        ui.navigate.to(f"/welcome?lang={lang}")
         return
     if not questioneer_id:
         sheet = create_new_consentsheet(user)
-        ui.navigate.to(f"/consentsheet/{sheet.id}")
+        ui.navigate.to(f"/consentsheet/{sheet.id}?show=edit&lang={lang}")
         return
     else:
         sheet = get_consent_sheet_by_id(int(questioneer_id))
-    ui.label("Consent Levels").classes("text-2xl mx-auto")
-    with ui.grid().classes("lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"):
-        for preference in ConsentStatus:
-            with ui.column().classes(
-                "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"
-            ):
-                ui.label(preference.as_emoji + preference.name.capitalize()).classes(
-                    "text-xs text-gray-500 text-center"
-                )
-                ui.markdown(preference.explanation_de)
+
+    consent_legend_component(lang)
     ui.separator()
+
     with ui.tabs() as tabs:
         display_tab = ui.tab("Sheet")
         edit_tab = ui.tab("Edit")
         groups_tab = ui.tab("Groups")
+        make_localisable(display_tab, key="display", language=lang)
+        make_localisable(edit_tab, key="edit", language=lang)
+        make_localisable(groups_tab, key="groups", language=lang)
     with ui.tab_panels(
         tabs, value=edit_tab if kwargs.get("show", "") == "edit" else display_tab
     ).classes("w-full") as panels:
         with ui.tab_panel(display_tab):
-            sheet_display = SheetDisplayComponent(sheet)
+            sheet_display = SheetDisplayComponent(sheet, lang)
         with ui.tab_panel(edit_tab):
-            SheetEditableComponent(sheet)
+            SheetEditableComponent(sheet, lang)
         with ui.tab_panel(groups_tab):
             with ui.grid(columns=2):
                 for group in user.groups:
@@ -77,5 +75,7 @@ def content(questioneer_id: str = None, **kwargs):
                     is_gm_sheet = group.gm_consent_sheet_id == sheet.id
                     if is_gm_sheet:
                         assign_checkbox.enabled = False
-                        assign_checkbox.tooltip("GM sheet, cannot be unassigned")
+                        assign_checkbox.tooltip(
+                            get_localization("cannot_unassign_gm_sheet", lang)
+                        )
     panels.on_value_change(lambda: sheet_display.content.refresh())

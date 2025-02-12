@@ -42,7 +42,7 @@ def load_localization_data():
 
     To help spot missing translations, the dictionary also contains a "XX" language. This replaces the text with Xs (and Ys for options in select elements). This is meant for development only
     """
-    folder = pathlib.Path("app/localization/texts")
+    folder = pathlib.Path("src/localization/texts")
     data = {}
     for lang_file in folder.glob("*.json"):
         language = lang_file.stem
@@ -68,16 +68,22 @@ localized_components: list[tuple[label.TextElement | LabelElement, dict[str, str
 current_language: str = "en"
 
 
-def _localize_as_text(component: label.TextElement, localizations: dict[str, str]):
+def _localize_as_text(
+    component: label.TextElement,
+    localizations: dict[str, str],
+    language: str | None = None,
+):
     component.text = localizations.get(
-        current_language, localizations.get("en", "UNKNOWN")
+        language or current_language, localizations.get("en", "UNKNOWN")
     )
     component.update()
 
 
-def _localize_as_label(component: LabelElement, localizations: dict[str, str]):
+def _localize_as_label(
+    component: LabelElement, localizations: dict[str, str], language: str | None = None
+):
     component._props["label"] = localizations.get(
-        current_language, localizations.get("en", "UNKNOWN")
+        language or current_language, localizations.get("en", "UNKNOWN")
     )
     component.update()
 
@@ -86,13 +92,14 @@ def _localize_as_select(
     component: ui.select,
     localizations: dict[str, str],
     option_localizations: dict[str, list[str]],
+    language: str | None = None,
 ):
     component._props["label"] = localizations.get(
-        current_language, localizations.get("en", "UNKNOWN")
+        language or current_language, localizations.get("en", "UNKNOWN")
     )
     value_idx = component.options.index(component.value)
     component.options = option_localizations.get(
-        current_language, option_localizations.get("en", [])
+        language or current_language, option_localizations.get("en", [])
     )
     component.value = component.options[value_idx]
     component.update()
@@ -103,10 +110,10 @@ def get_available_languages():
     return available_languages
 
 
-def get_localization(key: str):
+def get_localization(key: str, language: str | None = None):
     """Get a localized string"""
     return localizations.get(key, {}).get(
-        current_language, localizations.get(key, {}).get("en", "UNKNOWN")
+        language or current_language, localizations.get(key, {}).get("en", "UNKNOWN")
     )
 
 
@@ -116,6 +123,7 @@ def make_localisable(
     key: str = None,
     option_localizations: dict[str, list[str]] = None,
     options_key: str = None,
+    language: str | None = None,
 ):
     """
     Register a component for localization.
@@ -134,11 +142,13 @@ def make_localisable(
         (component, component_localizations, option_localizations)
     )
     if isinstance(component, label.TextElement):
-        _localize_as_text(component, component_localizations)
+        _localize_as_text(component, component_localizations, language)
     elif isinstance(component, ui.select) and option_localizations:
-        _localize_as_select(component, component_localizations, option_localizations)
+        _localize_as_select(
+            component, component_localizations, option_localizations, language
+        )
     elif isinstance(component, LabelElement):
-        _localize_as_label(component, component_localizations)
+        _localize_as_label(component, component_localizations, language)
     else:
         raise ValueError(f"Unsupported component type {type(component)}")
 

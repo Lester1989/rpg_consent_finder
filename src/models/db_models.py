@@ -45,8 +45,9 @@ class ConsentStatus(str, Enum):
             ConsentStatus.no: 4,
         }[self]
 
-    @property
-    def explanation(self):
+    def explanation(self, lang: str = ""):
+        if lang == "de":
+            return self.explanation_de()
         return {
             ConsentStatus.yes: "I am fine with it. Lets go for it",
             ConsentStatus.okay: "It is okay but I do not need it",
@@ -55,7 +56,6 @@ class ConsentStatus(str, Enum):
             ConsentStatus.no: "This is a **hard Limit**, do **NOT** do it",
         }[self]
 
-    @property
     def explanation_de(self):
         return {
             ConsentStatus.yes: "Ich bin einverstanden. Lass uns das machen",
@@ -78,20 +78,59 @@ class UserContentQuestion(SQLModel, table=True):
     created_at: datetime = Field(default=datetime.now())
 
 
+class LocalizedText(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    text_en: str = Field(default=None, index=True)
+    text_de: str | None = Field(default=None, index=True)
+
+    def get_text(self, lang: str = ""):
+        return self.text_de if lang == "de" else self.text_en
+
+
 class FAQItem(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
-    question: str = Field(default=None, index=True)
-    answer: str = Field(default=None)
+    question_id: int = Field(default=None, foreign_key="localizedtext.id")
+    question_local: LocalizedText = Relationship(
+        sa_relationship_kwargs={
+            "lazy": LAZY_MODE,
+            "foreign_keys": "[FAQItem.question_id]",
+        }
+    )
+    answer_id: int = Field(default=None, foreign_key="localizedtext.id")
+    answer_local: LocalizedText = Relationship(
+        sa_relationship_kwargs={
+            "lazy": LAZY_MODE,
+            "foreign_keys": "[FAQItem.answer_id]",
+        }
+    )
 
     def __repr__(self):
-        return f"<FAQItem {self.id} {self.question[:20]}... -> {self.answer[:20]}...>"
+        return f"<FAQItem {self.id} {self.question_local.get_text()[:20]}... -> {self.answer_local.get_text()[:20]}...>"
 
 
 class ConsentTemplate(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
-    category: str | None = Field(default=None, index=True)
-    topic: str = Field(default=None, index=True)
-    explanation: str | None = Field(default=None)
+    category_id: int = Field(default=None, foreign_key="localizedtext.id")
+    category_local: LocalizedText = Relationship(
+        sa_relationship_kwargs={
+            "lazy": LAZY_MODE,
+            "foreign_keys": "[ConsentTemplate.category_id]",
+        }
+    )
+    topic_id: int = Field(default=None, foreign_key="localizedtext.id")
+    topic_local: LocalizedText = Relationship(
+        sa_relationship_kwargs={
+            "lazy": LAZY_MODE,
+            "foreign_keys": "[ConsentTemplate.topic_id]",
+        }
+    )
+    explanation_id: int = Field(default=None, foreign_key="localizedtext.id")
+    explanation_local: LocalizedText = Relationship(
+        sa_relationship_kwargs={
+            "lazy": LAZY_MODE,
+            "foreign_keys": "[ConsentTemplate.explanation_id]",
+        }
+    )
 
     def __repr__(self):
         return f"<ConsentTemplate {self.id} {self.category} {self.topic}>"

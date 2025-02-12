@@ -12,17 +12,17 @@
 
 # Environment Variables
 
-DB_CONNECTION_STRING used to connect to the database. Default is `sqlite:///db/database.sqlite`.
-LOGLEVEL used to set the loglevel. Default is `INFO`.
-GOOGLE_CLIENT_ID used to authenticate with Google. Default is `...`.
-GOOGLE_CLIENT_SECRET used to authenticate with Google. Default is `...`.
-DISCORD_CLIENT_ID used to authenticate with Discord. Default is `...`.
-DISCORD_CLIENT_SECRET used to authenticate with Discord. Default is `...`.
-BASE_URL used to set the base url. Default is `http://localhost:8080`.
-ADMINS comma separated list of user ids that are admins. Default is no admin.
-SEED_ON_STARTUP used to seed the database on startup. Default is `False`.
-RELOAD used to reload the server on code changes. Default is `False`.
-STORAGE_SECRET used to encrypt the storage. Default is random string on every restart.
+* DB_CONNECTION_STRING used to connect to the database. Default is `sqlite:///db/database.sqlite`.
+* LOGLEVEL used to set the loglevel. Default is `INFO`.
+* GOOGLE_CLIENT_ID used to authenticate with Google. Default is `...`.
+* GOOGLE_CLIENT_SECRET used to authenticate with Google. Default is `...`.
+* DISCORD_CLIENT_ID used to authenticate with Discord. Default is `...`.
+* DISCORD_CLIENT_SECRET used to authenticate with Discord. Default is `...`.
+* BASE_URL used to set the base url. Default is `http://localhost:8080`.
+* ADMINS comma separated list of user ids that are admins. Default is no admin.
+* SEED_ON_STARTUP used to seed the database on startup. Default is `False`.
+* RELOAD used to reload the server on code changes. Default is `False`.
+* STORAGE_SECRET used to encrypt the storage. Default is random string on every restart.
 
 # User Stories
 ## GENERAL: new User

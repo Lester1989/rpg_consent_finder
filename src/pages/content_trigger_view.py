@@ -1,48 +1,51 @@
 import logging
 from nicegui import ui
 
+from components.consent_legend_component import consent_legend_component
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import ConsentStatus
 from models.controller import get_all_consent_topics, store_content_question
 
 
-def store_user_question(question: str):
+def store_user_question(question: str, lang: str = "en"):
     logging.debug(question)
     result = store_content_question(question)
     if result.id:
-        ui.notify("Frage wurde gespeichert", type="positive")
+        ui.notify(get_localization("question_stored", lang), type="positive")
     else:
-        ui.notify(
-            "Frage konnte nicht gespeichert werden, Kontaktiere mich auf Discord",
-            type="negative",
-        )
+        ui.notify(get_localization("question_not_stored", lang), type="negative")
 
 
 @ui.refreshable
-def content(**kwargs):
+def content(lang: str = "en", **kwargs):
     topics = get_all_consent_topics()
-    ui.label("Consent Levels").classes("text-2xl mx-auto")
-    with ui.grid().classes("lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"):
-        for preference in ConsentStatus:
-            with ui.column().classes(
-                "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"
-            ):
-                ui.label(preference.as_emoji + preference.name.capitalize()).classes(
-                    "text-xs text-gray-500 text-center"
-                )
-                ui.markdown(preference.explanation_de)
+
+    consent_legend_component(lang)
     ui.separator()
-    ui.label("Consent Topics").classes("text-2xl mx-auto")
+    make_localisable(
+        ui.label("Consent Topics").classes("text-2xl mx-auto"),
+        key="consent_topics",
+        language=lang,
+    )
     with ui.grid().classes("lg:grid-cols-2 gap-4 lg:w-5/6 w-full grid-cols-1 mx-auto"):
         for topic in topics:
             with ui.column().classes(
                 "w-full gap-0 p-2 rounded-lg shadow-sm shadow-white"
             ):
-                ui.label(topic.topic).classes("text-lg")
-                ui.label(topic.category).classes("text-xs text-gray-500")
+                ui.label(topic.topic_local.get_text(lang)).classes("text-lg")
+                ui.label(topic.category_local.get_text(lang)).classes(
+                    "text-xs text-gray-500"
+                )
                 ui.space()
-                ui.markdown(topic.explanation or "coming \n\n soon")
+                ui.markdown(
+                    topic.explanation_local.get_text(lang) or "coming \n\n soon"
+                )
     with ui.card().classes("w-5/6 mx-auto"):
         user_question = ui.textarea("Frage oder Anmerkung").classes("w-full")
-        ui.button("Abschicken").on_click(
-            lambda: store_user_question(user_question.value)
+        make_localisable(
+            ui.button("Abschicken").on_click(
+                lambda: store_user_question(user_question.value)
+            ),
+            key="submit",
+            language=lang,
         )
