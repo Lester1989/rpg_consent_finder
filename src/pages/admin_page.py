@@ -42,7 +42,9 @@ def content(**kwargs):
         with ui.row():
             ui.label(f"{table} {table_count_and_clear_func[0]}")
             ui.button("clear", color="red").on_click(
-                lambda: reload_after(table_count_and_clear_func[1])
+                lambda clear_func=table_count_and_clear_func[1]: reload_after(
+                    clear_func
+                )
             )
     templates = get_all_consent_topics()
     categories = {

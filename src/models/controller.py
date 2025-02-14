@@ -187,6 +187,40 @@ def clear_templates():
         return get_status()
 
 
+def delete_account(user: User):
+    logging.debug(f"delete_account {user}")
+    with Session(engine) as session:
+        user = session.get(User, user.id)
+        created_groups = session.exec(
+            select(RPGGroup).where(RPGGroup.gm_user_id == user.id)
+        ).all()
+        for group in created_groups:
+            logging.debug(f"deleting {group}")
+            session.delete(group)
+        joined_groups = session.exec(
+            select(RPGGroup).where(RPGGroup.users.any(User.id == user.id))
+        ).all()
+        for group in joined_groups:
+            logging.debug(f"leaving {group}")
+            group.users.remove(user)
+            session.merge(group)
+        created_sheets = session.exec(
+            select(ConsentSheet).where(ConsentSheet.user_id == user.id)
+        ).all()
+        for sheet in created_sheets:
+            # delete all entries
+            deleted_entries = session.exec(
+                delete(ConsentEntry).where(ConsentEntry.consent_sheet_id == sheet.id)
+            ).rowcount
+            logging.debug(f"deleted {deleted_entries} entries")
+            session.delete(sheet)
+            logging.debug(f"deleted {sheet}")
+        session.delete(user)
+        session.commit()
+        logging.debug(f"deleted {user}")
+        return user
+
+
 def update_user(user: User):
     logging.debug(f"update_user {user}")
     with Session(engine) as session:

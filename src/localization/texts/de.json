@@ -49,5 +49,7 @@
     "leave_group_confirm": "Gruppe wirklich verlassen?",
     "no_share_id": "Keine Teilen-ID",
     "no_sheet": "Kein Sheet gefunden",
-    "cannot_unassign_gm_sheet": "Ein GM-Sheet kann nicht entfernt werden, solange die Gruppe existiert"
+    "cannot_unassign_gm_sheet": "Ein GM-Sheet kann nicht entfernt werden, solange die Gruppe existiert",
+    "delete_account": "Account löschen",
+    "delete_account_confirm": "Account wirklich löschen?"
 }

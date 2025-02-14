@@ -6,6 +6,7 @@ from models.db_models import (
     User,
 )
 from models.controller import (
+    delete_account,
     delete_group,
     delete_sheet,
     get_consent_sheet_by_id,
@@ -60,6 +61,12 @@ async def confirm_before_async(
                 content.refresh()
 
 
+def remove_account(user: User):
+    delete_account(user)
+    app.storage.user.clear()
+    ui.notify("Bye Bye!")
+
+
 @ui.refreshable
 def content(lang: str = "en", **kwargs):
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
@@ -77,6 +84,15 @@ def content(lang: str = "en", **kwargs):
         with ui.card():
             make_localisable(ui.label(), key="consent_sheets", language=lang)
             sheet_content(lang, user)
+    make_localisable(
+        ui.button(color="red")
+        .on_click(
+            lambda: confirm_before("delete_account", lang, True, remove_account, user)
+        )
+        .classes("w-1/2 mx-auto"),
+        key="delete_account",
+        language=lang,
+    )
 
 
 def sheet_content(lang: str, user: User):

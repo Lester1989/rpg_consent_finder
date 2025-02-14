@@ -49,5 +49,7 @@
     "leave_group_confirm": "Are you sure you want to leave this group?",
     "no_share_id": "No Share ID",
     "no_sheet": "Sheet not found",
-    "cannot_unassign_gm_sheet": "Cannot unassign a GM sheet as long as the group exists"
+    "cannot_unassign_gm_sheet": "Cannot unassign a GM sheet as long as the group exists",
+    "delete_account": "Delete Account",
+    "delete_account_confirm": "Are you sure you want to delete your account?"
 }

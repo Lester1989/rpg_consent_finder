@@ -1,7 +1,7 @@
 import io
 import random
 import string
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from nicegui import ui, app
 from models.db_models import User
 from models.controller import (
@@ -16,6 +16,7 @@ from pages.home import content as home_content
 from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
 from pages.admin_page import content as admin_page_content
+from pages.dsgvo import dsgvo_html, dsgvo_css
 from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.discord import DiscordSSO
@@ -73,7 +74,12 @@ def header(current_page=None, lang: str = "en"):
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
-            ui.label(f"Hi {user.nickname}!").classes("text-md lg:text-xl mt-1")
+            if not user and current_page in {"home", "admin"}:
+                ui.navigate.to(f"/content_trigger?lang={lang}")
+                return
+            ui.label(f"Hi {user.nickname if user else ''}!").classes(
+                "text-md lg:text-xl mt-1"
+            )
         ui.space()
         ui.link("Home", f"/home?lang={lang}").classes(
             link_classes + (highlight if current_page == "home" else "")
@@ -107,6 +113,29 @@ def header(current_page=None, lang: str = "en"):
             )
 
 
+def impressum():
+    impressum_h1_classes = "text-lg lg:text-xl"
+    impressum_p_classes = "text-sm lg:text-md"
+    with ui.footer(fixed=False).classes("m-0 w-full bg-gray-800 text-white p-4"):
+        with ui.row():
+            with ui.column():
+                ui.link("Impressum", "/impressum").classes(
+                    "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
+                )
+                ui.link("DSGVO", "/dsgvo").classes(
+                    "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
+                )
+            with ui.column():
+                ui.label("Impressum").classes(impressum_h1_classes)
+                ui.label("Lukas Jaspaert").classes(impressum_p_classes)
+                ui.label("Jürgingsmühle 9").classes(impressum_p_classes)
+                ui.label("33739 Bielefeld").classes(impressum_p_classes)
+            with ui.column():
+                ui.label("Kontakt").classes(impressum_h1_classes)
+                ui.label("Telefon: 015150236860").classes(impressum_p_classes)
+                ui.label("E-Mail: l.ester@gmx.de").classes(impressum_p_classes)
+
+
 def update_user_and_go_home(new_user: User, lang: str = "en"):
     update_user(new_user)
     ui.navigate.to(f"/home?lang={lang}")
@@ -118,7 +147,30 @@ def healthcheck_and_heartbeat(request: Request):
     return JSONResponse({"status": "ok"})
 
 
+@app.get("/dsgvo")
+def dsgvo():
+    return HTMLResponse(content=dsgvo_html, media_type="text/html")
+
+
 def startup():
+    @ui.page("/impressum")
+    def impressum_page(lang: str = "en"):
+        header("impressum", lang)
+        ui.html("""
+        <h1>Impressum</h1>
+        <p>Lukas Jaspaert
+                <br />
+        J&uuml;rgingsm&uuml;hle 9
+                <br />
+        33739 Bielefeld</p>
+
+        <h2>Kontakt</h2>
+        <p>Telefon: 015150236860
+                <br />
+        E-Mail: l.ester@gmx.de
+                </p>""")
+        impressum()
+
     @ui.page("/")
     def empty_uri(lang: str = "en"):
         return ui.navigate.to(f"/home?lang={lang}")
@@ -127,19 +179,23 @@ def startup():
     def faq(lang: str = "en"):
         header("faq", lang or "en")
         faq_content(lang or "en")
+        impressum()
 
     @ui.page("/content_trigger")
     def content_trigger(lang: str = "en"):
         header("content_trigger", lang or "en")
         content_trigger_view(lang=lang or "en")
+        impressum()
 
     @ui.page("/home")
     def home(lang: str = "en"):
         header("home", lang or "en")
         home_content(lang=lang or "en")
+        impressum()
 
     @ui.page("/welcome")
     def welcome(lang: str = "en"):
+        header("welcome", lang or "en")
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
             logging.debug(f"welcoming {user}")
@@ -157,18 +213,22 @@ def startup():
                 ui.navigate.to("/home")
         else:
             logging.debug("no user_id")
-            ui.button(
-                "Sign in with Google", on_click=lambda: ui.navigate.to("/google/login")
-            )
-            ui.button(
-                "Sign in with Discord",
-                on_click=lambda: ui.navigate.to("/discord/login"),
-            )
+            with ui.card().classes("p-4 mx-auto"):
+                ui.button(
+                    "Sign in via Google",
+                    on_click=lambda: ui.navigate.to("/google/login"),
+                )
+                ui.button(
+                    "Sign in via Discord",
+                    on_click=lambda: ui.navigate.to("/discord/login"),
+                )
+        impressum()
 
     @ui.page("/admin")
     def admin(lang: str = "en"):
         header("admin", lang)
         admin_page_content()
+        impressum()
 
     @ui.page("/logout")
     def logout(lang: str = "en"):
@@ -180,26 +240,31 @@ def startup():
     def public_sheet(share_id: str, sheet_id: str, lang: str = None):
         header(lang or "en")
         public_sheet_content(lang=lang or "en", share_id=share_id, sheet_id=sheet_id)
+        impressum()
 
     @ui.page("/consentsheet/{questioneer_id}")
     def questioneer(questioneer_id: str, show: str = None, lang: str = None):
         header(lang or "en")
         questioneer_content(lang=lang or "en", questioneer_id=questioneer_id, show=show)
+        impressum()
 
     @ui.page("/consentsheet")
     def constentsheet_new(lang: str = "en"):
         header(lang)
         questioneer_content(lang=lang)
+        impressum()
 
     @ui.page("/groupconsent")
     def group_new(lang: str = "en"):
         header(lang)
         group_overview_content(lang=lang)
+        impressum()
 
     @ui.page("/groupconsent/{group_name_id}")
     def groupconsent(group_name_id: str, lang: str = None):
         header(lang or "en")
         group_overview_content(lang=lang or "en", group_name_id=group_name_id)
+        impressum()
 
     @ui.page("/google/login")
     async def google_login(google_sso: GoogleSSO = Depends(get_google_sso)):
