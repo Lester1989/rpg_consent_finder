@@ -154,7 +154,11 @@ def dsgvo():
 @app.exception_handler(404)
 async def exception_handler_404(request: Request, exception: Exception) -> Response:
     with Client(page(""), request=request) as client:
-        ui.label("Sorry, this page does not exist")
+        language = request.query_params.get("lang", "en")
+        header("notfound", lang=language)
+        ui.label("Sorry, this page does not exist").classes(
+            "text-2xl text-center mt-4 mx-auto"
+        )
     return client.build_response(request, 404)
 
 
@@ -163,9 +167,12 @@ async def exception_handler_500(request: Request, exception: Exception) -> Respo
     stack_trace = traceback.format_exc()
     msg_to_user = f"**{exception}**\n\nStack trace: \n<pre>{stack_trace}"
     with Client(page(""), request=request) as client:
-        with ui.card().classes("error-card"):
-            ui.label("500 Application Error").classes("heading")
-            ui.markdown(msg_to_user).classes("message")
+        language = request.query_params.get("lang", "en")
+        header("error", lang=language)
+        with ui.card().classes("p-4 mx-auto bg-red-200 rounded-lg"):
+            ui.label("Internal Application Error").classes("text-2xl")
+            ui.markdown(msg_to_user)
+
     return client.build_response(request, 500)
 
 
