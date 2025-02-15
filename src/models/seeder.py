@@ -13,7 +13,7 @@ from models.db_models import (
     FAQItem,
     LocalizedText,
 )
-from models.model_utils import engine, questioneer_id, hash_password
+from models.model_utils import engine, generate_group_name_id, hash_password
 from sqlmodel import Session, select, delete
 
 category_translations = {
@@ -480,6 +480,22 @@ def seed_faq():
 
         If you enter your e-mail address or Discord ID, I can also answer you directly.
         """,
+        ),
+        ("Welche Features sind geplant?", "What features are planned?"): (
+            """
+    * Gruppenerstellung mit vorhandenem Sheet
+    * Login ohne SSO
+    * Anonyme Public Sheets -> Sheet mit Passcode und ohne jegliche Kommentare
+    * ausführliches Tutorial
+    * Gruppen aus public Sheets
+    """,
+            """
+    * Group creation with existing sheet
+    * Login without SSO
+    * Anonymous Public Sheets -> Sheet with Passcode and without any comments
+    * detailed tutorial
+    * Groups from public sheets
+    """,
         ),
     }
     with Session(engine) as session:

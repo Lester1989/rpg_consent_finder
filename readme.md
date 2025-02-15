@@ -2,13 +2,19 @@
 
 * [ ] Tutorial or explanation
 * [ ] Tests
-* [ ] Localisation
-* [ ] Group creation
-* [ ] Consent Sheet Saving
-* [ ] Consent Sheet Viewing
-* [ ] Consent Sheet Reuse
-* [ ] Group summary
-* [ ] Commenting
+* [X] Localisation
+* [X] Group creation
+* [X] Consent Sheet Saving
+* [X] Consent Sheet Viewing
+* [X] Consent Sheet Reuse
+* [ ] Consent Sheet Reuse for group creation
+* [X] Group summary
+* [X] Commenting
+* [ ] Group creation with existing sheet
+* [ ] Login without SSO
+* [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
+* [ ] detailed tutorial
+* [ ] Groups from public sheets
 
 # Environment Variables
 

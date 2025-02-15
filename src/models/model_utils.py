@@ -5,6 +5,8 @@ from sqlmodel import create_engine
 import string
 import bcrypt
 
+from models.db_models import RPGGroup
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -26,5 +28,5 @@ sqlite_url = os.getenv("DB_CONNECTION_STRING", f"sqlite:///{sqlite_file_name}")
 engine = create_engine(sqlite_url, echo=False)
 
 
-def questioneer_id(group) -> str:
+def generate_group_name_id(group: RPGGroup) -> str:
     return f"{sanitize_name(group.name)}-{group.id}"

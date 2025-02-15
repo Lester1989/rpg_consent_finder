@@ -15,7 +15,7 @@ from models.controller import (
     join_group,
     leave_group,
 )
-from models.model_utils import questioneer_id
+from models.model_utils import generate_group_name_id
 import logging
 
 from localization.language_manager import get_localization, make_localisable
@@ -159,7 +159,7 @@ def groups_content(lang: str, user: User):
                 make_localisable(
                     ui.button("Details").on_click(
                         lambda group=group: ui.navigate.to(
-                            f"/groupconsent/{questioneer_id(group)}?lang={lang}"
+                            f"/groupconsent/{generate_group_name_id(group)}?lang={lang}"
                         )
                     ),
                     key="details",

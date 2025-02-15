@@ -17,7 +17,7 @@ from models.controller import (
     regenerate_invite_code,
     update_group,
 )
-from models.model_utils import questioneer_id
+from models.model_utils import generate_group_name_id
 
 
 @ui.refreshable
@@ -29,7 +29,9 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
     logging.debug(f"{group_name_id}")
     if not group_name_id:
         group = create_new_group(user)
-        group_name_id = questioneer_id(group)
+        group_name_id = generate_group_name_id(group)
+        ui.navigate.to(f"/groupconsent/{group_name_id}?lang={lang}")
+        return
     group: RPGGroup = get_group_by_name_id(group_name_id)
     if user.id == group.gm_user_id:
         with ui.tabs() as tabs:

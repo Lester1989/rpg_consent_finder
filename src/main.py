@@ -1,8 +1,10 @@
 import io
 import random
 import string
+import traceback
 from fastapi.responses import JSONResponse, HTMLResponse
-from nicegui import ui, app
+from nicegui import ui, app, Client
+from nicegui.page import page
 from models.db_models import User
 from models.controller import (
     get_user_by_id_name,
@@ -16,7 +18,7 @@ from pages.home import content as home_content
 from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
 from pages.admin_page import content as admin_page_content
-from pages.dsgvo import dsgvo_html, dsgvo_css
+from pages.dsgvo import dsgvo_html
 from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.discord import DiscordSSO
@@ -111,9 +113,6 @@ def header(current_page=None, lang: str = "en"):
                 "Sign in with Discord",
                 on_click=lambda: ui.navigate.to("/discord/login"),
             )
-
-
-def impressum():
     impressum_h1_classes = "text-lg lg:text-xl"
     impressum_p_classes = "text-sm lg:text-md"
     with ui.footer(fixed=False).classes("m-0 w-full bg-gray-800 text-white p-4"):
@@ -152,6 +151,24 @@ def dsgvo():
     return HTMLResponse(content=dsgvo_html, media_type="text/html")
 
 
+@app.exception_handler(404)
+async def exception_handler_404(request: Request, exception: Exception) -> Response:
+    with Client(page(""), request=request) as client:
+        ui.label("Sorry, this page does not exist")
+    return client.build_response(request, 404)
+
+
+@app.exception_handler(500)
+async def exception_handler_500(request: Request, exception: Exception) -> Response:
+    stack_trace = traceback.format_exc()
+    msg_to_user = f"**{exception}**\n\nStack trace: \n<pre>{stack_trace}"
+    with Client(page(""), request=request) as client:
+        with ui.card().classes("error-card"):
+            ui.label("500 Application Error").classes("heading")
+            ui.markdown(msg_to_user).classes("message")
+    return client.build_response(request, 500)
+
+
 def startup():
     @ui.page("/impressum")
     def impressum_page(lang: str = "en"):
@@ -169,7 +186,6 @@ def startup():
                 <br />
         E-Mail: l.ester@gmx.de
                 </p>""")
-        impressum()
 
     @ui.page("/")
     def empty_uri(lang: str = "en"):
@@ -179,19 +195,16 @@ def startup():
     def faq(lang: str = "en"):
         header("faq", lang or "en")
         faq_content(lang or "en")
-        impressum()
 
     @ui.page("/content_trigger")
     def content_trigger(lang: str = "en"):
         header("content_trigger", lang or "en")
         content_trigger_view(lang=lang or "en")
-        impressum()
 
     @ui.page("/home")
     def home(lang: str = "en"):
         header("home", lang or "en")
         home_content(lang=lang or "en")
-        impressum()
 
     @ui.page("/welcome")
     def welcome(lang: str = "en"):
@@ -222,13 +235,11 @@ def startup():
                     "Sign in via Discord",
                     on_click=lambda: ui.navigate.to("/discord/login"),
                 )
-        impressum()
 
     @ui.page("/admin")
     def admin(lang: str = "en"):
         header("admin", lang)
         admin_page_content()
-        impressum()
 
     @ui.page("/logout")
     def logout(lang: str = "en"):
@@ -238,33 +249,28 @@ def startup():
 
     @ui.page("/consent/{share_id}/{sheet_id}")
     def public_sheet(share_id: str, sheet_id: str, lang: str = None):
-        header(lang or "en")
+        header(f"consent/{share_id}/{sheet_id}", lang or "en")
         public_sheet_content(lang=lang or "en", share_id=share_id, sheet_id=sheet_id)
-        impressum()
 
     @ui.page("/consentsheet/{questioneer_id}")
     def questioneer(questioneer_id: str, show: str = None, lang: str = None):
-        header(lang or "en")
+        header(f"consentsheet/{questioneer_id}", lang or "en")
         questioneer_content(lang=lang or "en", questioneer_id=questioneer_id, show=show)
-        impressum()
 
     @ui.page("/consentsheet")
     def constentsheet_new(lang: str = "en"):
-        header(lang)
+        header("consentsheet", lang)
         questioneer_content(lang=lang)
-        impressum()
 
     @ui.page("/groupconsent")
     def group_new(lang: str = "en"):
-        header(lang)
+        header("groupconsent", lang)
         group_overview_content(lang=lang)
-        impressum()
 
     @ui.page("/groupconsent/{group_name_id}")
     def groupconsent(group_name_id: str, lang: str = None):
-        header(lang or "en")
+        header(f"groupconsent/{group_name_id}", lang or "en")
         group_overview_content(lang=lang or "en", group_name_id=group_name_id)
-        impressum()
 
     @ui.page("/google/login")
     async def google_login(google_sso: GoogleSSO = Depends(get_google_sso)):
