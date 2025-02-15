@@ -564,6 +564,18 @@ def regenerate_invite_code(group: RPGGroup):
 def delete_group(group: RPGGroup):
     logging.debug(f"delete_group {group}")
     with Session(engine) as session:
+        # remove sheets from group
+        for sheet in group.consent_sheets:
+            group.consent_sheets.remove(sheet)
+        # remove users from group
+        for user in group.users:
+            group.users.remove(user)
+        session.exec(
+            delete(GroupConsentSheetLink).where(
+                GroupConsentSheetLink.group_id == group.id
+            )
+        )
+        session.exec(delete(UserGroupLink).where(UserGroupLink.group_id == group.id))
         session.delete(group)
         session.commit()
         logging.debug(f"deleted {group}")
@@ -574,21 +586,23 @@ def join_group(code: str, user: User):
     logging.debug(f"join_group <{user}> invite_code={code}")
     with Session(engine) as session:
         user = session.get(User, user.id)
-        group = session.exec(
+        if group := session.exec(
             select(RPGGroup).where(RPGGroup.invite_code == code)
-        ).first()
-        if group:
-            if user in group.users:
-                logging.debug(f"already in {group}")
-                return group
-            group.users.append(user)
-            session.merge(group)
-            session.commit()
-            logging.debug(f"joined {group}")
-            return group
-        else:
-            logging.debug(f"no group found {code}")
-            return None
+        ).first():
+            return _join_group(user, group, session)
+        logging.debug(f"no group found {code}")
+        return None
+
+
+def _join_group(user: User, group: RPGGroup, session: Session):
+    if user in group.users:
+        logging.debug(f"already in {group}")
+        return group
+    group.users.append(user)
+    session.merge(group)
+    session.commit()
+    logging.debug(f"joined {group}")
+    return group
 
 
 def leave_group(group: RPGGroup, user: User):
@@ -600,6 +614,18 @@ def leave_group(group: RPGGroup, user: User):
         group.consent_sheets = [
             sheet for sheet in group.consent_sheets if sheet.user_id != user.id
         ]
+        session.exec(
+            delete(UserGroupLink).where(
+                UserGroupLink.user_id == user.id, UserGroupLink.group_id == group.id
+            )
+        )
+        session.exec(
+            delete(GroupConsentSheetLink).where(
+                GroupConsentSheetLink.group_id == group.id,
+                GroupConsentSheetLink.consent_sheet_id == ConsentSheet.id,
+                ConsentSheet.user_id == user.id,
+            )
+        )
         session.merge(group)
         session.commit()
         logging.debug(f"left {group}")

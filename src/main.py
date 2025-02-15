@@ -169,7 +169,7 @@ async def exception_handler_500(request: Request, exception: Exception) -> Respo
     with Client(page(""), request=request) as client:
         language = request.query_params.get("lang", "en")
         header("error", lang=language)
-        with ui.card().classes("p-4 mx-auto bg-red-200 rounded-lg"):
+        with ui.card().classes("p-4 mx-auto border-red-800 rounded-lg"):
             ui.label("Internal Application Error").classes("text-2xl")
             ui.markdown(msg_to_user)
 
