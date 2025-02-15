@@ -1,22 +1,50 @@
-from datetime import datetime
 import logging
+import random
+import string
+from datetime import datetime
+
+from sqlmodel import Session, delete, select
+
 from models.db_models import (
     ConsentEntry,
     ConsentSheet,
     ConsentTemplate,
+    FAQItem,
+    GroupConsentSheetLink,
+    LocalizedText,
     RPGGroup,
     User,
-    GroupConsentSheetLink,
-    UserGroupLink,
-    FAQItem,
     UserContentQuestion,
     UserFAQ,
-    LocalizedText,
+    UserGroupLink,
 )
 from models.model_utils import engine
-from sqlmodel import Session, select, delete
-import random
-import string
+
+
+def get_all_localized_texts() -> dict[int, LocalizedText]:
+    logging.debug("get_all_localized_texts")
+    with Session(engine) as session:
+        return {text.id: text for text in session.exec(select(LocalizedText)).all()}
+
+
+def update_localized_text(text: LocalizedText):
+    logging.debug(f"update_localized_text {text}")
+    with Session(engine) as session:
+        if text.id:
+            orig_text = session.get(LocalizedText, text.id)
+            orig_text.text_de = text.text_de
+            orig_text.text_en = text.text_en
+            session.merge(orig_text)
+            session.commit()
+            session.refresh(orig_text)
+            text.id = orig_text.id
+            logging.debug(f"merged {text}")
+        else:
+            session.add(text)
+            session.commit()
+            session.refresh(text)
+            logging.debug(f"added {text}")
+        return text
 
 
 def store_faq_question(question: str):
@@ -48,12 +76,14 @@ def remove_content_question(content_question: UserContentQuestion):
 
 
 def store_content_answer(
-    category: str,
-    topic: str,
-    explanation: str,
+    category_de: str,
+    topic_de: str,
+    explanation_de: str,
+    topic_en: str,
+    explanation_en: str,
     recommendation: UserContentQuestion = None,
 ):
-    logging.debug(f"store_content_answer {category} {topic} {explanation}")
+    logging.debug(f"store_content_answer {category_de} {topic_de} {explanation_de}")
     with Session(engine) as session:
         if recommendation:
             session.exec(
@@ -61,8 +91,21 @@ def store_content_answer(
                     UserContentQuestion.id == recommendation.id
                 )
             )
+        category = update_localized_text(
+            LocalizedText(text_de=category_de, text_en=category_de)
+        )
+        topic = update_localized_text(LocalizedText(text_de=topic_de, text_en=topic_en))
+        explanation = update_localized_text(
+            LocalizedText(text_de=explanation_de, text_en=explanation_en)
+        )
+
         content_template = ConsentTemplate(
-            category=category, topic=topic, explanation=explanation
+            category_id=category.id,
+            category_local=category,
+            topic_id=topic.id,
+            topic_local=topic,
+            explanation_id=explanation.id,
+            explanation_local=explanation,
         )
         session.add(content_template)
         session.commit()
@@ -70,11 +113,23 @@ def store_content_answer(
         return content_template
 
 
-def store_faq_answer(question: str, answer: str, faq_question: UserFAQ = None):
+def store_faq_answer(
+    question_de: str,
+    question_en: str,
+    answer_de: str,
+    answer_en: str,
+    faq_question: UserFAQ = None,
+):
     logging.debug(f"store_faq_answer {question} to {faq_question.id}")
     with Session(engine) as session:
         if faq_question:
             session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))
+        question = update_localized_text(
+            LocalizedText(text_de=question_de, text_en=question_en)
+        )
+        answer = update_localized_text(
+            LocalizedText(text_de=answer_de, text_en=answer_en)
+        )
         faq = FAQItem(question=question, answer=answer)
         session.add(faq)
         session.commit()
@@ -120,6 +175,10 @@ def get_status():
         user_count = len(session.exec(select(User)).all())
         group_sheet_links = len(session.exec(select(GroupConsentSheetLink)).all())
         user_group_links = len(session.exec(select(UserGroupLink)).all())
+        local_texts = len(session.exec(select(LocalizedText)).all())
+        faq_items = len(session.exec(select(FAQItem)).all())
+        content_questions = len(session.exec(select(UserContentQuestion)).all())
+        faq_questions = len(session.exec(select(UserFAQ)).all())
         return {
             "sheets": (sheet_count, clear_sheets),
             "entries": (entry_count, clear_entries),
@@ -128,6 +187,10 @@ def get_status():
             "users": (user_count, clear_users),
             "group_sheet_links": (group_sheet_links, clear_group_sheet_links),
             "user_group_links": (user_group_links, clear_user_group_links),
+            "local_texts": (local_texts, clear_texts),
+            "faq_items": (faq_items, lambda: None),
+            "content_questions": (content_questions, lambda: None),
+            "faq_questions": (faq_questions, lambda: None),
         }
 
 
@@ -183,6 +246,14 @@ def clear_templates():
     logging.debug("clear_templates")
     with Session(engine) as session:
         logging.debug(session.exec(delete(ConsentTemplate)).rowcount)
+        session.commit()
+        return get_status()
+
+
+def clear_texts():
+    logging.debug("clear_texts")
+    with Session(engine) as session:
+        logging.debug(session.exec(delete(LocalizedText)).rowcount)
         session.commit()
         return get_status()
 
@@ -424,18 +495,6 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
         session.commit()
         session.refresh(sheet)
         return sheet
-
-
-def get_localized_text(id: int) -> LocalizedText:
-    logging.debug(f"get_localized_text {id}")
-    with Session(engine) as session:
-        return session.get(LocalizedText, id)
-
-
-def get_all_localized_texts() -> dict[int, LocalizedText]:
-    logging.debug("get_all_localized_texts")
-    with Session(engine) as session:
-        return {text.id: text for text in session.exec(select(LocalizedText)).all()}
 
 
 def duplicate_sheet(sheet_id: int, user_id_name):

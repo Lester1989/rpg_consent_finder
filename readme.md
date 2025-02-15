@@ -13,8 +13,9 @@
 * [ ] Group creation with existing sheet
 * [ ] Login without SSO
 * [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
-* [ ] detailed tutorial
 * [ ] Groups from public sheets
+* [X] Admin interface to modify texts
+* [ ] Radar plot for different playstyles (explorer, socializer, achiever, killer)
 
 # Environment Variables
 

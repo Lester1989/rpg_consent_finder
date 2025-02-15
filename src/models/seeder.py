@@ -212,11 +212,11 @@ def seed_consent_questioneer():
         ),
         "Gesundheit-Platzangst": (
             "Das Darstellen von Platzangst oder klaustrophobischen Situationen.",
-            "Representing claustrophobia or claustrophobic situations.",
+            "Representing claustrophobic situations.",
         ),
         "Gesundheit-Raumangst": (
             "Das Darstellen von Raumangst oder agoraphobischen Situationen.",
-            "Representing claustrophobia or agoraphobic situations.",
+            "Representing agoraphobic situations.",
         ),
         "Gesundheit-Erfrieren": (
             "Das Darstellen von Erfrieren oder Erfrierung.",
@@ -503,15 +503,49 @@ def seed_faq():
         session.commit()
         for question_de, question_en in faqs.keys():
             logging.debug(f"Question: {question_de[:20]}...")
-            local_question = LocalizedText(text_en=question_en, text_de=question_de)
-            local_answer = LocalizedText(
+            existing_question = session.exec(
+                select(LocalizedText).where(
+                    LocalizedText.text_de == question_de,
+                    LocalizedText.text_en == question_en,
+                )
+            ).first()
+            existing_answer = session.exec(
+                select(LocalizedText).where(
+                    LocalizedText.text_de == faqs[(question_de, question_en)][0],
+                    LocalizedText.text_en == faqs[(question_de, question_en)][1],
+                )
+            ).first()
+
+            local_question = existing_question or LocalizedText(
+                text_en=question_en, text_de=question_de
+            )
+            local_answer = existing_answer or LocalizedText(
                 text_en=faqs[(question_de, question_en)][1],
                 text_de=faqs[(question_de, question_en)][0],
             )
-            session.add_all([local_question, local_answer])
-            session.commit()
-            session.refresh(local_question)
-            session.refresh(local_answer)
+            if local_question.id:
+                session.merge(local_question)
+                session.commit()
+            else:
+                session.add(local_question)
+                session.commit()
+                session.refresh(local_question)
+            if local_answer.id:
+                session.merge(local_answer)
+                session.commit()
+            else:
+                session.add(local_answer)
+                session.commit()
+                session.refresh(local_answer)
+
+            existing_faq = session.exec(
+                select(FAQItem).where(
+                    FAQItem.question_id == local_question.id,
+                    FAQItem.answer_id == local_answer.id,
+                )
+            ).first()
+            if existing_faq:
+                continue
             session.add(
                 FAQItem(
                     answer_id=local_answer.id,
