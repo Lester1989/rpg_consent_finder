@@ -31,7 +31,8 @@ topic_translations = {
     "Verletzen von Hilflosen": "Hurting Helpless",
     "Pädophile": "Pedophiles",
     "Ratten": "Rats",
-    "Spinnen / Insekten": "Spiders / Insects",
+    "Spinnen": "Spiders",
+    "Insekten": "Insects",
     "Hilflosigkeit": "Helplessness",
     "Bedeutungslosigkeit": "Meaninglessness",
     "Schwarzblende": "Fade to Black",
@@ -102,9 +103,17 @@ def seed_consent_questioneer():
             "Ratten oder andere Nagetiere(bitte als Kommentar angeben), die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Ratten oder das Beschreiben von Ratten sein.",
             "Rats or other rodents (please specify as a comment) that appear in a horror context. This can also be showing rats or describing rats.",
         ),
-        "Horror-Spinnen / Insekten": (
-            "Spinnen oder Insekten, die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Spinnen oder Insekten oder das Beschreiben von Spinnen oder Insekten sein.",
-            "Spiders or insects that appear in a horror context. This can also include showing spiders or insects or describing spiders or insects.",
+        "Horror-Spinnen": (
+            "Spinnen die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Spinnen oder das Beschreiben von Spinnen sein.",
+            "Spiders that appear in a horror context. This can also include showing spiders or describing spiders.",
+        ),
+        "Horror-Insekten": (
+            "Insekten, die in einem Horror-Kontext auftreten. Das kann auch das Zeigen von Insekten oder das Beschreiben von Insekten sein.",
+            "Insects that appear in a horror context. This can also include showing insects or describing insects.",
+        ),
+        "Horror-Zähne": (
+            "Das Zeigen oder Beschreiben von Zähnen in einem Horrorkontext. Das könnte die Beschreibung von Zahnverletzungen, Zahnverlust oder Zahnverfall sein. Auch Szenen beim Zahnarzt oder Ähnlichem können gemeint sein.",
+            "Showing or describing teeth in a horror context. This could be the description of tooth injuries, tooth loss or tooth decay. Scenes at the dentist or similar could also be meant.",
         ),
         "Horror-Hilflosigkeit": (
             "Hilflosigkeit oder Ausgeliefertsein in einem Horror-Kontext.",
@@ -483,19 +492,46 @@ def seed_faq():
         ),
         ("Welche Features sind geplant?", "What features are planned?"): (
             """
-    * Gruppenerstellung mit vorhandenem Sheet
-    * Login ohne SSO
-    * Anonyme Public Sheets -> Sheet mit Passcode und ohne jegliche Kommentare
-    * ausführliches Tutorial
-    * Gruppen aus public Sheets
-    """,
+            * Gruppenerstellung mit vorhandenem Sheet
+            * Login ohne SSO
+            * Anonyme Public Sheets -> Sheet mit Passcode und ohne jegliche Kommentare
+            * ausführliches Tutorial
+            * Gruppen aus public Sheets
+            """,
             """
-    * Group creation with existing sheet
-    * Login without SSO
-    * Anonymous Public Sheets -> Sheet with Passcode and without any comments
-    * detailed tutorial
-    * Groups from public sheets
-    """,
+            * Group creation with existing sheet
+            * Login without SSO
+            * Anonymous Public Sheets -> Sheet with Passcode and without any comments
+            * detailed tutorial
+            * Groups from public sheets
+            """,
+        ),
+        (
+            "Wie finde ich mit meiner Gruppe einen Konsent zu den Themen?",
+            "How do I find a consensus with my group on the topics?",
+        ): (
+            """
+Dafür ist die Gruppenfunktion gedacht, dazu gehst du/ihr wie folgt vor:
+1. Alle melden sich hier an.
+2. Du bist SL und erstellst eine Gruppe. Denk an einen passenden Namen, damit du und die Aanderen sie wiedererkennen.
+3. Du gibst den Einladungs-Code an alle in deiner Gruppe weiter.
+4. Die anderen geben den Code ein und treten der Gruppe bei.
+5. Du erstellst den GM-Sheet für die Gruppe.
+6. Alle Anderen füllen einen Sheet aus und weisen ihn der Gruppe zu.
+
+Nun könnt ihr alle in der Gruppe den gebildeten Konsent sehen.
+""",
+            """
+This is what the group function is for, here's how you/you proceed:
+1. Everyone signs up here.
+2. You are the GM and create a group. Think of a suitable name so that you and the others can recognize it.
+3. You pass the invite-code on to everyone in your group.
+4. The others enter the code and join the group.
+5. You create the GM-Sheet for the group.
+6. Everyone else fills out a sheet and assigns it to the group.
+
+Now everyone in the group can see the consensus formed.
+""",
         ),
     }
     with Session(engine) as session:

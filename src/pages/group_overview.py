@@ -16,8 +16,14 @@ from models.controller import (
     leave_group,
     regenerate_invite_code,
     update_group,
+    assign_consent_sheet_to_group,
 )
 from models.model_utils import generate_group_name_id
+
+
+def reload_after(func, *args, **kwargs):
+    func(*args, **kwargs)
+    content.refresh()
 
 
 @ui.refreshable
@@ -64,6 +70,15 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
                         key="no_sheet_assigned",
                         language=lang,
                     )
+                    for consent_sheet in user.consent_sheets:
+                        ui.button(
+                            consent_sheet.display_name,
+                            on_click=lambda consent_sheet=consent_sheet: (
+                                reload_after(
+                                    assign_consent_sheet_to_group, consent_sheet, group
+                                ),
+                            ),
+                        )
 
         with ui.tab_panel(general_tab):
             general_tab_content(lang, group, is_gm)

@@ -27,7 +27,9 @@ def content(lang: str = "en", **kwargs):
         key="consent_topics",
         language=lang,
     )
-    with ui.grid().classes("lg:grid-cols-2 gap-4 lg:w-5/6 w-full grid-cols-1 mx-auto"):
+    with ui.grid().classes(
+        "lg:grid-cols-2 gap-4 lg:w-5/6 w-full grid-cols-1 mx-auto 2xl:w-2/3"
+    ):
         for topic in topics:
             with ui.column().classes(
                 "w-full gap-0 p-2 rounded-lg shadow-sm shadow-white"

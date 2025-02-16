@@ -57,9 +57,9 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         tabs, value=edit_tab if kwargs.get("show", "") == "edit" else display_tab
     ).classes("w-full") as panels:
         with ui.tab_panel(display_tab):
-            sheet_display = SheetDisplayComponent(sheet, lang)
+            sheet_display = SheetDisplayComponent(sheet, lang=lang)
         with ui.tab_panel(edit_tab):
-            SheetEditableComponent(sheet, lang)
+            SheetEditableComponent(sheet, lang=lang)
         with ui.tab_panel(groups_tab):
             with ui.grid(columns=2):
                 for group in user.groups:

@@ -18,13 +18,13 @@ def store_user_faq(user_faq: str, lang: str = "en"):
 @ui.refreshable
 def content(lang: str = "en", **kwargs):
     faq_items = get_all_faq()
-    with ui.grid().classes("gap-4 mx-auto lg:grid-cols-2 grid-cols-1"):
+    with ui.grid().classes("gap-4 mx-auto lg:grid-cols-2 grid-cols-1 2xl:w-2/3"):
         for faq_item in faq_items:
             FAQElementComponent(
                 faq_item.question_local.get_text(lang),
                 faq_item.answer_local.get_text(lang),
             )
-    with ui.card().classes("w-5/6 mx-auto"):
+    with ui.card().classes("w-5/6 mx-auto 2xl:w-2/3"):
         user_faq = ui.textarea("Neue Frage").classes("w-full")
         make_localisable(
             user_faq,
