@@ -71,6 +71,7 @@ def login(account: str, password: str, lang: str):
 
 
 def register_form(lang: str):
+    make_localisable(ui.label(), key="register_hint", language=lang)
     account_input = ui.input(
         "Account Name", validation={"Too short": lambda value: len(value) >= 5}
     ).classes("w-full")

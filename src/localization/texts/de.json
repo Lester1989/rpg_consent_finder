@@ -69,5 +69,6 @@
     "no_groups": "Du bist in keiner Gruppe, erstelle eine oder trete einer bei.",
     "content": "Content",
     "add_entry": "Eintrag hinzufügen",
-    "empty_custom_entries_will_be_deleted": "Leere Einträge werden gelöscht"
+    "empty_custom_entries_will_be_deleted": "Leere Einträge werden gelöscht",
+    "register_hint": "Die Seite ist noch im Aufbau! Aktuell gibt es keine Möglichkeit zur Passwortwiederherstellung. Bitte merke dir dein Passwort gut oder speichere es in einem Passwortmanager."
 }

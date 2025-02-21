@@ -73,8 +73,12 @@ def get_discord_sso() -> DiscordSSO:
 def header(current_page=None, lang: str = "en"):
     link_classes = "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
     highlight = " shadow-md shadow-yellow-500"
-    with ui.row().classes("m-0 w-full bg-gray-800 text-white p-4"):
-        ui.label("RPG Content Consent Finder").classes("text-xl lg:text-3xl")
+    with ui.row().classes("m-0 w-full bg-gray-800 text-white p-2"):
+        with ui.column(align_items="start").classes("gap-0 p-0 m-0"):
+            ui.label("RPG Content Consent Finder").classes(
+                "text-md lg:text-2xl p-0 m-0"
+            )
+            ui.label("0.1.12").classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)

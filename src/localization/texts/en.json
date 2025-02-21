@@ -69,5 +69,6 @@
     "no_groups": "You are not part of any group yet. Create or join one to get started!",
     "content": "Content",
     "add_entry": "Add Entry",
-    "empty_custom_entries_will_be_deleted": "Empty custom entries will be deleted"
+    "empty_custom_entries_will_be_deleted": "Empty custom entries will be deleted",
+    "register_hint": "This Page is still in development. Password-/Account-Recovery is not implemented yet! Store your password in a safe place."
 }
