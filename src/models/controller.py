@@ -1,10 +1,11 @@
 import logging
 import random
+import time
 import string
 from datetime import datetime
 
 from sqlmodel import Session, delete, select
-
+from models.model_utils import hash_password, check_password
 from models.db_models import (
     ConsentEntry,
     ConsentSheet,
@@ -17,8 +18,51 @@ from models.db_models import (
     UserContentQuestion,
     UserFAQ,
     UserGroupLink,
+    UserLogin,
+    CustomConsentEntry,
 )
 from models.model_utils import engine
+from utlis import sanitize_name
+
+
+def get_user_by_account_and_password(account_name: str, password: str) -> User:
+    logging.debug(
+        f"get_user_by_account_and_password {account_name} and <redacted {len(password) if password else -1} chars>"
+    )
+    with Session(engine) as session:
+        user_login = session.exec(
+            select(UserLogin).where(UserLogin.account_name == account_name)
+        ).first()
+        logging.debug(f"found {user_login}")
+        if user_login and check_password(password, user_login.password_hash):
+            return session.get(User, user_login.user_id)
+        logging.debug("login failed ")
+        time.sleep(random.random() * 0.1)  # prevent timing attacks
+        return None
+
+
+def create_user_account(account_name: str, password: str) -> User:
+    logging.debug(f"create_user_account {account_name}")
+    with Session(engine) as session:
+        if session.exec(
+            select(UserLogin).where(UserLogin.account_name == account_name)
+        ).first():
+            raise ValueError("AccountName already in use")
+        user = User(id_name=f"custom-{account_name}", nickname="")
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        user_login = UserLogin(
+            user_id=user.id,
+            user=user,
+            account_name=account_name,
+            password_hash=hash_password(password),
+        )
+        session.add(user_login)
+        session.commit()
+        session.refresh(user_login)
+        logging.debug(f"created {user} and {user_login}")
+        return user
 
 
 def get_all_localized_texts() -> dict[int, LocalizedText]:
@@ -317,8 +361,11 @@ def get_user_by_id_name(user_id: str, session: Session = None) -> User:
         with Session(engine) as session:
             return get_user_by_id_name(user_id, session)
 
-    found = session.exec(select(User).where(User.id_name == user_id)).first()
-    if found:
+    if found := session.exec(select(User).where(User.id_name == user_id)).first():
+        for group in found.groups:
+            group.name = sanitize_name(group.name)
+        session.commit()
+        session.refresh(found)
         return found
     logging.debug(f"User not found {user_id}")
     all_users = session.exec(select(User)).all()
@@ -329,9 +376,8 @@ def get_user_by_id_name(user_id: str, session: Session = None) -> User:
 def get_consent_sheet_by_id(sheet_id: int) -> ConsentSheet:
     logging.debug(f"get_consent_sheet_by_id {sheet_id}")
     with Session(engine) as session:
-        sheet = session.get(ConsentSheet, sheet_id)
-        # check entries
-        if sheet:
+        if sheet := session.get(ConsentSheet, sheet_id):
+            # check entries
             templates = get_all_consent_topics()
             for template in templates:
                 if not sheet.get_entry(template.id):
@@ -372,18 +418,30 @@ def update_consent_sheet(sheet: ConsentSheet):
 
 def create_share_id():
     with Session(engine) as session:
+        existing_share_ids = set(
+            session.exec(select(ConsentSheet.public_share_id)).all()
+        )
         share_id = "".join(random.choices(string.ascii_letters + string.digits, k=8))
-        collision = session.exec(
-            select(ConsentSheet).where(ConsentSheet.public_share_id == share_id)
-        ).first()
-        while collision:
+        while share_id in existing_share_ids:
             share_id = "".join(
                 random.choices(string.ascii_letters + string.digits, k=12)
             )
-            collision = session.exec(
-                select(ConsentSheet).where(ConsentSheet.public_share_id == share_id)
-            ).first()
         return share_id
+
+
+def update_custom_entry(entry: CustomConsentEntry):
+    logging.debug(f"update_custom_entry {entry}")
+    with Session(engine) as session:
+        if entry.id:
+            logging.debug(f"saved {entry}")
+            session.merge(entry)
+            session.commit()
+        else:
+            session.add(entry)
+            session.commit()
+            session.refresh(entry)
+            logging.debug(f"saved {entry}")
+            return entry
 
 
 def update_entry(entry: ConsentEntry):
@@ -437,7 +495,11 @@ def get_all_consent_topics() -> list[ConsentTemplate]:
 def get_group_by_id(group_id: int) -> RPGGroup:
     logging.debug(f"get_group_by_id {group_id}")
     with Session(engine) as session:
-        return session.get(RPGGroup, group_id)
+        if group := session.get(RPGGroup, group_id):
+            group.name = sanitize_name(group.name)
+            session.commit()
+            session.refresh(group)
+            return group
 
 
 def get_group_by_name_id(group_name_id: str):
@@ -453,13 +515,13 @@ def get_group_by_name_id(group_name_id: str):
         ):
             return group
         elif group:
-            raise ValueError("Mismatch questioneer_id: " + group_name_id, group.name)
+            raise ValueError(f"Mismatch questioneer_id: {group_name_id}", group.name)
         else:
             groups = session.exec(select(RPGGroup)).all()
             for group in groups:
                 logging.debug(str(group))
 
-        raise ValueError("Invalid questioneer_id: " + group_name_id)
+        raise ValueError(f"Invalid questioneer_id: {group_name_id}")
 
 
 def create_new_consentsheet(user: User) -> ConsentSheet:
@@ -574,7 +636,7 @@ def create_new_group(user: User) -> RPGGroup:
     with Session(engine) as session:
         sheet = create_new_consentsheet(user)
         group = RPGGroup(
-            name=user.nickname + " Group",
+            name=sanitize_name(f"{user.nickname}-Group"),
             gm_id=user.id,
             gm_user=user,
             gm_consent_sheet_id=sheet.id,
@@ -598,6 +660,7 @@ def create_new_group(user: User) -> RPGGroup:
 def update_group(group: RPGGroup):
     logging.debug(f"update_group {group}")
     with Session(engine) as session:
+        group.name = sanitize_name(group.name)
         session.merge(group)
         session.commit()
         logging.debug(f"merged {group}")

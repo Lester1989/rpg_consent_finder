@@ -1,7 +1,7 @@
 from nicegui import ui
 
 from models.controller import get_consent_template_by_id
-from models.db_models import ConsentEntry, ConsentTemplate
+from models.db_models import ConsentEntry, ConsentTemplate, ConsentStatus
 import logging
 
 
@@ -25,18 +25,16 @@ class ConsentDisplayComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
-        group_consent = (
-            sorted(self.consents, key=lambda x: x.preference.order)[-1]
-            if self.consents
-            else None
+        group_consent = ConsentStatus.get_consent(
+            [consent.preference for consent in self.consents]
         )
         with self.classes("w-full"):
             ui.label(self.consent_template.topic_local.get_text(self.lang)).classes(
                 "text-md"
             ).tooltip(self.consent_template.explanation_local.get_text(self.lang))
             ui.space()
-            ui.label(f"{group_consent.preference.as_emoji}").tooltip(
-                group_consent.preference.explanation(self.lang)
+            ui.label(f"{group_consent.as_emoji}").tooltip(
+                group_consent.explanation(self.lang)
             )
 
             ui.label(self.consents[0].comment).classes("text-md")

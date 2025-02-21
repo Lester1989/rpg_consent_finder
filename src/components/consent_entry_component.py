@@ -40,7 +40,7 @@ class ConsentEntryComponent(ui.row):
                 ui.input("Comment")
                 .bind_visibility_from(self.comment_toggle, "value")
                 .bind_value(self.consent_entry, "comment")
-            )
+            ).on("focusout", lambda _: update_entry(self.consent_entry))
             make_localisable(self.comment_input, key="comment", language=self.lang)
 
 

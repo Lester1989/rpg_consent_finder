@@ -6,6 +6,7 @@ import string
 import bcrypt
 
 from models.db_models import RPGGroup
+from utlis import sanitize_name
 
 
 def hash_password(password: str) -> str:
@@ -14,10 +15,6 @@ def hash_password(password: str) -> str:
 
 def check_password(password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
-
-
-def sanitize_name(name: str) -> str:
-    return "".join(c for c in name if c in string.ascii_letters + string.digits).lower()
 
 
 sqlite_file_name = Path("db", "database.sqlite")

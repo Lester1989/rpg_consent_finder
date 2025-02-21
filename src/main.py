@@ -5,6 +5,7 @@ import traceback
 from fastapi.responses import JSONResponse, HTMLResponse
 from nicegui import ui, app, Client
 from nicegui.page import page
+from localization.language_manager import make_localisable
 from models.db_models import User
 from models.controller import (
     get_user_by_id_name,
@@ -18,6 +19,7 @@ from pages.home import content as home_content
 from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
 from pages.admin_page import content as admin_page_content
+from pages.login_page import content as login_page_content
 from pages.dsgvo import dsgvo_html
 from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
@@ -77,15 +79,18 @@ def header(current_page=None, lang: str = "en"):
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
             if not user and current_page in {"home", "admin"}:
-                ui.navigate.to(f"/content_trigger?lang={lang}")
+                ui.navigate.to(f"/welcome?lang={lang}")
                 return
             ui.label(f"Hi {user.nickname if user else ''}!").classes(
                 "text-md lg:text-xl mt-1"
             )
+        else:
+            user = None
         ui.space()
-        ui.link("Home", f"/home?lang={lang}").classes(
-            link_classes + (highlight if current_page == "home" else "")
-        )
+        if user:
+            ui.link("Home", f"/home?lang={lang}").classes(
+                link_classes + (highlight if current_page == "home" else "")
+            )
         ui.link("Contents", f"/content_trigger?lang={lang}").classes(
             link_classes + (highlight if current_page == "content_trigger" else "")
         )
@@ -106,12 +111,9 @@ def header(current_page=None, lang: str = "en"):
                 link_classes.replace("bg-gray-600", "bg-red-800")
             )
         else:
-            ui.button(
-                "Sign in with Google", on_click=lambda: ui.navigate.to("/google/login")
-            )
-            ui.button(
-                "Sign in with Discord",
-                on_click=lambda: ui.navigate.to("/discord/login"),
+            ui.link("Login", f"/welcome?lang={lang}").classes(
+                link_classes
+                + (highlight if current_page in {"welcome", "login"} else "")
             )
     impressum_h1_classes = "text-lg lg:text-xl"
     impressum_p_classes = "text-sm lg:text-md"
@@ -196,7 +198,12 @@ def startup():
 
     @ui.page("/")
     def empty_uri(lang: str = "en"):
-        return ui.navigate.to(f"/home?lang={lang}")
+        return ui.navigate.to(f"/welcome?lang={lang}")
+
+    @ui.page("/login")
+    def login(lang: str = "en"):
+        header("login", lang)
+        login_page_content(lang=lang)
 
     @ui.page("/faq")
     def faq(lang: str = "en"):
@@ -221,7 +228,7 @@ def startup():
             logging.debug(f"welcoming {user}")
             if not user or not user.nickname:
                 ui.label("Welcome, yet unknown user").classes("text-2xl")
-                new_user = User(
+                new_user = user or User(
                     id_name=user_id,
                     nickname="",
                 )
@@ -234,13 +241,22 @@ def startup():
         else:
             logging.debug("no user_id")
             with ui.card().classes("p-4 mx-auto"):
+                make_localisable(
+                    ui.label("Welcome, please sign in").classes("text-2xl"),
+                    key="welcome_signin",
+                    language=lang,
+                )
                 ui.button(
-                    "Sign in via Google",
+                    "Log/Sign in via Google",
                     on_click=lambda: ui.navigate.to("/google/login"),
                 )
                 ui.button(
-                    "Sign in via Discord",
+                    "Log/Sign in via Discord",
                     on_click=lambda: ui.navigate.to("/discord/login"),
+                )
+                ui.button(
+                    "Log/Sign in via Account and Password",
+                    on_click=lambda: ui.navigate.to("/login"),
                 )
 
     @ui.page("/admin")

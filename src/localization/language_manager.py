@@ -134,6 +134,8 @@ def make_localisable(
     component_localizations = (component_localizations or {}) | localizations.get(
         key, {}
     )
+    if not component_localizations:
+        logging.warning(f"No localization found for {key}")
     if options_key:
         option_localizations = (option_localizations or {}) | localizations.get(
             options_key, {}

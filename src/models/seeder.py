@@ -70,6 +70,7 @@ topic_translations = {
     "Psychische Gewalt": "Mental Abuse",
     "Folter": "Torture",
     "Verwahrlosung": "Neglect",
+    "Zähne": "Teeth",
 }
 
 

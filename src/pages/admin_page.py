@@ -1,3 +1,4 @@
+import logging
 import os
 from nicegui import ui, app
 
@@ -35,6 +36,7 @@ def content(**kwargs):
         return
     user_id = app.storage.user.get("user_id")
     if user_id not in ADMINS:
+        logging.debug(f"User {user_id} is not an admin")
         ui.label("Not an admin")
         ui.link("Home", "/home")
         return

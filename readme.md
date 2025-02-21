@@ -10,12 +10,15 @@
 * [ ] Consent Sheet Reuse for group creation
 * [X] Group summary
 * [X] Commenting
-* [ ] Group creation with existing sheet
-* [ ] Login without SSO
+* [X] Login without SSO
 * [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
 * [ ] Groups from public sheets
 * [X] Admin interface to modify texts
 * [ ] Radar plot for different playstyles (explorer, socializer, achiever, killer)
+* [X] Custom Triggers for Consent Sheet
+  * [ ] Shared in Group
+* [X] Consent Summary preference based
+* [X] sanitize group names
 
 # Environment Variables
 
@@ -30,6 +33,14 @@
 * SEED_ON_STARTUP used to seed the database on startup. Default is `False`.
 * RELOAD used to reload the server on code changes. Default is `False`.
 * STORAGE_SECRET used to encrypt the storage. Default is random string on every restart.
+
+```ps1
+$env:DB_CONNECTION_STRING = "sqlite:///db/database.sqlite"
+$env:LOGLEVEL = "INFO"
+$env:ADMINS = ""
+$env:SEED_ON_STARTUP = "true"
+$env:RELOAD = "true"
+```
 
 # User Stories
 ## GENERAL: new User

@@ -5,16 +5,21 @@ from components.consent_entry_component import (
     CategoryEntryComponent,
     ConsentEntryComponent,
 )
-from localization.language_manager import make_localisable
+from components.custom_consent_entry_component import CustomConsentEntryComponent
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     ConsentTemplate,
     ConsentSheet,
+    CustomConsentEntry,
+    ConsentStatus,
 )
 from models.controller import (
     create_share_id,
     get_all_consent_topics,
     get_all_localized_texts,
+    get_consent_sheet_by_id,
     update_consent_sheet,
+    update_custom_entry,
 )
 
 
@@ -28,6 +33,10 @@ class SheetEditableComponent(ui.grid):
     def __init__(self, consent_sheet: ConsentSheet, lang: str = "en"):
         super().__init__()
         self.sheet = consent_sheet
+
+        self.sheet.custom_consent_entries = [
+            cce for cce in self.sheet.custom_consent_entries if cce.content != ""
+        ]
         logging.debug(self.sheet)
         self.lang = lang
         self.text_lookup = get_all_localized_texts()
@@ -97,3 +106,50 @@ class SheetEditableComponent(ui.grid):
                             )
                             for topic in templates
                         ]
+            with ui.card().classes(
+                f"row-span-{(len(self.sheet.custom_consent_entries) // 2) + 1}"
+            ):
+                empty_entries = 0
+                for custom_entry in self.sheet.custom_consent_entries:
+                    if custom_entry.content == "":
+                        empty_entries += 1
+                        if empty_entries > 1:
+                            continue
+                    CustomConsentEntryComponent(custom_entry, lang=self.lang)
+                add_button = ui.button("Add Entry", on_click=self.add_custom_entry)
+                add_button.bind_enabled_from(
+                    self.sheet,
+                    "custom_consent_entries",
+                    backward=lambda custom_consent_entries: len(
+                        [
+                            entry
+                            for entry in custom_consent_entries
+                            if entry.content == ""
+                        ]
+                    )
+                    < 2,
+                )
+                make_localisable(
+                    add_button,
+                    key="add_entry",
+                    language=self.lang,
+                )
+                make_localisable(
+                    ui.label("empty_custom_entries_will_be_deleted").classes(
+                        "text-sm text-gray-500"
+                    ),
+                    key="empty_custom_entries_will_be_deleted",
+                    language=self.lang,
+                )
+
+    def add_custom_entry(self):
+        new_entry = CustomConsentEntry(
+            consent_sheet_id=self.sheet.id,
+            consent_sheet=self.sheet,
+            content="",
+            preference=ConsentStatus.unknown,
+            comment="",
+        )
+        update_custom_entry(new_entry)
+        self.sheet = get_consent_sheet_by_id(self.sheet.id)
+        self.content.refresh()

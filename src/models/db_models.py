@@ -45,6 +45,18 @@ class ConsentStatus(str, Enum):
             ConsentStatus.no: 4,
         }[self]
 
+    @staticmethod
+    def get_consent(statuses: list["ConsentStatus"]):
+        return (
+            sorted(statuses, key=lambda x: x.order, reverse=True)[0]
+            if statuses
+            else ConsentStatus.unknown
+        )
+
+    @staticmethod
+    def ordered() -> list["ConsentStatus"]:
+        return sorted(list(ConsentStatus), key=lambda x: x.order, reverse=True)
+
     def explanation(self, lang: str = ""):
         if lang == "de":
             return self.explanation_de()
@@ -136,12 +148,23 @@ class ConsentTemplate(SQLModel, table=True):
         return f"<ConsentTemplate {self.id} {self.category} {self.topic}>"
 
 
+class UserLogin(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    user_id: int = Field(default=None, foreign_key="user.id")
+    user: "User" = Relationship(sa_relationship_kwargs={"lazy": LAZY_MODE})
+    account_name: str = Field(default=None, index=True, unique=True)
+    password_hash: str = Field(default=None)
+
+    def __repr__(self):
+        return f"<UserLogin {self.id} user:{self.user_id} {self.user.nickname} {self.account_name}>"
+
+
 class User(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     id_name: str = Field(default=None, index=True, unique=True)
     nickname: str = Field(default=None)
     created_at: datetime = Field(default=datetime.now())
-    last_login: datetime = Field(default=datetime.now())
+    last_login: datetime = Field(default=datetime.now())  # not used yet
 
     consent_sheets: list["ConsentSheet"] = Relationship(
         back_populates="user",
@@ -153,6 +176,9 @@ class User(SQLModel, table=True):
         link_model=UserGroupLink,
         sa_relationship_kwargs={"lazy": LAZY_MODE},
     )
+
+    def __repr__(self):
+        return f"<User {self.id} {self.id_name} {self.nickname} [{len(self.consent_sheets)} sheets] [{len(self.groups)} groups]>"
 
 
 class ConsentSheet(SQLModel, table=True):
@@ -170,7 +196,11 @@ class ConsentSheet(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": LAZY_MODE},
         cascade_delete=True,
     )
-
+    custom_consent_entries: list["CustomConsentEntry"] = Relationship(
+        back_populates="consent_sheet",
+        sa_relationship_kwargs={"lazy": LAZY_MODE},
+        cascade_delete=True,
+    )
     groups: list["RPGGroup"] = Relationship(
         back_populates="consent_sheets",
         link_model=GroupConsentSheetLink,
@@ -204,6 +234,18 @@ class ConsentEntry(SQLModel, table=True):
     consent_template: "ConsentTemplate" = Relationship(
         sa_relationship_kwargs={"lazy": LAZY_MODE}
     )
+    preference: ConsentStatus = Field(default=ConsentStatus.unknown)
+    comment: str | None = Field(default=None)
+
+
+class CustomConsentEntry(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    consent_sheet_id: int = Field(default=None, foreign_key="consentsheet.id")
+    consent_sheet: "ConsentSheet" = Relationship(
+        back_populates="custom_consent_entries",
+        sa_relationship_kwargs={"lazy": LAZY_MODE},
+    )
+    content: str = Field(default=None)
     preference: ConsentStatus = Field(default=ConsentStatus.unknown)
     comment: str | None = Field(default=None)
 
