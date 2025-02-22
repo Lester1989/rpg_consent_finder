@@ -26,8 +26,6 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
     sheet: ConsentSheet = None
     sheets: list[ConsentSheet] = None
     redact_name: bool
-    categories: list[int]
-    grouped_topics: dict[int, list[ConsentTemplate]]
     lang: str
     text_lookup: dict[int, LocalizedText]
 
@@ -47,15 +45,6 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         self.text_lookup = get_all_localized_texts()
         self.redact_name = redact_name
         self.templates: list[ConsentTemplate] = get_all_consent_topics()
-        self.categories = sorted(list({topic.category_id for topic in self.templates}))
-        self.grouped_topics = {
-            category_id: [
-                template
-                for template in self.templates
-                if template.category_id == category_id
-            ]
-            for category_id in self.categories
-        }
         self.content()
 
     @property
@@ -172,7 +161,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         with ui.row().classes("w-full bg-gray-700 p-2 rounded-lg"):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
-            if self.sheet and self.sheet.public_share_id:
+            if self.sheet and self.sheet.public_share_id and not self.redact_name:
                 with ui.expansion("Share Link") as share_expansion:
                     make_localisable(
                         share_expansion, key="share_link_expansion", language=self.lang
@@ -180,11 +169,11 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                     make_localisable(
                         ui.link(
                             "Link to this sheet",
-                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}&lang={self.lang}",
                         ),
                         key="share_link",
                         language=self.lang,
                     )
                     ui.image(
-                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}"
+                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}&lang={self.lang}"
                     )

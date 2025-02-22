@@ -78,7 +78,7 @@ def header(current_page=None, lang: str = "en"):
             ui.label("RPG Content Consent Finder").classes(
                 "text-md lg:text-2xl p-0 m-0"
             )
-            ui.label("0.1.12").classes("text-xs text-gray-500 p-0 m-0")
+            ui.label("0.1.13").classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
@@ -327,9 +327,11 @@ def startup():
 
 
 @app.get("/api/qr")
-def qr(share_id: str, sheet_id: str):
+def qr(share_id: str, sheet_id: str, lang: str = "en"):
     img_byte_arr = io.BytesIO()
-    generate_sheet_share_qr_code(share_id, sheet_id).save(img_byte_arr, format="PNG")
+    generate_sheet_share_qr_code(share_id, sheet_id, lang).save(
+        img_byte_arr, format="PNG"
+    )
     return Response(content=img_byte_arr.getvalue(), media_type="image/png")
 
 
