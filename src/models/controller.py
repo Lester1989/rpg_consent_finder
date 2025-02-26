@@ -331,6 +331,13 @@ def delete_account(user: User):
             logging.debug(f"deleted {deleted_entries} entries")
             session.delete(sheet)
             logging.debug(f"deleted {sheet}")
+        # delete userlogin if existing
+        if user_login := session.exec(
+            select(UserLogin).where(UserLogin.user_id == user.id)
+        ).first():
+            logging.debug(f"deleting {user_login}")
+            session.delete(user_login)
+            session.commit()
         session.delete(user)
         session.commit()
         logging.debug(f"deleted {user}")
@@ -380,10 +387,34 @@ def get_user_by_id_name(user_id: str, session: Session = None) -> User:
         logging.debug(str(user))
 
 
-def get_consent_sheet_by_id(sheet_id: int) -> ConsentSheet:
-    logging.debug(f"get_consent_sheet_by_id {sheet_id}")
+def user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
+    logging.debug(f"user_may_see_sheet {user} {sheet}")
+    # is own sheet
+    if sheet.user_id == user.id:
+        return True
+    # is in group
+    if session.exec(
+        select(RPGGroup).where(
+            RPGGroup.users.any(User.id == user.id),
+            RPGGroup.consent_sheets.any(ConsentSheet.id == sheet.id),
+        )
+    ).first():
+        return True
+
+
+def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
+    logging.debug(f"get_consent_sheet_by_id {sheet_id} as {user_id}")
     with Session(engine) as session:
         if sheet := session.get(ConsentSheet, sheet_id):
+            user = session.exec(select(User).where(User.id_name == user_id)).first()
+            if not user:
+                logging.warning(f"User not found {user_id}")
+                all_users = session.exec(select(User)).all()
+                for user in all_users:
+                    logging.debug(user)
+                return None
+            if not user_may_see_sheet(user, sheet, session):
+                return None
             # check entries
             templates = get_all_consent_topics()
             for template in templates:

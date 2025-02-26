@@ -1,5 +1,5 @@
 import logging
-from nicegui import ui
+from nicegui import app, ui
 
 from components.consent_entry_component import (
     CategoryEntryComponent,
@@ -29,6 +29,7 @@ class SheetEditableComponent(ui.grid):
     categories: list[str]
     grouped_topics: dict[str, list[ConsentTemplate]]
     lang: str
+    share_button: ui.button
 
     def __init__(self, consent_sheet: ConsentSheet, lang: str = "en"):
         super().__init__()
@@ -81,14 +82,16 @@ class SheetEditableComponent(ui.grid):
                 language=self.lang,
             )
             if self.sheet.public_share_id:
+                self.share_button = ui.button("Unshare").on_click(self.unshare)
                 make_localisable(
-                    ui.button("Unshare").on_click(self.unshare),
+                    self.share_button,
                     key="unshare",
                     language=self.lang,
                 )
             else:
+                self.share_button = ui.button("Share").on_click(self.share)
                 make_localisable(
-                    ui.button("Share").on_click(self.share),
+                    self.share_button,
                     key="share",
                     language=self.lang,
                 )
@@ -151,5 +154,7 @@ class SheetEditableComponent(ui.grid):
             comment="",
         )
         update_custom_entry(new_entry)
-        self.sheet = get_consent_sheet_by_id(self.sheet.id)
+        self.sheet = get_consent_sheet_by_id(
+            app.storage.user.get("user_id"), self.sheet.id
+        )
         self.content.refresh()

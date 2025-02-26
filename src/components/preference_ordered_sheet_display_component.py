@@ -28,6 +28,8 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
     redact_name: bool
     lang: str
     text_lookup: dict[int, LocalizedText]
+    share_expansion: ui.expansion
+    share_image: ui.image
 
     def __init__(
         self,
@@ -77,9 +79,14 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
 
     def refresh_sheets(self):
         if self.sheet:
-            self.sheet = get_consent_sheet_by_id(self.sheet.id)
+            self.sheet = get_consent_sheet_by_id(
+                app.storage.user.get("user_id"), self.sheet.id
+            )
         if self.sheets:
-            self.sheets = [get_consent_sheet_by_id(sheet.id) for sheet in self.sheets]
+            self.sheets = [
+                get_consent_sheet_by_id(app.storage.user.get("user_id"), sheet.id)
+                for sheet in self.sheets
+            ]
 
     @ui.refreshable
     def content(self):
@@ -162,18 +169,23 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             ui.label(self.sheet_name)
             ui.label(self.sheet_comments)
             if self.sheet and self.sheet.public_share_id and not self.redact_name:
-                with ui.expansion("Share Link") as share_expansion:
+                with ui.expansion("Share Link") as self.share_expansion:
                     make_localisable(
-                        share_expansion, key="share_link_expansion", language=self.lang
+                        self.share_expansion,
+                        key="share_link_expansion",
+                        language=self.lang,
                     )
                     make_localisable(
                         ui.link(
                             "Link to this sheet",
-                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}&lang={self.lang}",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}?lang={self.lang}",
                         ),
                         key="share_link",
                         language=self.lang,
                     )
-                    ui.image(
+                    self.share_image = ui.image(
                         f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}&lang={self.lang}"
                     )
+            else:
+                self.share_image = None
+                self.share_expansion = None

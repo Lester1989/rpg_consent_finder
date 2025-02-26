@@ -29,6 +29,9 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
     tour_create_sheet = NiceGuidedTour(
         storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
     )
+    tour_share_sheet = NiceGuidedTour(
+        storage_key="tour_share_sheet_progress", page_suffix="consentsheet"
+    )
     user: User = get_user_from_storage()
     logging.debug(f"{questioneer_id}")
     if not user:
@@ -39,7 +42,9 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         ui.navigate.to(f"/consentsheet/{sheet.id}?show=edit&lang={lang}")
         return
     else:
-        sheet = get_consent_sheet_by_id(int(questioneer_id))
+        sheet = get_consent_sheet_by_id(
+            app.storage.user.get("user_id"), int(questioneer_id)
+        )
 
     consent_legend_grid = consent_legend_component(lang)
     tour_create_sheet.add_step(
@@ -93,6 +98,31 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
                 get_localization("tour_create_sheet_sheet_editor", lang),
                 lambda: tabs.set_value(edit_tab),
             )
+            tour_share_sheet.add_step(
+                sheet_editor,
+                get_localization("tour_share_sheet_sheet_editor", lang),
+                lambda: tabs.set_value(edit_tab),
+            )
+            tour_share_sheet.add_step(
+                sheet_editor.share_button,
+                get_localization("tour_share_sheet_share_button", lang),
+                lambda: tabs.set_value(edit_tab),
+            )
+            tour_share_sheet.add_step(
+                ordered_topics_tab,
+                get_localization("tour_share_sheet_ordered_topics_tab", lang),
+            )
+            tour_share_sheet.add_step(
+                ordered_topics_display.share_expansion,
+                get_localization("tour_share_sheet_share_expansion", lang),
+                lambda: tabs.set_value(ordered_topics_tab),
+            )
+            tour_share_sheet.add_step(
+                ordered_topics_display.share_image,
+                get_localization("tour_share_sheet_share_image", lang),
+                lambda: ordered_topics_display.share_expansion.set_value(True),
+            )
+
         with ui.tab_panel(groups_tab):
             with ui.grid(columns=2) as group_grid:
                 for group in user.groups:
@@ -130,7 +160,11 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
             x.value, category_topics_display, ordered_topics_display, sheet_editor
         )
     )
-    ui.timer(0.5, tour_create_sheet.start_tour, once=True)
+    active_tour = app.storage.user.get("active_tour", "")
+    if active_tour == "create_sheet":
+        ui.timer(0.5, tour_create_sheet.start_tour, once=True)
+    elif active_tour == "share_sheet":
+        ui.timer(0.5, tour_share_sheet.start_tour, once=True)
 
 
 def storage_show_tab_and_refresh(

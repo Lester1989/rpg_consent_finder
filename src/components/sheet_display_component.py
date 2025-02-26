@@ -82,9 +82,14 @@ class SheetDisplayComponent(ui.column):
 
     def refresh_sheets(self):
         if self.sheet:
-            self.sheet = get_consent_sheet_by_id(self.sheet.id)
+            self.sheet = get_consent_sheet_by_id(
+                app.storage.user.get("user_id"), self.sheet.id
+            )
         if self.sheets:
-            self.sheets = [get_consent_sheet_by_id(sheet.id) for sheet in self.sheets]
+            self.sheets = [
+                get_consent_sheet_by_id(app.storage.user.get("user_id"), sheet.id)
+                for sheet in self.sheets
+            ]
 
     @ui.refreshable
     def content(self):
@@ -158,7 +163,7 @@ class SheetDisplayComponent(ui.column):
                     make_localisable(
                         ui.link(
                             "Link to this sheet",
-                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}&lang={self.lang}",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}?lang={self.lang}",
                         ),
                         key="share_link",
                         language=self.lang,

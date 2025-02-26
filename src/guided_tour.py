@@ -6,7 +6,7 @@ import logging
 
 
 class NiceGuidedTour:
-    TOUR_Z_INDEX = 11
+    TOUR_Z_INDEX = 2000
 
     def __init__(
         self,
@@ -142,29 +142,40 @@ class NiceGuidedTour:
 
             function position() {{
                 const rect = element.getBoundingClientRect();
-                let tooltipLeft = rect.right + 10;
-                let tooltipTop = rect.top;
+                let tooltipLeft, tooltipTop;
 
-                if (tooltipLeft + tooltip.offsetWidth > window.innerWidth) {{
-                    tooltipLeft = rect.left - tooltip.offsetWidth - 10;
-                }}
+                // Check if element is nearly as wide as the page
+                if (rect.width > window.innerWidth * 0.8) {{ // Adjust 0.8 as needed
+                    // Center the tooltip within the element
+                    tooltipLeft = rect.left + (rect.width - tooltip.offsetWidth) / 2;
+                    tooltipTop = rect.bottom + 10; // Position below the element
+                }} else {{
+                    // Position tooltip next to the element
+                    tooltipLeft = rect.right + 10;
+                    tooltipTop = rect.top;
 
-                if (tooltipLeft < 0) {{
-                    tooltipLeft = 10; // Ensure tooltip is within the left screen boundary
+                    // Check if tooltip goes off the right edge
+                    if (tooltipLeft + tooltip.offsetWidth > window.innerWidth) {{
+                        tooltipLeft = rect.left - tooltip.offsetWidth - 10;
+                    }}
+
+                    // Check if tooltip goes off the left edge
+                    if (tooltipLeft < 0) {{
+                        tooltipLeft = 10;
+                    }}
+
+                    // Check for vertical overlap and adjust
+                    if (tooltipTop < rect.bottom && tooltipTop + tooltip.offsetHeight > rect.top) {{
+                        if (tooltipTop + tooltip.offsetHeight + 10 < window.innerHeight) {{
+                            tooltipTop = rect.bottom + 10; // Shift down
+                        }} else if (rect.top - tooltip.offsetHeight - 10 > 0) {{
+                            tooltipTop = rect.top - tooltip.offsetHeight - 10; // Shift up
+                        }}
+                    }}
                 }}
 
                 tooltip.style.left = tooltipLeft + 'px';
                 tooltip.style.top = tooltipTop + 'px';
-
-                // Check for overlap and adjust
-                if (tooltipTop < rect.bottom && tooltipTop + tooltip.offsetHeight > rect.top) {{
-                    if (tooltipTop + tooltip.offsetHeight + 10 < window.innerHeight) {{
-                        tooltipTop = rect.bottom + 10; // Shift down
-                    }} else if (rect.top - tooltip.offsetHeight - 10 > 0) {{
-                        tooltipTop = rect.top - tooltip.offsetHeight - 10; // Shift up
-                    }}
-                    tooltip.style.top = tooltipTop + 'px';
-                }}
             }}
 
             position(); // Initial positioning
@@ -228,6 +239,7 @@ class NiceGuidedTour:
         self.overlay.classes(remove="block", add="hidden")
         self.current_step = None
         if is_close_action:
+            app.storage.user["active_tour"] = ""
             self.current_step_idx = -1
             if self.store_user_progress:
                 for key in app.storage.user.keys():

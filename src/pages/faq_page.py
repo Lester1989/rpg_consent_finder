@@ -18,6 +18,7 @@ def store_user_faq(user_faq: str, lang: str = "en"):
 
 def start_tour(tour_name: str, lang: str = "en"):
     logging.info(f"Starting tour {tour_name}")
+    app.storage.user["active_tour"] = tour_name
     if tour_name == "create_sheet":
         for key in app.storage.user.keys():
             if isinstance(key, str) and key.startswith("tour_create_sheet_progress"):
@@ -30,7 +31,7 @@ def start_tour(tour_name: str, lang: str = "en"):
                 app.storage.user[key] = 0
         ui.navigate.to(f"/home?lang={lang}")
         return
-    ui.notify("Tour not found", type="negative")
+    ui.notify("Tour coming soon", type="negative")
 
 
 def make_tour_card(lang: str, tour: str):

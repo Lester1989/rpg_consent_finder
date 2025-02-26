@@ -92,5 +92,13 @@
     "tour_create_sheet_ordered_topics_tab": "Here, the content has been sorted according to the limits. In addition, the limits have been prioritized so that hard limits are displayed first, then uncertainties and only lastly consent to certain content. This makes it possible to see immediately which hard limits are set in the sheet.",
     "tour_create_sheet_groups_tab": "Here you can see all the groups you have already joined or created. You can add this sheet to the group's consensus by ticking the box.",
     "tour_create_sheet_sheet_editor": "Remember to give the sheet a name so that you can recognize it.You can also add a general comment that will be displayed on your sheet. **IMPORTANT** If you share your sheet publicly, this comment will also be public. \n\n You can set limits for all content in this category using the content supercategories. **IMPORTANT** You can only use the category to influence limits that are currently set to 'Unknown'. \n\nFor each content, a text field can be expanded via the check mark to add comments to the content for you. **IMPORTANT** These annotations are displayed in the consent and also publicly (if the sheet is public). So be careful what information you enter. Within a group consent, only the content of the annotation is displayed, not the name of the sheet or of you.",
-    "tour_create_sheet_create_group_from_sheet_button": "With this button you can create a new group that has this sheet as a GM sheet. \n\nGM sheets can only be deleted once their group(s) have been deleted. \n\n GM sheets form the basis of the console"
+    "tour_create_sheet_create_group_from_sheet_button": "With this button you can create a new group that has this sheet as a GM sheet. \n\nGM sheets can only be deleted once their group(s) have been deleted. \n\n GM sheets form the basis of the console",
+    "tour_share_sheet_sheet_icon": "Here you can see whether your sheet is publicly shared (green globe) or only visible to you or as part of a group (red lock).",
+    "tour_share_sheet_sheet_grid": "Here you can see your sheets. You can view and edit them by clicking on 'Details'.",
+    "tour_share_sheet_details_button": "You can view and edit your sheet by clicking on 'Details'.",
+    "tour_share_sheet_sheet_editor": "Open the Edit tab to make changes to the sheet",
+    "tour_share_sheet_share_button": "By clicking on 'Share' your sheet will be shared publicly and the label of the button will change to 'Finish sharing' **Click on Share now** before you click on Continue",
+    "tour_share_sheet_ordered_topics_tab": "To see the link, switch to one of the view modes",
+    "tour_share_sheet_share_expansion": "To see the To see the link and QR code you have to click here",
+    "tour_share_sheet_share_image": "Here you can see the link and the QR code that you can share. \n\n The link leads directly to your sheet. The QR code can be scanned by others to go directly to your sheet."
 }
