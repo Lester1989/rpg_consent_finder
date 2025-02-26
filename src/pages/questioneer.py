@@ -7,6 +7,7 @@ from components.preference_ordered_sheet_display_component import (
     PreferenceOrderedSheetDisplayComponent,
 )
 
+from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     User,
@@ -15,7 +16,7 @@ from models.controller import (
     assign_consent_sheet_to_group,
     get_consent_sheet_by_id,
     create_new_consentsheet,
-    get_user_by_id_name,
+    get_user_from_storage,
     unassign_consent_sheet_from_group,
 )
 import logging
@@ -25,7 +26,10 @@ SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 @ui.refreshable
 def content(questioneer_id: str = None, lang: str = "en", **kwargs):
-    user: User = get_user_by_id_name(app.storage.user.get("user_id"))
+    tour_create_sheet = NiceGuidedTour(
+        storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
+    )
+    user: User = get_user_from_storage()
     logging.debug(f"{questioneer_id}")
     if not user:
         ui.navigate.to(f"/welcome?lang={lang}")
@@ -37,7 +41,11 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
     else:
         sheet = get_consent_sheet_by_id(int(questioneer_id))
 
-    consent_legend_component(lang)
+    consent_legend_grid = consent_legend_component(lang)
+    tour_create_sheet.add_step(
+        consent_legend_grid,
+        get_localization("tour_create_sheet_consent_legend_grid", lang),
+    )
     ui.separator()
 
     with ui.tabs() as tabs:
@@ -45,6 +53,19 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         ordered_topics_tab = ui.tab("ordered_topics")
         edit_tab = ui.tab("edit")
         groups_tab = ui.tab("groups")
+        tour_create_sheet.add_step(
+            edit_tab, get_localization("tour_create_sheet_edit_tab", lang)
+        )
+        tour_create_sheet.add_step(
+            display_tab, get_localization("tour_create_sheet_display_tab", lang)
+        )
+        tour_create_sheet.add_step(
+            ordered_topics_tab,
+            get_localization("tour_create_sheet_ordered_topics_tab", lang),
+        )
+        tour_create_sheet.add_step(
+            groups_tab, get_localization("tour_create_sheet_groups_tab", lang)
+        )
         make_localisable(display_tab, key="display", language=lang)
         make_localisable(ordered_topics_tab, key="ordered_topics", language=lang)
         make_localisable(edit_tab, key="edit", language=lang)
@@ -67,6 +88,11 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
             )
         with ui.tab_panel(edit_tab):
             sheet_editor = SheetEditableComponent(sheet, lang=lang)
+            tour_create_sheet.add_step(
+                sheet_editor,
+                get_localization("tour_create_sheet_sheet_editor", lang),
+                lambda: tabs.set_value(edit_tab),
+            )
         with ui.tab_panel(groups_tab):
             with ui.grid(columns=2) as group_grid:
                 for group in user.groups:
@@ -87,12 +113,24 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
                         )
                 if not user.groups:
                     ui.label(get_localization("no_groups", lang))
+                create_group_from_sheet_button = ui.button(
+                    get_localization("create_group_from_sheet", lang),
+                    on_click=lambda: ui.notify("Not implemented yet", type="negative"),
+                )
+                tour_create_sheet.add_step(
+                    create_group_from_sheet_button,
+                    get_localization(
+                        "tour_create_sheet_create_group_from_sheet_button", lang
+                    ),
+                    lambda: tabs.set_value(groups_tab),
+                )
 
     panels.on_value_change(
         lambda x: storage_show_tab_and_refresh(
             x.value, category_topics_display, ordered_topics_display, sheet_editor
         )
     )
+    ui.timer(0.5, tour_create_sheet.start_tour, once=True)
 
 
 def storage_show_tab_and_refresh(

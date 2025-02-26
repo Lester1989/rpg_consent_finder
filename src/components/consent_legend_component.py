@@ -9,7 +9,9 @@ def consent_legend_component(lang: str = "en"):
     make_localisable(
         ui.label().classes("text-2xl mx-auto"), key="consent_levels", language=lang
     )
-    with ui.grid().classes("lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"):
+    with ui.grid().classes(
+        "lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"
+    ) as grid:
         for preference in ConsentStatus:
             with ui.column().classes(
                 "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"
@@ -18,3 +20,4 @@ def consent_legend_component(lang: str = "en"):
                     "text-xs text-gray-500 text-center"
                 )
                 ui.markdown(preference.explanation(lang))
+    return grid

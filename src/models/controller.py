@@ -4,6 +4,7 @@ import time
 import string
 from datetime import datetime
 
+from nicegui import app
 from sqlmodel import Session, delete, select
 from models.model_utils import hash_password, check_password
 from models.db_models import (
@@ -353,6 +354,12 @@ def update_user(user: User):
             session.refresh(new_user)
             user.id = new_user.id
             logging.debug(f"added {new_user}")
+
+
+def get_user_from_storage() -> User:
+    if user_id := app.storage.user.get("user_id"):
+        user: User = get_user_by_id_name(user_id)
+        return user
 
 
 def get_user_by_id_name(user_id: str, session: Session = None) -> User:

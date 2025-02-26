@@ -1,5 +1,6 @@
 from nicegui import ui, app
 
+from guided_tour import NiceGuidedTour
 from models.db_models import (
     ConsentSheet,
     RPGGroup,
@@ -12,6 +13,7 @@ from models.controller import (
     get_consent_sheet_by_id,
     get_group_by_id,
     get_user_by_id_name,
+    get_user_from_storage,
     join_group,
     leave_group,
 )
@@ -69,7 +71,10 @@ def remove_account(user: User):
 
 @ui.refreshable
 def content(lang: str = "en", **kwargs):
-    user: User = get_user_by_id_name(app.storage.user.get("user_id"))
+    tour_create_sheet = NiceGuidedTour(
+        storage_key="tour_create_sheet_progress", page_suffix="home"
+    )
+    user: User = get_user_from_storage()
     if not user:
         logging.debug("No user found")
         ui.navigate.to(f"/welcome?lang={lang}")
@@ -83,7 +88,7 @@ def content(lang: str = "en", **kwargs):
         # list consent sheets with icons for public or private and button to remove or to copy/duplicate
         with ui.card():
             make_localisable(ui.label(), key="consent_sheets", language=lang)
-            sheet_content(lang, user)
+            sheet_content(lang, user, tour_create_sheet)
     make_localisable(
         ui.button(color="red")
         .on_click(
@@ -93,10 +98,14 @@ def content(lang: str = "en", **kwargs):
         key="delete_account",
         language=lang,
     )
+    ui.timer(0.5, tour_create_sheet.start_tour, once=True)
 
 
-def sheet_content(lang: str, user: User):
-    with ui.grid().classes("grid-cols-1 lg:grid-cols-2"):
+def sheet_content(lang: str, user: User, tour_create_sheet: NiceGuidedTour):
+    with ui.grid().classes("grid-cols-1 lg:grid-cols-2") as sheet_grid:
+        tour_create_sheet.add_step(
+            sheet_grid, get_localization("tour_create_sheet_sheet_grid", lang)
+        )
         for sheet in user.consent_sheets:
             sheet: ConsentSheet = get_consent_sheet_by_id(sheet.id)
             with ui.row().classes("bg-gray-700 p-2 rounded-lg"):
@@ -141,10 +150,17 @@ def sheet_content(lang: str, user: User):
 
     ui.separator()
     # button to create new consent sheet
+    new_sheet_button = ui.button("Create Consent Sheet").on_click(
+        lambda: ui.navigate.to("/consentsheet/")
+    )
+    tour_create_sheet.add_step(
+        new_sheet_button, get_localization("tour_create_sheet_new_sheet_button", lang)
+    )
+    tour_create_sheet.add_next_page(
+        lambda: ui.navigate.to(f"/consentsheet/?lang={lang}")
+    )
     make_localisable(
-        ui.button("Create Consent Sheet").on_click(
-            lambda: ui.navigate.to("/consentsheet/")
-        ),
+        new_sheet_button,
         key="create_sheet",
         language=lang,
     )
