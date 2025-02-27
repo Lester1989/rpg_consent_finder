@@ -78,6 +78,71 @@ class ConsentStatus(str, Enum):
         }[self]
 
 
+class PlayFunQuestion(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    question_id: int = Field(default=None, foreign_key="localizedtext.id")
+    question_local: "LocalizedText" = Relationship(
+        sa_relationship_kwargs={"lazy": LAZY_MODE}
+    )
+    play_style: str = Field(default="")
+    weight: float = Field(default=0)
+    created_at: datetime = Field(default=datetime.now())
+
+
+class PlayFunResult(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    challenge_rating: int = Field(default=0)
+    discovery_rating: int = Field(default=0)
+    expression_rating: int = Field(default=0)
+    fantasy_rating: int = Field(default=0)
+    fellowship_rating: int = Field(default=0)
+    narrative_rating: int = Field(default=0)
+    sensation_rating: int = Field(default=0)
+    submission_rating: int = Field(default=0)
+    user_id: int = Field(default=None, foreign_key="user.id")
+    user: "User" = Relationship(sa_relationship_kwargs={"lazy": LAZY_MODE})
+    created_at: datetime = Field(default=datetime.now())
+
+    @staticmethod
+    def categories(lang: str) -> list[str]:
+        return (
+            [
+                "challenge",
+                "discovery",
+                "expression",
+                "fantasy",
+                "fellowship",
+                "narrative",
+                "sensation",
+                "submission",
+            ]
+            if lang == "en"
+            else [
+                "Herausforderung",
+                "Entdeckung",
+                "Ausdruck",
+                "Fantasie",
+                "Gemeinschaft",
+                "Erzählstruktur",
+                "Sensation",
+                "Zeitvertreib",
+            ]
+        )
+
+    @property
+    def ratings(self) -> dict[str, int]:
+        return {
+            "challenge": self.challenge_rating,
+            "discovery": self.discovery_rating,
+            "expression": self.expression_rating,
+            "fantasy": self.fantasy_rating,
+            "fellowship": self.fellowship_rating,
+            "narrative": self.narrative_rating,
+            "sensation": self.sensation_rating,
+            "submission": self.submission_rating,
+        }
+
+
 class UserFAQ(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     question: str = Field(default=None)

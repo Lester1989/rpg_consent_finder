@@ -14,6 +14,7 @@ from models.db_models import (
     FAQItem,
     GroupConsentSheetLink,
     LocalizedText,
+    PlayFunResult,
     RPGGroup,
     User,
     UserContentQuestion,
@@ -21,6 +22,7 @@ from models.db_models import (
     UserGroupLink,
     UserLogin,
     CustomConsentEntry,
+    PlayFunQuestion,
 )
 from models.model_utils import engine
 from utlis import sanitize_name
@@ -40,6 +42,25 @@ def get_user_by_account_and_password(account_name: str, password: str) -> User:
         logging.debug("login failed ")
         time.sleep(random.random() * 0.1)  # prevent timing attacks
         return None
+
+
+def get_playfun_questions(shuffled: bool = True) -> list[PlayFunQuestion]:
+    logging.info("get_playfun_questions")
+    with Session(engine) as session:
+        questions = session.exec(select(PlayFunQuestion)).all()
+        if shuffled:
+            random.shuffle(questions)
+        return questions
+
+
+def store_playfun_result(user: User, playfun_result: PlayFunResult):
+    logging.debug(f"store_playfun_result {user} {playfun_result}")
+    with Session(engine) as session:
+        playfun_result.user_id = user.id
+        session.add(playfun_result)
+        session.commit()
+        session.refresh(playfun_result)
+        return playfun_result
 
 
 def create_user_account(account_name: str, password: str) -> User:
@@ -165,7 +186,7 @@ def store_faq_answer(
     answer_en: str,
     faq_question: UserFAQ = None,
 ):
-    logging.debug(f"store_faq_answer {question} to {faq_question.id}")
+    logging.debug(f"store_faq_answer {question_de} to {faq_question.id}")
     with Session(engine) as session:
         if faq_question:
             session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))

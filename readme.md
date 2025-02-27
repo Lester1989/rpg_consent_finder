@@ -1,6 +1,11 @@
 # TODOs
 
 * [ ] Tutorial or explanation
+  * [X] guided tours
+  * [X] create a consent sheet tour
+  * [X] share a consent sheet tour
+  * [ ] create group tour
+  * [ ] join group tour
 * [ ] Tests
 * [X] Localisation
 * [X] Group creation
@@ -14,9 +19,11 @@
 * [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
 * [ ] Groups from public sheets
 * [X] Admin interface to modify texts
-* [ ] Radar plot for different playstyles (explorer, socializer, achiever, killer)
+* [X] Radar plot for different playstyles
+  * [ ] integrate into groups
+  * [ ] summarize
 * [X] Custom Triggers for Consent Sheet
-  * [ ] Shared in Group
+  * [X] Shared in Group
 * [X] Consent Summary preference based
 * [X] sanitize group names
 

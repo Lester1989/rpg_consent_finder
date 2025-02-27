@@ -20,6 +20,7 @@ from pages.faq_page import content as faq_content
 from pages.content_trigger_view import content as content_trigger_view
 from pages.admin_page import content as admin_page_content
 from pages.login_page import content as login_page_content
+from pages.playfun import content as playfun_content
 from pages.dsgvo import dsgvo_html
 from fastapi import Depends, Request, Response
 from fastapi_sso.sso.google import GoogleSSO
@@ -78,7 +79,7 @@ def header(current_page=None, lang: str = "en"):
             ui.label("RPG Content Consent Finder").classes(
                 "text-md lg:text-2xl p-0 m-0"
             )
-            ui.label("0.1.13").classes("text-xs text-gray-500 p-0 m-0")
+            ui.label("0.1.15").classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
@@ -100,6 +101,9 @@ def header(current_page=None, lang: str = "en"):
         )
         ui.link("FAQ", f"/faq?lang={lang}").classes(
             link_classes + (highlight if current_page == "faq" else "")
+        )
+        ui.link("Playstyle", f"/playstyle?lang={lang}").classes(
+            link_classes + (highlight if current_page == "playstyle" else "")
         )
         if lang == "de":
             ui.link("EN", f"/{current_page}?lang=en").classes(link_classes)
@@ -273,6 +277,11 @@ def startup():
         logging.debug("logout")
         app.storage.user["user_id"] = None
         return ui.navigate.to(f"/home?lang={lang}")
+
+    @ui.page("/playstyle")
+    def playstyle(lang: str = "en"):
+        header("playstyle", lang)
+        playfun_content(lang=lang)
 
     @ui.page("/consent/{share_id}/{sheet_id}")
     def public_sheet(share_id: str, sheet_id: str, lang: str = None):

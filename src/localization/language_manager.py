@@ -113,7 +113,8 @@ def get_available_languages():
 def get_localization(key: str, language: str | None = None):
     """Get a localized string"""
     return localizations.get(key, {}).get(
-        language or current_language, localizations.get(key, {}).get("en", "UNKNOWN")
+        language or current_language,
+        localizations.get(key, {}).get("en", f"UNKNOWN_{key}"),
     )
 
 

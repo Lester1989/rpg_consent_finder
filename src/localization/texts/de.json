@@ -100,5 +100,12 @@
     "tour_share_sheet_share_button": "Mit einem Klick auf `Teilen` wird dein Sheet öffentlich geteilt und die Beschriftung des Buttons ändert sich in `Teilen beenden` **KLICKE jetzt** auf Teilen bevor du auf weiter klickst",
     "tour_share_sheet_ordered_topics_tab": "Um den Link zu sehen, wechseln wir in einen der Ansichtsmodi",
     "tour_share_sheet_share_expansion": "Um die den Um den Link und QRCode zu sehen musst du hier klicken",
-    "tour_share_sheet_share_image": "Hier siehst du den Link und den QR-Code, den du teilen kannst. \n\n Der Link führt direkt zu deinem Sheet. Der QR-Code kann von anderen gescannt werden, um direkt zu deinem Sheet zu gelangen."
+    "tour_share_sheet_share_image": "Hier siehst du den Link und den QR-Code, den du teilen kannst. \n\n Der Link führt direkt zu deinem Sheet. Der QR-Code kann von anderen gescannt werden, um direkt zu deinem Sheet zu gelangen.",
+    "playfun_plot_title": "Spielspaß Visualisierung",
+    "no_data": "Keine Daten",
+    "play_fun_statements": "Spielspaß Einschätzung vornehmen",
+    "play_fun_plot": "Spielspaß Visualisierung",
+    "save": "Speichern",
+    "please_log_in_to_store_playfun": "Bitte melde dich an, um deine Spielspaß Einschätzung zu speichern",
+    "playfun_questions_introduction": "Hier kannst du deine Einschätzung zu **deinem** Spielspaß vornehmen. Du findest unten eine Anzahl von Aussagen über Gruppen, und musst jeweils angeben, ob du eine Gruppe, mit dieser Beschreibung dir gefällt. Dabei geht es ausrücklich darum, was du magst, und nicht um objektive Bewertung ob etwas gut oder schlecht ist.\n\nWenn du mit einer Aussage nichts anfangen kannst, lass den Regler in der Mitte, dann hat sie keinen Einfluss auf die Einschätzung."
 }
