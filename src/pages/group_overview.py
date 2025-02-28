@@ -63,7 +63,7 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
             get_localization("tour_create_group_edit_tab", lang),
         )
         named_tabs = {
-            "display": display_tab,
+            "consent": display_tab,
             "ordered_topics": ordered_topics_tab,
             "edit": edit_tab,
             "general": general_tab,
@@ -144,7 +144,7 @@ def storage_show_tab_and_refresh(
     tab = tab.lower()
     app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
     logging.debug(f"storage_show_tab_and_refresh {tab}")
-    if tab == "display":
+    if tab == "consent":
         category_topics_display.content.refresh()
     elif tab == "ordered_topics":
         ordered_topics_display.content.refresh()

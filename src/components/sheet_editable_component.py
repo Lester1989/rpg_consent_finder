@@ -14,6 +14,7 @@ from controller.sheet_controller import (
     update_consent_sheet,
     update_custom_entry,
 )
+from controller.user_controller import get_user_from_storage
 from controller.util_controller import (
     get_all_localized_texts,
 )
@@ -54,16 +55,17 @@ class SheetEditableComponent(ui.grid):
             ]
             for category_id in self.categories
         }
+        self.user = get_user_from_storage()
         self.content()
 
     def unshare(self):
         self.sheet.public_share_id = None
-        update_consent_sheet(self.sheet)
+        update_consent_sheet(self.user, self.sheet)
         ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit&lang={self.lang}")
 
     def share(self):
         self.sheet.public_share_id = create_share_id()
-        update_consent_sheet(self.sheet)
+        update_consent_sheet(self.user, self.sheet)
         ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit&lang={self.lang}")
 
     @ui.refreshable
@@ -73,14 +75,14 @@ class SheetEditableComponent(ui.grid):
             make_localisable(
                 ui.input("Sheet Name")
                 .bind_value(self.sheet, "human_name")
-                .on("focusout", lambda _: update_consent_sheet(self.sheet)),
+                .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_name",
                 language=self.lang,
             )
             make_localisable(
                 ui.input("Comment")
                 .bind_value(self.sheet, "comment")
-                .on("focusout", lambda _: update_consent_sheet(self.sheet)),
+                .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_comment",
                 language=self.lang,
             )

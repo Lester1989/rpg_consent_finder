@@ -3,6 +3,7 @@ import logging
 from nicegui import ui
 
 from controller.sheet_controller import update_entry
+from controller.user_controller import get_user_from_storage
 from localization.language_manager import make_localisable
 from models.db_models import ConsentEntry, ConsentStatus
 
@@ -18,6 +19,7 @@ class ConsentEntryComponent(ui.row):
             return
         self.lang = lang
         self.consent_entry = consent_entry
+        self.user = get_user_from_storage()
         self.content()
 
     @ui.refreshable
@@ -36,7 +38,9 @@ class ConsentEntryComponent(ui.row):
             self.toggle = ui.toggle(
                 {status: status.as_emoji for status in ConsentStatus}
             ).bind_value(self.consent_entry, "preference")
-            self.toggle.on_value_change(lambda _: update_entry(self.consent_entry))
+            self.toggle.on_value_change(
+                lambda _: update_entry(self.user, self.consent_entry)
+            )
             self.comment_input = (
                 ui.input("Comment")
                 .bind_visibility_from(self.comment_toggle, "value")

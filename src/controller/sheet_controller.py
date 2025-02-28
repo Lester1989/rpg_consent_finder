@@ -105,9 +105,10 @@ def duplicate_sheet(sheet_id: int, user_id_name):
         return new_sheet
 
 
-def delete_sheet(sheet: ConsentSheet):
+def delete_sheet(user: User, sheet: ConsentSheet):
     logging.debug(f"delete_sheet {sheet}")
     with Session(engine) as session:
+        _user_may_edit_sheet(user, sheet)
         sheet = session.get(ConsentSheet, sheet.id)
         session.delete(sheet)
         session.commit()
@@ -115,7 +116,7 @@ def delete_sheet(sheet: ConsentSheet):
         return sheet
 
 
-def user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
+def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
     logging.debug(f"user_may_see_sheet {user} {sheet}")
     # is own sheet
     if sheet.user_id == user.id:
@@ -128,6 +129,16 @@ def user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
         )
     ).first():
         return True
+    logging.warning(f"User {user} may not see sheet {sheet}")
+
+
+def _user_may_edit_sheet(user: User, sheet: ConsentSheet):
+    logging.debug(f"user_may_edit_sheet {user} {sheet}")
+    # is own sheet
+    if sheet.user_id == user.id:
+        return True
+    logging.warning(f"User {user} may not edit sheet {sheet}")
+    raise PermissionError(f"User {user} may not edit sheet {sheet}")
 
 
 def get_all_custom_entries() -> list[CustomConsentEntry]:
@@ -136,9 +147,11 @@ def get_all_custom_entries() -> list[CustomConsentEntry]:
         return session.exec(select(CustomConsentEntry)).all()
 
 
-def update_custom_entry(entry: CustomConsentEntry):
+def update_custom_entry(user: User, entry: CustomConsentEntry):
     logging.debug(f"update_custom_entry {entry}")
     with Session(engine) as session:
+        entry_sheet = session.get(ConsentSheet, entry.consent_sheet_id)
+        _user_may_edit_sheet(user, entry_sheet)
         if entry.id:
             logging.debug(f"saved {entry}")
             session.merge(entry)
@@ -149,9 +162,11 @@ def update_custom_entry(entry: CustomConsentEntry):
             return entry
 
 
-def update_entry(entry: ConsentEntry):
+def update_entry(user: User, entry: ConsentEntry):
     logging.debug(f"update_entry {entry}")
     with Session(engine) as session:
+        entry_sheet = session.get(ConsentSheet, entry.consent_sheet_id)
+        _user_may_edit_sheet(user, entry_sheet)
         existing_by_template = session.exec(
             select(ConsentEntry).where(
                 ConsentEntry.consent_sheet_id == entry.consent_sheet_id,
@@ -183,6 +198,7 @@ def update_entry(entry: ConsentEntry):
             entry.consent_template_id = new_entry.consent_template_id
 
 
+# TODO cash this
 def get_consent_template_by_id(template_id: int) -> ConsentTemplate:
     logging.debug(f"get_consent_template_by_id {template_id}")
     with Session(engine) as session:
@@ -206,7 +222,7 @@ def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
                 for user in all_users:
                     logging.debug(user)
                 return None
-            if not user_may_see_sheet(user, sheet, session):
+            if not _user_may_see_sheet(user, sheet, session):
                 return None
             # check entries
             templates = get_all_consent_topics()
@@ -224,9 +240,10 @@ def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
             return session.get(ConsentSheet, sheet_id)
 
 
-def update_consent_sheet(sheet: ConsentSheet):
+def update_consent_sheet(user: User, sheet: ConsentSheet):
     logging.debug(f"update_consent_sheet {sheet}")
     with Session(engine) as session:
+        _user_may_edit_sheet(user, sheet)
         if sheet.id:
             sheet.updated_at = datetime.now()
             session.merge(sheet)

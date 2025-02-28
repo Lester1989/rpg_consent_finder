@@ -4,7 +4,7 @@
   * [X] guided tours
   * [X] create a consent sheet tour
   * [X] share a consent sheet tour
-  * [ ] create group tour
+  * [X] create group tour
   * [ ] join group tour
 * [ ] Tests
 * [X] Localisation
@@ -26,6 +26,7 @@
   * [X] Shared in Group
 * [X] Consent Summary preference based
 * [X] sanitize group names
+* [ ] use caching and reduce database queries
 
 # Environment Variables
 

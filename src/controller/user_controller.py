@@ -111,8 +111,11 @@ def update_user(user: User):
 
 
 def get_user_from_storage() -> User:
+    if user := app.storage.user.get("user"):
+        return user
     if user_id := app.storage.user.get("user_id"):
         user: User = get_user_by_id_name(user_id)
+        app.storage.user["user"] = user
         return user
 
 
