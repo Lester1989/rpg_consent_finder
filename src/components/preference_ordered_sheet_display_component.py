@@ -1,24 +1,25 @@
 import logging
-from nicegui import app, ui
 
-from components.consent_display_component import ConsentDisplayComponent
+from nicegui import app, ui
 
 from components.preference_consent_display_component import (
     PreferenceConsentDisplayComponent,
 )
-from localization.language_manager import get_localization, make_localisable
-from models.db_models import (
-    ConsentStatus,
-    ConsentTemplate,
-    ConsentSheet,
-    LocalizedText,
-    CustomConsentEntry,
-)
-from models.controller import (
+from controller.sheet_controller import (
     duplicate_sheet,
     get_all_consent_topics,
-    get_all_localized_texts,
     get_consent_sheet_by_id,
+)
+from controller.util_controller import (
+    get_all_localized_texts,
+)
+from localization.language_manager import get_localization, make_localisable
+from models.db_models import (
+    ConsentSheet,
+    ConsentStatus,
+    ConsentTemplate,
+    CustomConsentEntry,
+    LocalizedText,
 )
 
 

@@ -1,9 +1,9 @@
+import random
+
 from nicegui import ui
 
-from models.controller import get_consent_template_by_id
-from models.db_models import ConsentEntry, ConsentStatus, ConsentTemplate
-import logging
-import random
+from controller.sheet_controller import get_consent_template_by_id
+from models.db_models import ConsentStatus, ConsentTemplate
 
 
 class PreferenceConsentDisplayComponent(ui.row):

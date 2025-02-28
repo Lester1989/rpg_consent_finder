@@ -1,8 +1,9 @@
+import logging
+
 from nicegui import ui
 
-from models.controller import get_consent_template_by_id
-from models.db_models import ConsentEntry, ConsentTemplate, ConsentStatus
-import logging
+from controller.sheet_controller import get_consent_template_by_id
+from models.db_models import ConsentEntry, ConsentStatus, ConsentTemplate
 
 
 class ConsentDisplayComponent(ui.row):

@@ -1,11 +1,11 @@
 import logging
-from nicegui import ui, app
 
+from nicegui import app, ui
 
-from models.controller import (
-    get_user_by_id_name,
-    get_user_by_account_and_password,
+from controller.user_controller import (
     create_user_account,
+    get_user_by_account_and_password,
+    get_user_by_id_name,
 )
 from localization.language_manager import get_localization, make_localisable
 

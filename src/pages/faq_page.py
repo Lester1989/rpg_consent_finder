@@ -1,10 +1,11 @@
 import logging
-from nicegui import ui, app
+
+from nicegui import app, ui
 
 from components.faq_element_component import FAQElementComponent
-from guided_tour import NiceGuidedTour
-from localization.language_manager import make_localisable, get_localization
-from models.controller import get_all_faq, store_faq_question
+from controller.user_controller import get_user_from_storage
+from controller.util_controller import get_all_faq, store_faq_question
+from localization.language_manager import get_localization, make_localisable
 
 
 def store_user_faq(user_faq: str, lang: str = "en"):
@@ -31,6 +32,18 @@ def start_tour(tour_name: str, lang: str = "en"):
                 app.storage.user[key] = 0
         ui.navigate.to(f"/home?lang={lang}")
         return
+    elif tour_name == "create_group":
+        for key in app.storage.user.keys():
+            if isinstance(key, str) and key.startswith("tour_create_group_progress"):
+                app.storage.user[key] = 0
+        ui.navigate.to(f"/home?lang={lang}")
+        return
+    elif tour_name == "join_group":
+        for key in app.storage.user.keys():
+            if isinstance(key, str) and key.startswith("tour_join_group_progress"):
+                app.storage.user[key] = 0
+        ui.navigate.to(f"/home?lang={lang}")
+        return
     ui.notify("Tour coming soon", type="negative")
 
 
@@ -44,8 +57,12 @@ def make_tour_card(lang: str, tour: str):
         ui.markdown(
             get_localization(f"howto_text_{tour}", language=lang),
         )
+        start_button = ui.button().on_click(lambda tour=tour: start_tour(tour, lang))
+        if not get_user_from_storage():
+            start_button.set_enabled(False)
+            start_button.tooltip(get_localization("login_required_for_tour", lang))
         make_localisable(
-            ui.button().on_click(lambda tour=tour: start_tour(tour, lang)),
+            start_button,
             key=f"howto_button_{tour}",
             language=lang,
         )

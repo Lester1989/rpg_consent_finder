@@ -1,25 +1,24 @@
-from nicegui import ui, app
+import logging
+
+from nicegui import app, ui
 
 from components.consent_legend_component import consent_legend_component
-from components.sheet_display_component import SheetDisplayComponent
-from components.sheet_editable_component import SheetEditableComponent
 from components.preference_ordered_sheet_display_component import (
     PreferenceOrderedSheetDisplayComponent,
 )
-
+from components.sheet_display_component import SheetDisplayComponent
+from components.sheet_editable_component import SheetEditableComponent
+from controller.group_controller import (
+    assign_consent_sheet_to_group,
+    unassign_consent_sheet_from_group,
+)
+from controller.sheet_controller import create_new_consentsheet, get_consent_sheet_by_id
+from controller.user_controller import get_user_from_storage
 from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     User,
 )
-from models.controller import (
-    assign_consent_sheet_to_group,
-    get_consent_sheet_by_id,
-    create_new_consentsheet,
-    get_user_from_storage,
-    unassign_consent_sheet_from_group,
-)
-import logging
 
 SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 

@@ -1,9 +1,10 @@
+import logging
+
 from nicegui import ui
 
+from controller.sheet_controller import update_entry
 from localization.language_manager import make_localisable
-from models.db_models import ConsentStatus, ConsentEntry
-from models.controller import update_entry
-import logging
+from models.db_models import ConsentEntry, ConsentStatus
 
 
 class ConsentEntryComponent(ui.row):

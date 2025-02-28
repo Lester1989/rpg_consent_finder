@@ -1,15 +1,13 @@
-import logging
 from nicegui import app, ui
 
 from components.consent_legend_component import consent_legend_component
-from components.sheet_display_component import SheetDisplayComponent
 from components.preference_ordered_sheet_display_component import (
     PreferenceOrderedSheetDisplayComponent,
 )
-from models.controller import (
+from controller.sheet_controller import (
     get_consent_sheet_by_id,
-    get_user_by_id_name,
 )
+from controller.user_controller import get_user_by_id_name
 from localization.language_manager import make_localisable
 from models.db_models import User
 

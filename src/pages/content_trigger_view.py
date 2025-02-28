@@ -1,10 +1,11 @@
 import logging
+
 from nicegui import ui
 
 from components.consent_legend_component import consent_legend_component
+from controller.sheet_controller import get_all_consent_topics
+from controller.util_controller import store_content_question
 from localization.language_manager import get_localization, make_localisable
-from models.db_models import ConsentStatus
-from models.controller import get_all_consent_topics, store_content_question
 
 
 def store_user_question(question: str, lang: str = "en"):

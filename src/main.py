@@ -1,35 +1,36 @@
 import io
+import logging
+import os
 import random
 import string
 import traceback
-from fastapi.responses import JSONResponse, HTMLResponse
-from nicegui import ui, app, Client
+
+from fastapi import Depends, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi_sso.sso.discord import DiscordSSO
+from fastapi_sso.sso.google import GoogleSSO
+from nicegui import Client, app, ui
 from nicegui.page import page
-from localization.language_manager import make_localisable
-from models.db_models import User
-from models.controller import (
+
+from controller.user_controller import (
     get_user_by_id_name,
+    get_user_from_storage,
     update_user,
 )
+from localization.language_manager import make_localisable
+from models.db_models import User
 from models.seeder import seed_consent_questioneer
-from pages.questioneer import content as questioneer_content
-from pages.group_overview import content as group_overview_content
-from pages.public_sheet import content as public_sheet_content
-from pages.home import content as home_content
-from pages.faq_page import content as faq_content
-from pages.content_trigger_view import content as content_trigger_view
 from pages.admin_page import content as admin_page_content
+from pages.content_trigger_view import content as content_trigger_view
+from pages.dsgvo import dsgvo_html
+from pages.faq_page import content as faq_content
+from pages.group_overview import content as group_overview_content
+from pages.home import content as home_content
 from pages.login_page import content as login_page_content
 from pages.playfun import content as playfun_content
-from pages.dsgvo import dsgvo_html
-from fastapi import Depends, Request, Response
-from fastapi_sso.sso.google import GoogleSSO
-from fastapi_sso.sso.discord import DiscordSSO
-import logging
-import os
-
+from pages.public_sheet import content as public_sheet_content
+from pages.questioneer import content as questioneer_content
 from public_share_qr import generate_sheet_share_qr_code
-
 
 logging.basicConfig(
     level=os.getenv("LOGLEVEL", "INFO").upper(),
@@ -89,6 +90,9 @@ def header(current_page=None, lang: str = "en"):
             ui.label(f"Hi {user.nickname if user else ''}!").classes(
                 "text-md lg:text-xl mt-1"
             )
+
+            user = get_user_from_storage()
+            logging.info(f"User: {user}")
         else:
             user = None
         ui.space()
@@ -105,15 +109,15 @@ def header(current_page=None, lang: str = "en"):
         ui.link("Playstyle", f"/playstyle?lang={lang}").classes(
             link_classes + (highlight if current_page == "playstyle" else "")
         )
-        if lang == "de":
-            ui.link("EN", f"/{current_page}?lang=en").classes(link_classes)
-        else:
-            ui.link("DE", f"/{current_page}?lang=de").classes(link_classes)
         if user_id in ADMINS:
             ui.link("Admin", f"/admin?lang={lang}").classes(
                 link_classes + (highlight if current_page == "admin" else "")
             )
         ui.space()
+        if lang == "de":
+            ui.link("EN", f"/{current_page}?lang=en").classes(link_classes)
+        else:
+            ui.link("DE", f"/{current_page}?lang=de").classes(link_classes)
         if user_id:
             ui.link("Logout", "/logout").classes(
                 link_classes.replace("bg-gray-600", "bg-red-800")

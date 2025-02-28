@@ -1,29 +1,39 @@
 import logging
 import os
-from nicegui import ui, app
 
-from models.db_models import (
-    User,
-)
-from models.controller import (
-    get_all_consent_topics,
+from nicegui import app, ui
+
+from components.content_question_component import ContentQuestionComponent
+from controller.admin_controller import (
     get_all_content_questions,
     get_all_faq_questions,
-    get_all_localized_texts,
     get_status,
-    get_user_by_id_name,
-    remove_content_question,
     remove_faq_question,
     store_content_answer,
     store_faq_answer,
     update_localized_text,
+)
+from controller.sheet_controller import (
+    get_all_consent_topics,
+    get_all_custom_entries,
+)
+from controller.user_controller import get_user_by_id_name
+from controller.util_controller import (
+    get_all_localized_texts,
+)
+from models.db_models import (
+    User,
 )
 from models.seeder import seed_consent_questioneer
 
 ADMINS = os.getenv("ADMINS", "").split(",")
 
 
+SHOW_TAB_STORAGE_KEY = "admin_show_tab"
+
+
 def reload_after(func, *args, **kwargs):
+    logging.debug(f"Reloading after {func.__name__}")
     func(*args, **kwargs)
     content.refresh()
 
@@ -43,9 +53,19 @@ def content(**kwargs):
     with ui.tabs().classes("w-full") as tabs:
         db_tab = ui.tab("DB").classes("w-full")
         faq_tab = ui.tab("FAQ").classes("w-full")
-        trigger_tab = ui.tab("Trigger").classes("w-full")
+        trigger_tab = ui.tab("Contents").classes("w-full")
         local_text_tab = ui.tab("Localized Texts").classes("w-full")
-    with ui.tab_panels(tabs, value=db_tab).classes("w-full") as panels:
+
+    named_tabs = {
+        "DB": db_tab,
+        "FAQ": faq_tab,
+        "Contents": trigger_tab,
+        "Localized Texts": local_text_tab,
+    }
+    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "DB")
+    with ui.tab_panels(tabs, value=named_tabs.get(show_tab, db_tab)).classes(
+        "w-full"
+    ) as panels:
         with ui.tab_panel(db_tab).classes("w-full"):
             db_content()
         with ui.tab_panel(faq_tab).classes("w-full"):
@@ -54,6 +74,14 @@ def content(**kwargs):
             trigger_content()
         with ui.tab_panel(local_text_tab).classes("w-full"):
             local_text_content()
+
+    panels.on_value_change(lambda x: storage_show_tab_and_refresh(x.value))
+
+
+def storage_show_tab_and_refresh(tab: str):
+    # tab = tab.lower()
+    app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    logging.debug(f"storage_show_tab_and_refresh {tab}")
 
 
 def local_text_content():
@@ -78,14 +106,18 @@ def local_text_content():
 def db_content():
     ui.label("DB Administation")
     ui.button("Seed ", on_click=lambda: reload_after(seed_consent_questioneer))
-    for table, table_count_and_clear_func in get_status().items():
-        with ui.row():
-            ui.label(f"{table} {table_count_and_clear_func[0]}")
-            ui.button("clear", color="red").on_click(
-                lambda clear_func=table_count_and_clear_func[1]: reload_after(
-                    clear_func
+    with ui.grid().classes("lg:grid-cols-4 grid-cols-2 gap-4 w-full lg:p-4"):
+        for table, table_count_and_clear_func in get_status().items():
+            with ui.card(), ui.row():
+                double_check = ui.checkbox("")
+                clear_button = ui.button("clear", color="red").on_click(
+                    lambda clear_func=table_count_and_clear_func[1]: reload_after(
+                        clear_func
+                    )
                 )
-            )
+                clear_button.set_enabled(False)
+                double_check.bind_value(clear_button, "enabled")
+                ui.label(f"{table} {table_count_and_clear_func[0]}")
 
 
 def trigger_content():
@@ -94,38 +126,19 @@ def trigger_content():
         template.category_id: template.category_local.get_text("de")
         for template in templates
     }
-    ui.label("Open Content")
-    with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 w-full lg:p-4"):
-        for content in get_all_content_questions():
-            # ui.label(content.created_at)
-            # ui.label(content.question)
-            with ui.expansion(
-                f"{content.created_at:%Y-%m-%d %H:%M} || {content.question}"
-            ):
-                category_select = ui.select(
-                    label="Category", options=categories
-                ).classes("w-full")
-                topic_input = ui.input("topic").classes("w-full")
-                explanation_input = ui.textarea("explanation").classes("w-full")
-                ui.button(
-                    "add to Content",
-                    on_click=lambda category_select=category_select,
-                    topic_input=topic_input,
-                    explanation_input=explanation_input,
-                    content=content: reload_after(
-                        store_content_answer,
-                        category_select.value,
-                        topic_input.value,
-                        explanation_input.value,
-                        content,
-                    ),
-                )
-                ui.button("delete", color="red").on_click(
-                    lambda content=content: reload_after(
-                        remove_content_question, content
-                    )
-                )
-    ui.separator()
+    open_questions = get_all_content_questions()
+    ui.label(f"Open Content Questions: {len(open_questions)}")
+    if open_questions:
+        with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 w-full lg:p-4"):
+            for content_question in open_questions:
+                ContentQuestionComponent(content_question, content.refresh)
+        ui.separator()
+    custom_entries = get_all_custom_entries()
+    ui.label(f"Custom Entries: {len(custom_entries)}")
+    with ui.grid().classes("lg:grid-cols-4 grid-cols-2 gap-4 w-full lg:p-4"):
+        for custom_entry in sorted(custom_entries, key=lambda x: x.content.lower()):
+            with ui.card():
+                ui.label(custom_entry.content)
     ui.label("New Content")
     new_category_select = ui.select(label="Category", options=categories).classes(
         "w-full"

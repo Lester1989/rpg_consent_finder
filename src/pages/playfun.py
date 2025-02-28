@@ -1,17 +1,19 @@
-from nicegui import ui, app
-import logging
-import plotly.graph_objects as go
+from nicegui import app, ui
+
 from components.playfun_plot_component import PlayfunPlot
+from controller.playfun_controller import (
+    get_playfun_questions,
+    store_playfun_result,
+)
+from controller.user_controller import (
+    get_user_from_storage,
+)
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
+    PlayFunQuestion,
     PlayFunResult,
     User,
 )
-from models.controller import (
-    get_playfun_questions,
-    get_user_from_storage,
-    store_playfun_result,
-)
-from localization.language_manager import get_localization, make_localisable
 
 SHOW_TAB_STORAGE_KEY = "playfun_tab"
 
@@ -23,8 +25,18 @@ def reload_after(func, *args, **kwargs):
 
 @ui.refreshable
 def content(lang: str = "en", **kwargs):
+    ui.add_css("""
+    .nicegui-markdown h3 {
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+    .nicegui-markdown h4 {
+        font-size: 1.25em;
+    }
+    """)
+
     user: User = get_user_from_storage()
-    init_user_storage()
+    ensure_answers_in_user_storage()
 
     with ui.tabs().classes("w-5/6 mx-auto") as tabs:
         question_tab = ui.tab("questions")
@@ -60,22 +72,23 @@ def content(lang: str = "en", **kwargs):
         )
 
 
-def init_user_storage():
-    statements = get_playfun_questions()
-    answers = app.storage.user.get(
-        "answers", {statement.play_style: {statement.id: 0} for statement in statements}
+def ensure_answers_in_user_storage(statements: list[PlayFunQuestion] = None):
+    statements = statements or get_playfun_questions()
+    answers: dict[str, dict[str, int]] = app.storage.user.get(
+        "answers",
+        {statement.play_style: {str(statement.id): 0} for statement in statements},
     )
-    logging.info(answers)
-    for play_style, answer_statements in answers.items():
-        for statement_id in answer_statements:
-            answers[play_style][str(statement_id)] = (
-                answer_statements[statement_id] or 0
-            )
+    for statement in statements:
+        if statement.play_style not in answers:
+            answers[statement.play_style] = {}
+        if str(statement.id) not in answers[statement.play_style]:
+            answers[statement.play_style][str(statement.id)] = 0
     app.storage.user["answers"] = answers
 
 
 def question_content(lang):
     statements = get_playfun_questions()
+    ensure_answers_in_user_storage(statements)
     ui.markdown(get_localization("playfun_questions_introduction", lang)).classes(
         "lg:w-1/2 mx-auto"
     )
@@ -107,11 +120,15 @@ def question_content(lang):
 
 
 @ui.refreshable
-def plot_content(lang, user):
-    PlayfunPlot({"me": construct_ratings(user)}, lang=lang)
+def plot_content(lang: str, user: User):
+    with ui.row().classes("w-full"):
+        PlayfunPlot({"me": construct_ratings(user)}, lang=lang)
+        ui.markdown(get_localization("playfun_plot_explanation", lang)).classes(
+            "xl:w-2/5 w-full text-sm"
+        )
 
 
-def construct_ratings(user):
+def construct_ratings(user: User):
     answers: dict[str, dict[int, int]] = app.storage.user.get("answers", {})
     weights = {
         str(statement.id): statement.weight for statement in get_playfun_questions()
@@ -124,7 +141,6 @@ def construct_ratings(user):
         / len(answers)
         for play_style in answers
     }
-    logging.info(ratings)
     return PlayFunResult(
         user=user or None,
         user_id=user.id if user else None,

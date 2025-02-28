@@ -1,28 +1,28 @@
 import logging
-from nicegui import ui, app
+
+from nicegui import app, ui
 
 from components.preference_ordered_sheet_display_component import (
     PreferenceOrderedSheetDisplayComponent,
 )
 from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
-
+from controller.group_controller import (
+    assign_consent_sheet_to_group,
+    create_new_group,
+    get_group_by_name_id,
+    leave_group,
+    regenerate_invite_code,
+    update_group,
+)
+from controller.user_controller import get_user_by_id_name
+from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     RPGGroup,
     User,
 )
-from models.controller import (
-    create_new_group,
-    get_group_by_name_id,
-    get_user_by_id_name,
-    leave_group,
-    regenerate_invite_code,
-    update_group,
-    assign_consent_sheet_to_group,
-)
 from models.model_utils import generate_group_name_id
-
 
 SHOW_TAB_STORAGE_KEY = "group_show_tab"
 
@@ -34,6 +34,9 @@ def reload_after(func, *args, **kwargs):
 
 @ui.refreshable
 def content(lang: str = "en", group_name_id: str = None, **kwargs):
+    tour_create_group = NiceGuidedTour(
+        storage_key="tour_create_group_progress", page_suffix="home"
+    )
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     if not user:
         ui.navigate.to(f"/welcome?lang={lang}")
@@ -55,6 +58,10 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         make_localisable(edit_tab, key="edit", language=lang)
         make_localisable(ordered_topics_tab, key="ordered_topics", language=lang)
         make_localisable(general_tab, key="general", language=lang)
+        tour_create_group.add_step(
+            edit_tab,
+            get_localization("tour_create_group_edit_tab", lang),
+        )
         named_tabs = {
             "display": display_tab,
             "ordered_topics": ordered_topics_tab,
@@ -62,7 +69,7 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
             "general": general_tab,
         }
 
-    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "display")
+    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "ordered_topics")
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
         "w-full"
     ) as panels:
@@ -77,14 +84,26 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
             )
         with ui.tab_panel(edit_tab):
             sheet_editor = edit_tab_content(lang, user, group, is_gm)
-
+            tour_create_group.add_step(
+                sheet_editor,
+                get_localization("tour_create_group_sheet_editor", lang),
+                lambda: panels.set_value(edit_tab),
+            )
+            tour_create_group.add_step(
+                general_tab,
+                get_localization("tour_create_group_general_tab", lang),
+                lambda: panels.set_value(general_tab),
+            )
         with ui.tab_panel(general_tab):
-            general_tab_content(lang, group, is_gm)
+            general_tab_content(lang, group, is_gm, tour_create_group)
     panels.on_value_change(
         lambda x: storage_show_tab_and_refresh(
             x.value, sheet_display, ordered_topics_display, sheet_editor
         )
     )
+    active_tour = app.storage.user.get("active_tour", "")
+    if active_tour == "create_group":
+        ui.timer(0.5, tour_create_group.start_tour, once=True)
 
 
 def edit_tab_content(lang: str, user: User, group: RPGGroup, is_gm: bool):
@@ -133,12 +152,18 @@ def storage_show_tab_and_refresh(
         sheet_editor.content.refresh()
 
 
-def general_tab_content(lang: str, group: RPGGroup, is_gm: bool):
+def general_tab_content(
+    lang: str, group: RPGGroup, is_gm: bool, tour_create_group: NiceGuidedTour
+):
     group_name_input = (
         ui.input("Group Name")
         .bind_value(group, "name")
         .on("focusout", lambda _: update_group(group))
         .classes("lg:w-1/2 w-full")
+    )
+    tour_create_group.add_step(
+        group_name_input,
+        get_localization("tour_create_group_group_name_input", lang),
     )
     group_name_input.set_enabled(is_gm)
     make_localisable(
@@ -152,10 +177,18 @@ def general_tab_content(lang: str, group: RPGGroup, is_gm: bool):
             key="group_join_code",
             language=lang,
         )
-        ui.label(group.invite_code).bind_text(group, "invite_code")
+        code_label = ui.label(group.invite_code).bind_text(group, "invite_code")
+        tour_create_group.add_step(
+            code_label,
+            get_localization("tour_create_group_group_join_code", lang),
+        )
         new_button = ui.button(
             "New Code", on_click=lambda: regenerate_invite_code(group)
         ).tooltip(get_localization("gm_only_invite_code", lang))
+        tour_create_group.add_step(
+            new_button,
+            get_localization("tour_create_group_new_code_button", lang),
+        )
         new_button.set_enabled(is_gm)
         make_localisable(
             new_button,
@@ -163,7 +196,11 @@ def general_tab_content(lang: str, group: RPGGroup, is_gm: bool):
             language=lang,
         )
 
-    with ui.grid().classes("grid-cols-3 lg:gap-4 gap-1"):
+    with ui.grid().classes("grid-cols-3 lg:gap-4 gap-1") as grid:
+        tour_create_group.add_step(
+            grid,
+            get_localization("tour_create_group_member_grid", lang),
+        )
         for player in group.users:
             ui.label(player.nickname)
             has_sheet_in_consent = any(

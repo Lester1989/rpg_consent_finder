@@ -1,8 +1,9 @@
-from nicegui import ui, app
-from typing import Callable, Optional
+import logging
 import random
 import string
-import logging
+from typing import Callable, Optional
+
+from nicegui import app, ui
 
 
 class NiceGuidedTour:
@@ -183,6 +184,10 @@ class NiceGuidedTour:
             setTimeout(function() {{
                 position(); // Delayed second positioning attempt (for when tabs are used with animated transitions)
             }}, 500); // Adjust the delay as needed (milliseconds)
+
+            setTimeout(function() {{
+                tooltip.scrollIntoView({{ behavior: 'smooth', block: 'center' }}); 
+            }}, 1000); // Scroll the tooltip into view after 1 second
         }})();
         """
         ui.run_javascript(js_code)

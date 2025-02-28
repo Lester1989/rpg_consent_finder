@@ -1,26 +1,26 @@
-from nicegui import ui, app
+import logging
 
+from nicegui import app, ui
+
+from controller.group_controller import (
+    delete_group,
+    get_group_by_id,
+    join_group,
+    leave_group,
+)
+from controller.sheet_controller import delete_sheet, get_consent_sheet_by_id
+from controller.user_controller import (
+    delete_account,
+    get_user_from_storage,
+)
 from guided_tour import NiceGuidedTour
+from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     ConsentSheet,
     RPGGroup,
     User,
 )
-from models.controller import (
-    delete_account,
-    delete_group,
-    delete_sheet,
-    get_consent_sheet_by_id,
-    get_group_by_id,
-    get_user_by_id_name,
-    get_user_from_storage,
-    join_group,
-    leave_group,
-)
 from models.model_utils import generate_group_name_id
-import logging
-
-from localization.language_manager import get_localization, make_localisable
 
 
 def reload_after(func, *args, **kwargs):
@@ -77,6 +77,9 @@ def content(lang: str = "en", **kwargs):
     tour_share_sheet = NiceGuidedTour(
         storage_key="tour_share_sheet_progress", page_suffix="home"
     )
+    tour_create_group = NiceGuidedTour(
+        storage_key="tour_create_group_progress", page_suffix="home"
+    )
     user: User = get_user_from_storage()
     if not user:
         logging.debug("No user found")
@@ -86,7 +89,7 @@ def content(lang: str = "en", **kwargs):
         # list groups with button to leave and button to show details
         with ui.card():
             make_localisable(ui.label("Groups"), key="groups", language=lang)
-            groups_content(lang, user)
+            groups_content(lang, user, tour_create_group)
 
         # list consent sheets with icons for public or private and button to remove or to copy/duplicate
         with ui.card():
@@ -106,6 +109,8 @@ def content(lang: str = "en", **kwargs):
         ui.timer(0.5, tour_create_sheet.start_tour, once=True)
     elif active_tour == "share_sheet":
         ui.timer(0.5, tour_share_sheet.start_tour, once=True)
+    elif active_tour == "create_group":
+        ui.timer(0.5, tour_create_group.start_tour, once=True)
 
 
 def sheet_content(
@@ -200,48 +205,25 @@ def sheet_content(
     )
 
 
-def groups_content(lang: str, user: User):
+def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
     with ui.grid(columns=1):
         for group in user.groups:
-            group: RPGGroup = get_group_by_id(group.id)
-            with ui.row():
-                ui.label(f"{group.name} {group.id}")
-                make_localisable(
-                    ui.button("Details").on_click(
-                        lambda group=group: ui.navigate.to(
-                            f"/groupconsent/{generate_group_name_id(group)}?lang={lang}"
-                        )
-                    ),
-                    key="details",
-                    language=lang,
-                )
-                if group.gm_user_id == user.id:
-                    make_localisable(
-                        ui.button("DELETE", color="red").on_click(
-                            lambda group=group: confirm_before(
-                                "delete_group", lang, True, delete_group, group
-                            )
-                        ),
-                        key="delete",
-                        language=lang,
-                    )
-                else:
-                    make_localisable(
-                        ui.button("Leave").on_click(
-                            lambda group=group: confirm_before(
-                                "leave_group", lang, True, leave_group, group, user
-                            )
-                        ),
-                        key="leave",
-                        language=lang,
-                    )
+            group_display_row(lang, user, group)
 
     ui.separator()
     # button to create group
+    create_group_button = ui.button("Create Group").on_click(
+        lambda: ui.navigate.to(f"/groupconsent/?lang={lang}")
+    )
+    tour_create_group.add_step(
+        create_group_button,
+        get_localization("tour_create_group_create_group_button", lang),
+    )
+    tour_create_group.add_next_page(
+        lambda: ui.navigate.to(f"/groupconsent/?lang={lang}")
+    )
     make_localisable(
-        ui.button("Create Group").on_click(
-            lambda: ui.navigate.to(f"/groupconsent/?lang={lang}")
-        ),
+        create_group_button,
         key="create_group",
         language=lang,
     )
@@ -261,3 +243,38 @@ def groups_content(lang: str, user: User):
             key="join_group",
             language=lang,
         )
+
+
+def group_display_row(lang: str, user: User, group: RPGGroup):
+    group: RPGGroup = get_group_by_id(group.id)
+    with ui.row():
+        ui.label(f"{group.name} {group.id}")
+        make_localisable(
+            ui.button("Details").on_click(
+                lambda group=group: ui.navigate.to(
+                    f"/groupconsent/{generate_group_name_id(group)}?lang={lang}"
+                )
+            ),
+            key="details",
+            language=lang,
+        )
+        if group.gm_user_id == user.id:
+            make_localisable(
+                ui.button("DELETE", color="red").on_click(
+                    lambda group=group: confirm_before(
+                        "delete_group", lang, True, delete_group, group
+                    )
+                ),
+                key="delete",
+                language=lang,
+            )
+        else:
+            make_localisable(
+                ui.button("Leave").on_click(
+                    lambda group=group: confirm_before(
+                        "leave_group", lang, True, leave_group, group, user
+                    )
+                ),
+                key="leave",
+                language=lang,
+            )
