@@ -11,6 +11,7 @@ from fastapi_sso.sso.discord import DiscordSSO
 from fastapi_sso.sso.google import GoogleSSO
 from nicegui import Client, app, ui
 from nicegui.page import page
+from pathlib import Path
 
 from controller.user_controller import (
     get_user_by_id_name,
@@ -54,6 +55,8 @@ RELOAD = os.getenv("RELOAD", "False").lower() == "true"
 
 ADMINS = os.getenv("ADMINS", "").split(",")
 
+project_version = Path("src/version.txt").read_text().strip()
+
 
 def get_google_sso() -> GoogleSSO:
     return GoogleSSO(
@@ -80,7 +83,7 @@ def header(current_page=None, lang: str = "en"):
             ui.label("RPG Content Consent Finder").classes(
                 "text-md lg:text-2xl p-0 m-0"
             )
-            ui.label("0.1.15").classes("text-xs text-gray-500 p-0 m-0")
+            ui.label(project_version).classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
