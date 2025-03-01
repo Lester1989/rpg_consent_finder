@@ -127,65 +127,12 @@ def sheet_content(
             sheet_grid, get_localization("tour_share_sheet_sheet_grid", lang)
         )
         for sheet in user.consent_sheets:
+            if not sheet:
+                continue
             sheet: ConsentSheet = get_consent_sheet_by_id(
                 app.storage.user.get("user_id"), sheet.id
             )
-            with ui.row().classes("bg-gray-700 p-2 rounded-lg"):
-                if sheet.public_share_id:
-                    icon = (
-                        ui.icon("public")
-                        .classes("pt-2 text-green-500")
-                        .tooltip(get_localization("public_sheet_tooltip", lang))
-                    )
-                else:
-                    icon = (
-                        ui.icon("lock")
-                        .classes("pt-2 text-red-500")
-                        .tooltip(get_localization("private_sheet_tooltip", lang))
-                    )
-                tour_share_sheet.add_step(
-                    icon, get_localization("tour_share_sheet_sheet_icon", lang)
-                )
-                tour_share_sheet.add_next_page(
-                    lambda sheet=sheet: ui.navigate.to(
-                        f"/consentsheet/{sheet.id}?lang={lang}"
-                    )
-                )
-                with ui.column().classes("gap-1"):
-                    ui.label(sheet.display_name)
-                    group_text = get_localization("no_group", lang)
-                    if sheet.groups:
-                        group_text = ", ".join(group.name for group in sheet.groups)
-                    ui.label(group_text).classes("text-xs")
-                ui.space()
-                details_button = ui.button("Details").on_click(
-                    lambda sheet=sheet: ui.navigate.to(
-                        f"/consentsheet/{sheet.id}?lang={lang}"
-                    )
-                )
-                tour_share_sheet.add_step(
-                    details_button,
-                    get_localization("tour_share_sheet_details_button", lang),
-                )
-                make_localisable(
-                    details_button,
-                    key="details",
-                    language=lang,
-                )
-                can_be_deleted = len(sheet.groups) == 0 or all(
-                    group.gm_consent_sheet_id != sheet.id for group in sheet.groups
-                )
-                delete_button = ui.button("Remove", color="red").on_click(
-                    lambda sheet=sheet: confirm_before(
-                        "delete_sheet", lang, True, delete_sheet, sheet
-                    )
-                )
-                make_localisable(delete_button, key="remove", language=lang)
-                delete_button.set_enabled(can_be_deleted)
-                if not can_be_deleted:
-                    delete_button.tooltip(
-                        get_localization("cannot_delete_sheet_in_group", lang)
-                    )
+            sheet_display_row(lang, tour_share_sheet, sheet)
 
     ui.separator()
     # button to create new consent sheet
@@ -203,6 +150,61 @@ def sheet_content(
         key="create_sheet",
         language=lang,
     )
+
+
+def sheet_display_row(lang, tour_share_sheet, sheet):
+    with ui.row().classes("bg-gray-700 p-2 rounded-lg"):
+        if sheet.public_share_id:
+            icon = (
+                ui.icon("public")
+                .classes("pt-2 text-green-500")
+                .tooltip(get_localization("public_sheet_tooltip", lang))
+            )
+        else:
+            icon = (
+                ui.icon("lock")
+                .classes("pt-2 text-red-500")
+                .tooltip(get_localization("private_sheet_tooltip", lang))
+            )
+        tour_share_sheet.add_step(
+            icon, get_localization("tour_share_sheet_sheet_icon", lang)
+        )
+        tour_share_sheet.add_next_page(
+            lambda sheet=sheet: ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
+        )
+        with ui.column().classes("gap-1"):
+            ui.label(sheet.display_name)
+            group_text = get_localization("no_group", lang)
+            if sheet.groups:
+                group_text = ", ".join(group.name for group in sheet.groups)
+            ui.label(group_text).classes("text-xs")
+        ui.space()
+        details_button = ui.button("Details").on_click(
+            lambda sheet=sheet: ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
+        )
+        tour_share_sheet.add_step(
+            details_button,
+            get_localization("tour_share_sheet_details_button", lang),
+        )
+        make_localisable(
+            details_button,
+            key="details",
+            language=lang,
+        )
+        can_be_deleted = len(sheet.groups) == 0 or all(
+            group.gm_consent_sheet_id != sheet.id for group in sheet.groups
+        )
+        delete_button = ui.button("Remove", color="red").on_click(
+            lambda sheet=sheet: confirm_before(
+                "delete_sheet", lang, True, delete_sheet, sheet
+            )
+        )
+        make_localisable(delete_button, key="remove", language=lang)
+        delete_button.set_enabled(can_be_deleted)
+        if not can_be_deleted:
+            delete_button.tooltip(
+                get_localization("cannot_delete_sheet_in_group", lang)
+            )
 
 
 def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):

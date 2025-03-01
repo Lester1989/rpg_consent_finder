@@ -6,6 +6,7 @@ from models.db_models import (
     ConsentEntry,
     ConsentSheet,
     ConsentTemplate,
+    CustomConsentEntry,
     FAQItem,
     GroupConsentSheetLink,
     LocalizedText,
@@ -71,6 +72,10 @@ def get_status():
             "templates": (
                 len(session.exec(select(ConsentTemplate)).all()),
                 lambda: clear_table(ConsentTemplate),
+            ),
+            "custom_entries": (
+                len(session.exec(select(CustomConsentEntry)).all()),
+                lambda: clear_table(CustomConsentEntry),
             ),
             "groups": (
                 len(session.exec(select(RPGGroup)).all()),
