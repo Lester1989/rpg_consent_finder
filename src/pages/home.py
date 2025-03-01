@@ -247,6 +247,8 @@ def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
 
 def group_display_row(lang: str, user: User, group: RPGGroup):
     group: RPGGroup = get_group_by_id(group.id)
+    if not group:
+        return
     with ui.row():
         ui.label(f"{group.name} {group.id}")
         make_localisable(

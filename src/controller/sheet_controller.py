@@ -236,6 +236,7 @@ def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
                     )
                     session.add(new_entry)
                     sheet.consent_entries.append(new_entry)
+                    session.commit()
             session.commit()
             return session.get(ConsentSheet, sheet_id)
 
