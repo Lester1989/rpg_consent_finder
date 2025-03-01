@@ -154,6 +154,7 @@ def make_localisable(
         _localize_as_label(component, component_localizations, language)
     else:
         raise ValueError(f"Unsupported component type {type(component)}")
+    return component
 
 
 def unregister(component: label.TextElement | LabelElement):

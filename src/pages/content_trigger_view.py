@@ -9,7 +9,7 @@ from localization.language_manager import get_localization, make_localisable
 
 
 def store_user_question(question: str, lang: str = "en"):
-    logging.debug(question)
+    logging.getLogger("content_consent_finder").debug(question)
     result = store_content_question(question)
     if result.id:
         ui.notify(get_localization("question_stored", lang), type="positive")

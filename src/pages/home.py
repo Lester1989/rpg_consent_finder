@@ -46,13 +46,17 @@ async def confirm_before_async(
     with ui.dialog() as dialog, ui.card():
         make_localisable(ui.label(), key=f"{key}_confirm", language=lang)
         with ui.row():
+            yes_button = ui.button("Yes", on_click=lambda: dialog.submit("Yes"))
+            no_button = ui.button("No", on_click=lambda: dialog.submit("No"))
+            yes_button.mark("yes_button")
+            no_button.mark("no_button")
             make_localisable(
-                ui.button("Yes", on_click=lambda: dialog.submit("Yes")),
+                yes_button,
                 key="yes",
                 language=lang,
             )
             make_localisable(
-                ui.button("No", on_click=lambda: dialog.submit("No")),
+                no_button,
                 key="no",
                 language=lang,
             )
@@ -82,7 +86,7 @@ def content(lang: str = "en", **kwargs):
     )
     user: User = get_user_from_storage()
     if not user:
-        logging.debug("No user found")
+        logging.getLogger("content_consent_finder").debug("No user found")
         ui.navigate.to(f"/welcome?lang={lang}")
         return
     with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 mx-auto"):
@@ -95,12 +99,16 @@ def content(lang: str = "en", **kwargs):
         with ui.card():
             make_localisable(ui.label(), key="consent_sheets", language=lang)
             sheet_content(lang, user, tour_create_sheet, tour_share_sheet)
-    make_localisable(
+    delete_account_button = (
         ui.button(color="red")
         .on_click(
             lambda: confirm_before("delete_account", lang, True, remove_account, user)
         )
-        .classes("w-1/2 mx-auto"),
+        .classes("w-1/2 mx-auto")
+    )
+    delete_account_button.mark("delete_account_button")
+    make_localisable(
+        delete_account_button,
         key="delete_account",
         language=lang,
     )
@@ -132,27 +140,28 @@ def sheet_content(
             sheet: ConsentSheet = get_consent_sheet_by_id(
                 app.storage.user.get("user_id"), sheet.id
             )
-            sheet_display_row(lang, tour_share_sheet, sheet)
-
+            sheet_display_row(lang, tour_share_sheet, sheet, user)
+    sheet_grid.mark(f"sheet_grid({len(user.consent_sheets)})")
     ui.separator()
     # button to create new consent sheet
     new_sheet_button = ui.button("Create Consent Sheet").on_click(
         lambda: ui.navigate.to("/consentsheet/")
     )
+    new_sheet_button.mark("new_sheet_button")
     tour_create_sheet.add_step(
         new_sheet_button, get_localization("tour_create_sheet_new_sheet_button", lang)
     )
     tour_create_sheet.add_next_page(
         lambda: ui.navigate.to(f"/consentsheet/?lang={lang}")
     )
-    make_localisable(
-        new_sheet_button,
-        key="create_sheet",
-        language=lang,
-    )
+    make_localisable(new_sheet_button, key="create_sheet", language=lang)
 
 
-def sheet_display_row(lang, tour_share_sheet, sheet):
+def sheet_display_row(
+    lang: str, tour_share_sheet: NiceGuidedTour, sheet: ConsentSheet, user: User
+):
+    if not sheet:
+        return
     with ui.row().classes("bg-gray-700 p-2 rounded-lg"):
         if sheet.public_share_id:
             icon = (
@@ -196,9 +205,10 @@ def sheet_display_row(lang, tour_share_sheet, sheet):
         )
         delete_button = ui.button("Remove", color="red").on_click(
             lambda sheet=sheet: confirm_before(
-                "delete_sheet", lang, True, delete_sheet, sheet
+                "delete_sheet", lang, True, delete_sheet, user, sheet
             )
         )
+        delete_button.mark(f"delete_sheet_button-{sheet.id}")
         make_localisable(delete_button, key="remove", language=lang)
         delete_button.set_enabled(can_be_deleted)
         if not can_be_deleted:

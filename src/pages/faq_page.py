@@ -9,7 +9,7 @@ from localization.language_manager import get_localization, make_localisable
 
 
 def store_user_faq(user_faq: str, lang: str = "en"):
-    logging.debug(user_faq)
+    logging.getLogger("content_consent_finder").debug(user_faq)
     result = store_faq_question(user_faq)
     if result.id:
         ui.notify(get_localization("question_stored", lang), type="positive")
@@ -18,7 +18,7 @@ def store_user_faq(user_faq: str, lang: str = "en"):
 
 
 def start_tour(tour_name: str, lang: str = "en"):
-    logging.info(f"Starting tour {tour_name}")
+    logging.getLogger("content_consent_finder").info(f"Starting tour {tour_name}")
     app.storage.user["active_tour"] = tour_name
     if tour_name == "create_sheet":
         for key in app.storage.user.keys():

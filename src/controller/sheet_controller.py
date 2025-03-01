@@ -2,6 +2,7 @@ import logging
 import random
 import string
 from datetime import datetime
+from functools import lru_cache
 
 from sqlmodel import Session, select
 
@@ -31,7 +32,9 @@ def create_share_id():
 
 
 def create_new_consentsheet(user: User) -> ConsentSheet:
-    logging.debug(f"create_new_consentsheet {user}")
+    logging.getLogger("content_consent_finder").info(
+        f"create_new_consentsheet for {user}"
+    )
     sheet_unique_name = "".join(
         random.choices(string.ascii_letters + string.digits, k=8)
     )
@@ -41,7 +44,7 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
             sheet_unique_name = "".join(
                 random.choices(string.ascii_letters + string.digits, k=8)
             )
-
+        user = get_user_by_id_name(user.id_name)
         sheet = ConsentSheet(
             unique_name=sheet_unique_name,
             user_id=user.id,
@@ -64,7 +67,9 @@ def create_new_consentsheet(user: User) -> ConsentSheet:
 
 
 def duplicate_sheet(sheet_id: int, user_id_name):
-    logging.debug(f"duplicate_sheet {sheet_id} {user_id_name}")
+    logging.getLogger("content_consent_finder").debug(
+        f"duplicate_sheet {sheet_id} {user_id_name}"
+    )
 
     sheet_unique_name = "".join(
         random.choices(string.ascii_letters + string.digits, k=8)
@@ -106,18 +111,20 @@ def duplicate_sheet(sheet_id: int, user_id_name):
 
 
 def delete_sheet(user: User, sheet: ConsentSheet):
-    logging.debug(f"delete_sheet {sheet}")
+    logging.getLogger("content_consent_finder").debug(f"delete_sheet {sheet}")
     with Session(engine) as session:
         _user_may_edit_sheet(user, sheet)
         sheet = session.get(ConsentSheet, sheet.id)
         session.delete(sheet)
         session.commit()
-        logging.debug(f"deleted {sheet}")
+        logging.getLogger("content_consent_finder").debug(f"deleted {sheet}")
         return sheet
 
 
 def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
-    logging.debug(f"user_may_see_sheet {user} {sheet}")
+    logging.getLogger("content_consent_finder").debug(
+        f"user_may_see_sheet {user} {sheet}"
+    )
     # is own sheet
     if sheet.user_id == user.id:
         return True
@@ -129,41 +136,47 @@ def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
         )
     ).first():
         return True
-    logging.warning(f"User {user} may not see sheet {sheet}")
+    logging.getLogger("content_consent_finder").warning(
+        f"User {user} may not see sheet {sheet}"
+    )
 
 
 def _user_may_edit_sheet(user: User, sheet: ConsentSheet):
-    logging.debug(f"user_may_edit_sheet {user} {sheet}")
+    logging.getLogger("content_consent_finder").debug(
+        f"user_may_edit_sheet {user} {sheet}"
+    )
     # is own sheet
     if sheet.user_id == user.id:
         return True
-    logging.warning(f"User {user} may not edit sheet {sheet}")
+    logging.getLogger("content_consent_finder").warning(
+        f"User {user} may not edit sheet {sheet}"
+    )
     raise PermissionError(f"User {user} may not edit sheet {sheet}")
 
 
 def get_all_custom_entries() -> list[CustomConsentEntry]:
-    logging.debug("get_all_custom_entries")
+    logging.getLogger("content_consent_finder").debug("get_all_custom_entries")
     with Session(engine) as session:
         return session.exec(select(CustomConsentEntry)).all()
 
 
 def update_custom_entry(user: User, entry: CustomConsentEntry):
-    logging.debug(f"update_custom_entry {entry}")
+    logging.getLogger("content_consent_finder").debug(f"update_custom_entry {entry}")
     with Session(engine) as session:
         entry_sheet = session.get(ConsentSheet, entry.consent_sheet_id)
         _user_may_edit_sheet(user, entry_sheet)
         if entry.id:
-            logging.debug(f"saved {entry}")
+            logging.getLogger("content_consent_finder").debug(f"saved {entry}")
             session.merge(entry)
             session.commit()
         else:
             add_and_refresh(session, entry)
-            logging.debug(f"saved {entry}")
+            logging.getLogger("content_consent_finder").debug(f"saved {entry}")
             return entry
 
 
 def update_entry(user: User, entry: ConsentEntry):
-    logging.debug(f"update_entry {entry}")
+    logging.getLogger("content_consent_finder").debug(f"update_entry {entry}")
     with Session(engine) as session:
         entry_sheet = session.get(ConsentSheet, entry.consent_sheet_id)
         _user_may_edit_sheet(user, entry_sheet)
@@ -182,7 +195,9 @@ def update_entry(user: User, entry: ConsentEntry):
             session.merge(existing_by_template)
             session.commit()
             session.refresh(existing_by_template)
-            logging.debug(f"merged {existing_by_template}")
+            logging.getLogger("content_consent_finder").debug(
+                f"merged {existing_by_template}"
+            )
             entry.id = existing_by_template.id
         else:
             new_entry = ConsentEntry(
@@ -192,35 +207,41 @@ def update_entry(user: User, entry: ConsentEntry):
                 comment=entry.comment,
             )
             add_and_refresh(session, new_entry)
-            logging.debug(f"saved {new_entry}")
+            logging.getLogger("content_consent_finder").debug(f"saved {new_entry}")
             entry.id = new_entry.id
             entry.consent_sheet_id = new_entry.consent_sheet_id
             entry.consent_template_id = new_entry.consent_template_id
 
 
-# TODO cash this
+@lru_cache
 def get_consent_template_by_id(template_id: int) -> ConsentTemplate:
-    logging.debug(f"get_consent_template_by_id {template_id}")
+    logging.getLogger("content_consent_finder").debug(
+        f"get_consent_template_by_id {template_id}"
+    )
     with Session(engine) as session:
         return session.get(ConsentTemplate, template_id)
 
 
 def get_all_consent_topics() -> list[ConsentTemplate]:
-    logging.debug("get_all_consent_topics")
+    logging.getLogger("content_consent_finder").debug("get_all_consent_topics")
     with Session(engine) as session:
         return session.exec(select(ConsentTemplate)).all()
 
 
-def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
-    logging.debug(f"get_consent_sheet_by_id {sheet_id} as {user_id}")
+def get_consent_sheet_by_id(user_id: str, sheet_id: int) -> ConsentSheet:
+    logging.getLogger("content_consent_finder").debug(
+        f"get_consent_sheet_by_id {sheet_id} as {user_id}"
+    )
     with Session(engine) as session:
         if sheet := session.get(ConsentSheet, sheet_id):
             user = session.exec(select(User).where(User.id_name == user_id)).first()
             if not user:
-                logging.warning(f"User not found {user_id}")
+                logging.getLogger("content_consent_finder").warning(
+                    f"User not found {user_id}"
+                )
                 all_users = session.exec(select(User)).all()
                 for user in all_users:
-                    logging.debug(user)
+                    logging.getLogger("content_consent_finder").debug(user)
                 return None
             if not _user_may_see_sheet(user, sheet, session):
                 return None
@@ -242,14 +263,14 @@ def get_consent_sheet_by_id(user_id: int, sheet_id: int) -> ConsentSheet:
 
 
 def update_consent_sheet(user: User, sheet: ConsentSheet):
-    logging.debug(f"update_consent_sheet {sheet}")
+    logging.getLogger("content_consent_finder").debug(f"update_consent_sheet {sheet}")
     with Session(engine) as session:
         _user_may_edit_sheet(user, sheet)
         if sheet.id:
             sheet.updated_at = datetime.now()
             session.merge(sheet)
             session.commit()
-            logging.debug(f"merged {sheet}")
+            logging.getLogger("content_consent_finder").debug(f"merged {sheet}")
         else:
             new_sheet = ConsentSheet(
                 unique_name=sheet.unique_name,
@@ -260,4 +281,4 @@ def update_consent_sheet(user: User, sheet: ConsentSheet):
             )
             add_and_refresh(session, new_sheet)
             sheet.id = new_sheet.id
-            logging.debug(f"added {new_sheet}")
+            logging.getLogger("content_consent_finder").debug(f"added {new_sheet}")

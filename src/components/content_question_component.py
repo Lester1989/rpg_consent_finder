@@ -28,7 +28,9 @@ class ContentQuestionComponent(ui.expansion):
         self.content()
 
     def reload_after(self, func, *args, **kwargs):
-        logging.debug(f"Reloading after {func.__name__}")
+        logging.getLogger("content_consent_finder").debug(
+            f"Reloading after {func.__name__}"
+        )
         func(*args, **kwargs)
         self.refresh_func()
 

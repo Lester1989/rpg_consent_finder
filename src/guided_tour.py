@@ -64,7 +64,7 @@ class NiceGuidedTour:
         if not self.start_element:  # first element added is also the start element
             self.start_element = element
             self.current_step_idx = 0
-        logging.debug(f"Adding guided tour step: {text}")
+        # logging.debug(f"Adding guided tour step: {text}")
         self.steps[element] = text
         if make_visible_func:
             self.make_visible_funcs[element] = make_visible_func

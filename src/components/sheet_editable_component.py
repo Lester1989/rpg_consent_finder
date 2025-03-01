@@ -42,7 +42,7 @@ class SheetEditableComponent(ui.grid):
         self.sheet.custom_consent_entries = [
             cce for cce in self.sheet.custom_consent_entries if cce.content != ""
         ]
-        logging.debug(self.sheet)
+        logging.getLogger("content_consent_finder").debug(self.sheet)
         self.lang = lang
         self.text_lookup = get_all_localized_texts()
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
@@ -78,28 +78,28 @@ class SheetEditableComponent(ui.grid):
                 .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_name",
                 language=self.lang,
-            )
+            ).mark("sheet_name_input")
             make_localisable(
                 ui.input("Comment")
                 .bind_value(self.sheet, "comment")
                 .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_comment",
                 language=self.lang,
-            )
+            ).mark("sheet_comment_input")
             if self.sheet.public_share_id:
                 self.share_button = ui.button("Unshare").on_click(self.unshare)
                 make_localisable(
                     self.share_button,
                     key="unshare",
                     language=self.lang,
-                )
+                ).mark("unshare_button")
             else:
                 self.share_button = ui.button("Share").on_click(self.share)
                 make_localisable(
                     self.share_button,
                     key="share",
                     language=self.lang,
-                )
+                ).mark("share_button")
             for category_id in self.categories:
                 templates = self.grouped_topics[category_id]
                 with ui.card().classes(f"row-span-{(len(templates) // 2) + 1} "):

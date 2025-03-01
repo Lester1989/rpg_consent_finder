@@ -14,7 +14,7 @@ class ConsentDisplayComponent(ui.row):
     def __init__(self, consents: list[ConsentEntry], lang: str = "en"):
         super().__init__()
         if not consents or not consents[0]:
-            logging.debug("No consents found")
+            logging.getLogger("content_consent_finder").debug("No consents found")
             return
         self.lang = lang
         self.consents = consents

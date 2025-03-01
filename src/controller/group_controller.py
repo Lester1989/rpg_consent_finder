@@ -17,7 +17,7 @@ from utlis import sanitize_name
 
 
 def get_group_by_id(group_id: int) -> RPGGroup:
-    logging.debug(f"get_group_by_id {group_id}")
+    logging.getLogger("content_consent_finder").debug(f"get_group_by_id {group_id}")
     with Session(engine) as session:
         if group := session.get(RPGGroup, group_id):
             group.name = sanitize_name(group.name)
@@ -27,7 +27,9 @@ def get_group_by_id(group_id: int) -> RPGGroup:
 
 
 def get_group_by_name_id(group_name_id: str):
-    logging.debug(f"get_group_by_name_id {group_name_id}")
+    logging.getLogger("content_consent_finder").debug(
+        f"get_group_by_name_id {group_name_id}"
+    )
     with Session(engine) as session:
         name, group_id = group_name_id.rsplit("-", 1)
         group = session.get(
@@ -43,13 +45,13 @@ def get_group_by_name_id(group_name_id: str):
         else:
             groups = session.exec(select(RPGGroup)).all()
             for group in groups:
-                logging.debug(str(group))
+                logging.getLogger("content_consent_finder").debug(str(group))
 
         raise ValueError(f"Invalid questioneer_id: {group_name_id}")
 
 
 def assign_consent_sheet_to_group(sheet: ConsentSheet, group: RPGGroup):
-    logging.debug(
+    logging.getLogger("content_consent_finder").debug(
         f"assign_consent_sheet_to_group {sheet} <RPGGroup id={group.id} name={group.name}>"
     )
     with Session(engine) as session:
@@ -58,12 +60,12 @@ def assign_consent_sheet_to_group(sheet: ConsentSheet, group: RPGGroup):
         group.consent_sheets.append(sheet)
         session.merge(group)
         session.commit()
-        logging.debug(f"merged {group}")
+        logging.getLogger("content_consent_finder").debug(f"merged {group}")
         return group
 
 
 def unassign_consent_sheet_from_group(sheet: ConsentSheet, group: RPGGroup):
-    logging.debug(
+    logging.getLogger("content_consent_finder").debug(
         f"unassign_consent_sheet_from_group {sheet} <RPGGroup id={group.id} name={group.name}>"
     )
     with Session(engine) as session:
@@ -72,12 +74,12 @@ def unassign_consent_sheet_from_group(sheet: ConsentSheet, group: RPGGroup):
         group.consent_sheets.remove(sheet)
         session.merge(group)
         session.commit()
-        logging.debug(f"merged {group}")
+        logging.getLogger("content_consent_finder").debug(f"merged {group}")
         return group
 
 
 def create_new_group(user: User) -> RPGGroup:
-    logging.debug(f"create_new_group {user}")
+    logging.getLogger("content_consent_finder").debug(f"create_new_group {user}")
     with Session(engine) as session:
         sheet = create_new_consentsheet(user)
         group = RPGGroup(
@@ -101,17 +103,17 @@ def create_new_group(user: User) -> RPGGroup:
 
 
 def update_group(group: RPGGroup):
-    logging.debug(f"update_group {group}")
+    logging.getLogger("content_consent_finder").debug(f"update_group {group}")
     with Session(engine) as session:
         group.name = sanitize_name(group.name)
         session.merge(group)
         session.commit()
-        logging.debug(f"merged {group}")
+        logging.getLogger("content_consent_finder").debug(f"merged {group}")
         return group
 
 
 def regenerate_invite_code(group: RPGGroup):
-    logging.debug(f"regenerate_invite_code {group}")
+    logging.getLogger("content_consent_finder").debug(f"regenerate_invite_code {group}")
     with Session(engine) as session:
         group.invite_code = "-".join(
             [
@@ -122,12 +124,12 @@ def regenerate_invite_code(group: RPGGroup):
         )
         session.merge(group)
         session.commit()
-        logging.debug(f"merged {group}")
+        logging.getLogger("content_consent_finder").debug(f"merged {group}")
         return group
 
 
 def delete_group(group: RPGGroup):
-    logging.debug(f"delete_group {group}")
+    logging.getLogger("content_consent_finder").debug(f"delete_group {group}")
     with Session(engine) as session:
         # remove sheets from group
         for sheet in group.consent_sheets:
@@ -143,35 +145,37 @@ def delete_group(group: RPGGroup):
         session.exec(delete(UserGroupLink).where(UserGroupLink.group_id == group.id))
         session.delete(group)
         session.commit()
-        logging.debug(f"deleted {group}")
+        logging.getLogger("content_consent_finder").debug(f"deleted {group}")
         return group
 
 
 def join_group(code: str, user: User):
-    logging.debug(f"join_group <{user}> invite_code={code}")
+    logging.getLogger("content_consent_finder").debug(
+        f"join_group <{user}> invite_code={code}"
+    )
     with Session(engine) as session:
         user = session.get(User, user.id)
         if group := session.exec(
             select(RPGGroup).where(RPGGroup.invite_code == code)
         ).first():
             return _join_group(user, group, session)
-        logging.debug(f"no group found {code}")
+        logging.getLogger("content_consent_finder").debug(f"no group found {code}")
         return None
 
 
 def _join_group(user: User, group: RPGGroup, session: Session):
     if user in group.users:
-        logging.debug(f"already in {group}")
+        logging.getLogger("content_consent_finder").debug(f"already in {group}")
         return group
     group.users.append(user)
     session.merge(group)
     session.commit()
-    logging.debug(f"joined {group}")
+    logging.getLogger("content_consent_finder").debug(f"joined {group}")
     return group
 
 
 def leave_group(group: RPGGroup, user: User):
-    logging.debug(f"leave_group {group} {user}")
+    logging.getLogger("content_consent_finder").debug(f"leave_group {group} {user}")
     with Session(engine) as session:
         group = session.get(RPGGroup, group.id)
         user = session.get(User, user.id)
@@ -193,5 +197,5 @@ def leave_group(group: RPGGroup, user: User):
         )
         session.merge(group)
         session.commit()
-        logging.debug(f"left {group}")
+        logging.getLogger("content_consent_finder").debug(f"left {group}")
         return group

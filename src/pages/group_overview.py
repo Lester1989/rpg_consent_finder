@@ -41,7 +41,7 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
     if not user:
         ui.navigate.to(f"/welcome?lang={lang}")
         return
-    logging.debug(f"{group_name_id}")
+    logging.getLogger("content_consent_finder").debug(f"{group_name_id}")
     if not group_name_id:
         group = create_new_group(user)
         group_name_id = generate_group_name_id(group)
@@ -143,7 +143,9 @@ def storage_show_tab_and_refresh(
 ):
     tab = tab.lower()
     app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
-    logging.debug(f"storage_show_tab_and_refresh {tab}")
+    logging.getLogger("content_consent_finder").debug(
+        f"storage_show_tab_and_refresh {tab}"
+    )
     if tab == "consent":
         category_topics_display.content.refresh()
     elif tab == "ordered_topics":

@@ -14,7 +14,7 @@ class CustomConsentEntryComponent(ui.row):
     def __init__(self, consent_entry: CustomConsentEntry, lang: str = "en"):
         super().__init__()
         if not consent_entry:
-            logging.error("No consent entry")
+            logging.getLogger("content_consent_finder").error("No consent entry")
             return
         self.lang = lang
         self.consent_entry = consent_entry

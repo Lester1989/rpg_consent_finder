@@ -69,7 +69,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         )
 
     def button_duplicate(self, user_id_name: str):
-        logging.debug(f"Duplicating {self.sheet}")
+        logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
         if duplicate := duplicate_sheet(self.sheet, user_id_name):
             ui.navigate.to(f"/home?lang={self.lang}")
             ui.notify(
@@ -91,7 +91,9 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
 
     @ui.refreshable
     def content(self):
-        logging.debug(f"SheetDisplayComponent {self.sheet} {self.sheets}")
+        logging.getLogger("content_consent_finder").debug(
+            f"SheetDisplayComponent {self.sheet} {self.sheets}"
+        )
         self.refresh_sheets()
         self.clear()
         with self.classes("w-full"):
@@ -136,14 +138,18 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                     ui.markdown(status.explanation(self.lang))
                 for template_or_custom in prefence_entries[status]:
                     if isinstance(template_or_custom, ConsentTemplate):
-                        logging.debug(f"Displaying {template_or_custom}")
+                        logging.getLogger("content_consent_finder").debug(
+                            f"Displaying {template_or_custom}"
+                        )
                         PreferenceConsentDisplayComponent(
                             status,
                             consent_template_id=template_or_custom.id,
                             lang=self.lang,
                         )
                     elif isinstance(template_or_custom, CustomConsentEntry):
-                        logging.debug(f"Displaying {template_or_custom}")
+                        logging.getLogger("content_consent_finder").debug(
+                            f"Displaying {template_or_custom}"
+                        )
                         PreferenceConsentDisplayComponent(
                             status,
                             custom_text=template_or_custom.content,

@@ -13,6 +13,41 @@ from nicegui import Client, app, ui
 from nicegui.page import page
 from pathlib import Path
 
+
+def setup_app_logging():
+    """Configures logging for the application, leaving library loggers alone."""
+
+    # Get the desired log level from the environment or use INFO as default
+    log_level_str = os.getenv("LOGLEVEL", "INFO").upper()
+    try:
+        log_level = getattr(logging, log_level_str)
+    except AttributeError:
+        print(f"Invalid log level: {log_level_str}. Using INFO.")
+        log_level = logging.INFO
+
+    # Create a logger for your application
+    app_logger = logging.getLogger("content_consent_finder")
+    app_logger.setLevel(log_level)
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+
+    # Create a formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)-8s - %(pathname)s:%(lineno)d | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    console_handler.setFormatter(formatter)
+
+    # Add the handler to the application logger
+    app_logger.addHandler(console_handler)
+
+    return app_logger
+
+
+setup_app_logging()
+
 from controller.user_controller import (
     get_user_by_id_name,
     get_user_from_storage,
@@ -33,12 +68,6 @@ from pages.public_sheet import content as public_sheet_content
 from pages.questioneer import content as questioneer_content
 from public_share_qr import generate_sheet_share_qr_code
 
-logging.basicConfig(
-    level=os.getenv("LOGLEVEL", "INFO").upper(),
-    format="%(asctime)s - %(levelname)-8s - %(pathname)s:%(lineno)d | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[logging.StreamHandler()],
-)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "...")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "...")
@@ -95,14 +124,15 @@ def header(current_page=None, lang: str = "en"):
             )
 
             user = get_user_from_storage()
-            logging.info(f"User: {user}")
+            logging.getLogger("content_consent_finder").info(f"User: {user}")
         else:
             user = None
         ui.space()
         if user:
-            ui.link("Home", f"/home?lang={lang}").classes(
+            home_link = ui.link("Home", f"/home?lang={lang}").classes(
                 link_classes + (highlight if current_page == "home" else "")
             )
+            home_link.mark("home_link")
         ui.link("Contents", f"/content_trigger?lang={lang}").classes(
             link_classes + (highlight if current_page == "content_trigger" else "")
         )
@@ -124,7 +154,7 @@ def header(current_page=None, lang: str = "en"):
         if user_id:
             ui.link("Logout", "/logout").classes(
                 link_classes.replace("bg-gray-600", "bg-red-800")
-            )
+            ).mark("logout_btn")
         else:
             ui.link("Login", f"/welcome?lang={lang}").classes(
                 link_classes
@@ -159,7 +189,7 @@ def update_user_and_go_home(new_user: User, lang: str = "en"):
 
 @app.get("/healthcheck_and_heartbeat")
 def healthcheck_and_heartbeat(request: Request):
-    logging.debug("healthcheck_and_heartbeat")
+    logging.getLogger("content_consent_finder").debug("healthcheck_and_heartbeat")
     return JSONResponse({"status": "ok"})
 
 
@@ -240,21 +270,23 @@ def startup():
         header("welcome", lang or "en")
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
-            logging.debug(f"welcoming {user}")
+            logging.getLogger("content_consent_finder").debug(f"welcoming {user}")
             if not user or not user.nickname:
                 ui.label("Welcome, yet unknown user").classes("text-2xl")
                 new_user = user or User(
                     id_name=user_id,
                     nickname="",
                 )
-                ui.input("Your name").bind_value(new_user, "nickname")
-                ui.button(
+                nick_input = ui.input("Your name").bind_value(new_user, "nickname")
+                save_nick_button = ui.button(
                     "Save", on_click=lambda: update_user_and_go_home(new_user, lang)
                 )
+                nick_input.mark("welcome_nickname")
+                save_nick_button.mark("welcome_save")
             else:
                 ui.navigate.to("/home")
         else:
-            logging.debug("no user_id")
+            logging.getLogger("content_consent_finder").debug("no user_id")
             with ui.card().classes("p-4 mx-auto"):
                 make_localisable(
                     ui.label("Welcome, please sign in").classes("text-2xl"),
@@ -269,10 +301,11 @@ def startup():
                     "Log/Sign in via Discord",
                     on_click=lambda: ui.navigate.to("/discord/login"),
                 )
-                ui.button(
+                local_sign_in_button = ui.button(
                     "Log/Sign in via Account and Password",
                     on_click=lambda: ui.navigate.to("/login"),
                 )
+                local_sign_in_button.mark("local_sign_in_button")
 
     @ui.page("/admin")
     def admin(lang: str = "en"):
@@ -281,7 +314,7 @@ def startup():
 
     @ui.page("/logout")
     def logout(lang: str = "en"):
-        logging.debug("logout")
+        logging.getLogger("content_consent_finder").debug("logout")
         app.storage.user["user_id"] = None
         return ui.navigate.to(f"/home?lang={lang}")
 
@@ -324,7 +357,7 @@ def startup():
         request: Request, google_sso: GoogleSSO = Depends(get_google_sso)
     ):
         user = await google_sso.verify_and_process(request)
-        logging.debug(f"google {user}")
+        logging.getLogger("content_consent_finder").debug(f"google {user}")
         app.storage.user["user_id"] = f"google-{user.id}"
         return ui.navigate.to("/welcome")
 
@@ -333,7 +366,7 @@ def startup():
         request: Request, discord_sso: DiscordSSO = Depends(get_discord_sso)
     ):
         user = await discord_sso.verify_and_process(request)
-        logging.debug(f"discord {user}")
+        logging.getLogger("content_consent_finder").debug(f"discord {user}")
         app.storage.user["user_id"] = f"discord-{user.id}"
         return ui.navigate.to("/welcome")
 
@@ -352,13 +385,15 @@ def qr(share_id: str, sheet_id: str, lang: str = "en"):
 
 
 app.on_startup(startup)
-ui.run(
-    title="RPG Content Consent Finder",
-    dark=True,
-    favicon="🔍",
-    storage_secret=os.getenv(
-        "STORAGE_SECRET",
-        "".join(random.choices(string.ascii_letters + string.digits, k=32)),
-    ),
-    reload=RELOAD,
-)
+
+if __name__ == "__main__":
+    ui.run(
+        title="RPG Content Consent Finder",
+        dark=True,
+        favicon="🔍",
+        storage_secret=os.getenv(
+            "STORAGE_SECRET",
+            "".join(random.choices(string.ascii_letters + string.digits, k=32)),
+        ),
+        reload=RELOAD,
+    )

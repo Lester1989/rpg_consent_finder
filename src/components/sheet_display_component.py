@@ -73,7 +73,7 @@ class SheetDisplayComponent(ui.column):
         )
 
     def button_duplicate(self, user_id_name: str):
-        logging.debug(f"Duplicating {self.sheet}")
+        logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
         if duplicate := duplicate_sheet(self.sheet, user_id_name):
             ui.navigate.to(f"/home?lang={self.lang}")
             ui.notify(
@@ -95,7 +95,9 @@ class SheetDisplayComponent(ui.column):
 
     @ui.refreshable
     def content(self):
-        logging.debug(f"SheetDisplayComponent {self.sheet} {self.sheets}")
+        logging.getLogger("content_consent_finder").debug(
+            f"SheetDisplayComponent {self.sheet} {self.sheets}"
+        )
         self.refresh_sheets()
         self.clear()
         with self.classes("w-full"):

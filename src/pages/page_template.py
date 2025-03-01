@@ -3,7 +3,7 @@ import logging
 from models.db_models import (
     User,
 )
-from models.controller import get_user_from_storage
+from controller.user_controller import get_user_from_storage
 from localization.language_manager import get_localization, make_localisable
 
 
@@ -19,4 +19,4 @@ def content(lang: str = "en", **kwargs):
         make_localisable(ui.label(), key="no_user", language=lang)
         return
     ui.notify(get_localization("welcome", lang), type="positive")
-    logging.debug(user.nickname)
+    logging.getLogger("content_consent_finder").debug(user.nickname)

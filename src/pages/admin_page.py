@@ -33,7 +33,9 @@ SHOW_TAB_STORAGE_KEY = "admin_show_tab"
 
 
 def reload_after(func, *args, **kwargs):
-    logging.debug(f"Reloading after {func.__name__}")
+    logging.getLogger("content_consent_finder").debug(
+        f"Reloading after {func.__name__}"
+    )
     func(*args, **kwargs)
     content.refresh()
 
@@ -46,7 +48,9 @@ def content(**kwargs):
         return
     user_id = app.storage.user.get("user_id")
     if user_id not in ADMINS:
-        logging.debug(f"User {user_id} is not an admin")
+        logging.getLogger("content_consent_finder").debug(
+            f"User {user_id} is not an admin"
+        )
         ui.label("Not an admin")
         ui.link("Home", "/home")
         return
@@ -81,7 +85,9 @@ def content(**kwargs):
 def storage_show_tab_and_refresh(tab: str):
     # tab = tab.lower()
     app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
-    logging.debug(f"storage_show_tab_and_refresh {tab}")
+    logging.getLogger("content_consent_finder").debug(
+        f"storage_show_tab_and_refresh {tab}"
+    )
 
 
 def local_text_content():

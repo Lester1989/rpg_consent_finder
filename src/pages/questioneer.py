@@ -25,6 +25,7 @@ SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 @ui.refreshable
 def content(questioneer_id: str = None, lang: str = "en", **kwargs):
+    logging.getLogger("content_consent_finder").debug(f"{questioneer_id}")
     tour_create_sheet = NiceGuidedTour(
         storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
     )
@@ -32,13 +33,12 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         storage_key="tour_share_sheet_progress", page_suffix="consentsheet"
     )
     user: User = get_user_from_storage()
-    logging.debug(f"{questioneer_id}")
     if not user:
         ui.navigate.to(f"/welcome?lang={lang}")
         return
     if not questioneer_id:
         sheet = create_new_consentsheet(user)
-        ui.navigate.to(f"/consentsheet/{sheet.id}?show=edit&lang={lang}")
+        ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
         return
     else:
         sheet = get_consent_sheet_by_id(
@@ -57,6 +57,13 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         ordered_topics_tab = ui.tab("ordered_topics")
         edit_tab = ui.tab("edit")
         groups_tab = ui.tab("groups")
+        named_tabs = {
+            "display": display_tab,
+            "ordered_topics": ordered_topics_tab,
+            "edit": edit_tab,
+            "groups": groups_tab,
+        }
+        edit_tab.mark("edit_tab")
         tour_create_sheet.add_step(
             edit_tab, get_localization("tour_create_sheet_edit_tab", lang)
         )
@@ -74,12 +81,6 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         make_localisable(ordered_topics_tab, key="ordered_topics", language=lang)
         make_localisable(edit_tab, key="edit", language=lang)
         make_localisable(groups_tab, key="groups", language=lang)
-        named_tabs = {
-            "display": display_tab,
-            "ordered_topics": ordered_topics_tab,
-            "edit": edit_tab,
-            "groups": groups_tab,
-        }
     show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "display")
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
         "w-full"

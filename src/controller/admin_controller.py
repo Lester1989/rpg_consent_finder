@@ -22,7 +22,7 @@ from models.model_utils import add_and_refresh, engine
 
 
 def update_localized_text(text: LocalizedText):
-    logging.debug(f"update_localized_text {text}")
+    logging.getLogger("content_consent_finder").debug(f"update_localized_text {text}")
     with Session(engine) as session:
         if text.id:
             orig_text = session.get(LocalizedText, text.id)
@@ -32,22 +32,26 @@ def update_localized_text(text: LocalizedText):
             session.commit()
             session.refresh(orig_text)
             text.id = orig_text.id
-            logging.debug(f"merged {text}")
+            logging.getLogger("content_consent_finder").debug(f"merged {text}")
         else:
             add_and_refresh(session, text)
-            logging.debug(f"added {text}")
+            logging.getLogger("content_consent_finder").debug(f"added {text}")
         return text
 
 
 def remove_faq_question(faq_question: UserFAQ):
-    logging.debug(f"remove_faq_question {faq_question}")
+    logging.getLogger("content_consent_finder").debug(
+        f"remove_faq_question {faq_question}"
+    )
     with Session(engine) as session:
         session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))
         session.commit()
 
 
 def remove_content_question(content_question: UserContentQuestion):
-    logging.debug(f"remove_content_question {content_question}")
+    logging.getLogger("content_consent_finder").debug(
+        f"remove_content_question {content_question}"
+    )
     with Session(engine) as session:
         session.exec(
             delete(UserContentQuestion).where(
@@ -58,7 +62,7 @@ def remove_content_question(content_question: UserContentQuestion):
 
 
 def get_status():
-    logging.debug("get_status")
+    logging.getLogger("content_consent_finder").debug("get_status")
     with Session(engine) as session:
         return {
             "sheets": (
@@ -118,21 +122,23 @@ def get_status():
 
 
 def clear_table(table):
-    logging.debug(f"clear_table {table}")
+    logging.getLogger("content_consent_finder").debug(f"clear_table {table}")
     with Session(engine) as session:
-        logging.debug(session.exec(delete(table)).rowcount)
+        logging.getLogger("content_consent_finder").debug(
+            session.exec(delete(table)).rowcount
+        )
         session.commit()
         return get_status()
 
 
 def get_all_faq_questions():
-    logging.debug("get_all_faq_questions")
+    logging.getLogger("content_consent_finder").debug("get_all_faq_questions")
     with Session(engine) as session:
         return session.exec(select(UserFAQ)).all()
 
 
 def get_all_content_questions():
-    logging.debug("get_all_content_questions")
+    logging.getLogger("content_consent_finder").debug("get_all_content_questions")
     with Session(engine) as session:
         return session.exec(select(UserContentQuestion)).all()
 
@@ -145,7 +151,9 @@ def store_content_answer(
     explanation_en: str,
     recommendation: UserContentQuestion = None,
 ):
-    logging.debug(f"store_content_answer {category_de} {topic_de} {explanation_de}")
+    logging.getLogger("content_consent_finder").debug(
+        f"store_content_answer {category_de} {topic_de} {explanation_de}"
+    )
     with Session(engine) as session:
         if recommendation:
             session.exec(
@@ -180,7 +188,9 @@ def store_faq_answer(
     answer_en: str,
     faq_question: UserFAQ = None,
 ):
-    logging.debug(f"store_faq_answer {question_de} to {faq_question.id}")
+    logging.getLogger("content_consent_finder").debug(
+        f"store_faq_answer {question_de} to {faq_question.id}"
+    )
     with Session(engine) as session:
         if faq_question:
             session.exec(delete(UserFAQ).where(UserFAQ.id == faq_question.id))
