@@ -5,7 +5,7 @@ from nicegui import ui
 from controller.sheet_controller import update_custom_entry
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import ConsentStatus, CustomConsentEntry
-from src.controller.user_controller import get_user_from_storage
+from controller.user_controller import get_user_from_storage
 
 
 class CustomConsentEntryComponent(ui.row):
