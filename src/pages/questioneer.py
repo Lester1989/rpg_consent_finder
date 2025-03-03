@@ -63,7 +63,10 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
             "edit": edit_tab,
             "groups": groups_tab,
         }
+        tabs.mark("sheet_tabs")
         edit_tab.mark("edit_tab")
+        display_tab.mark("display_tab")
+        ordered_topics_tab.mark("ordered_topics_tab")
         tour_create_sheet.add_step(
             edit_tab, get_localization("tour_create_sheet_edit_tab", lang)
         )
@@ -82,6 +85,7 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         make_localisable(edit_tab, key="edit", language=lang)
         make_localisable(groups_tab, key="groups", language=lang)
     show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "display")
+    logging.getLogger("content_consent_finder").warning(f"show_tab {show_tab}")
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
         "w-full"
     ) as panels:
@@ -174,9 +178,14 @@ def storage_show_tab_and_refresh(
     sheet_editor: SheetEditableComponent,
 ):
     app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    logging.getLogger("content_consent_finder").warning(
+        f"storage_show_tab_and_refresh {tab}"
+    )
     if tab == "display":
         category_topics_display.content.refresh()
     elif tab == "ordered_topics":
         ordered_topics_display.content.refresh()
     elif tab == "edit":
         sheet_editor.content.refresh()
+    else:
+        logging.getLogger("content_consent_finder").error(f"Unknown tab {tab}")

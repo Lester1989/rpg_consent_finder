@@ -1,18 +1,21 @@
+import asyncio
+import logging
+import time
 from typing import Generator
 
 import pytest
 
 from nicegui.testing import User
+from nicegui import ui
 import sys
 
 sys.path.append("src")
 import os
 
-# os.environ["LOGLEVEL"] = "DEBUG"
+os.environ["LOGLEVEL"] = "INFO"
 
 from main import startup  # type: ignore
-from controller.sheet_controller import get_consent_sheet_by_id  # type: ignore
-from controller.user_controller import get_user_by_id_name  # type: ignore
+from models.db_models import ConsentStatus  # type: ignore
 
 pytest_plugins = ["nicegui.testing.plugin"]
 
@@ -21,6 +24,14 @@ pytest_plugins = ["nicegui.testing.plugin"]
 def user(user: User) -> Generator[User, None, None]:
     startup()
     yield user
+
+
+def marked_elements(user: User, marker: str):
+    return {
+        "".join(element._markers): element
+        for element in user.find(marker).elements
+        if element._markers
+    }
 
 
 async def login(user: User):
@@ -45,23 +56,118 @@ async def login(user: User):
     await user.should_see("logout_btn")
 
 
-async def test_create_and_delete_sheet(user: User, caplog) -> None:
+async def login_and_create_sheet(user: User):
     await login(user)
     await user.should_see("new_sheet_button")
     user.find("new_sheet_button").click()
-    await user.should_see("edit_tab")
-    user.find("edit_tab").click()
-    await user.should_see("sheet_name_input")
-    user.find("sheet_name_input").type("testsheet")
+    await user.should_see("sheet_tabs")
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
     # get sheet_id from url
-    sheet_id = user.back_history[-1].split("/")[-1].split("?")[0]
+    return user.back_history[-1].split("/")[-1].split("?")[0]
+
+
+async def delete_sheet(user: User, sheet_id: str):
     user.find("home_link").click()
-    db_check_sheet = get_consent_sheet_by_id("custom-testuser", int(sheet_id))
-    db_check_user = get_user_by_id_name("custom-testuser")
-    assert db_check_sheet is not None, f"Sheet not found with id {sheet_id}"
-    assert db_check_user is not None, "User not found with id custom-testuser"
     await user.should_see(f"delete_sheet_button-{sheet_id}")
     user.find(f"delete_sheet_button-{sheet_id}").click()
     await user.should_see("yes_button")
     user.find("yes_button").click()
-    await user.should_not_see(f"delete_sheet_button-{sheet_id}")
+    await user.should_not_see(f"delete_sheet_button-{sheet_id}", retries=2)
+
+
+async def test_create_and_delete_sheet(user: User, caplog) -> None:
+    sheet_id = await login_and_create_sheet(user)
+    await delete_sheet(user, sheet_id)
+
+
+async def test_modify_sheet_by_category(user: User, caplog) -> None:
+    sheet_id = await login_and_create_sheet(user)
+    await user.should_see("category_toggle_horror")
+    # set category to maybe
+    marked_elements(user, "🟠").get("category_toggle_horror").set_value(
+        ConsentStatus.maybe
+    )
+    await asyncio.sleep(2)
+    # goto ordered_topics
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("ordered_topics_tab").elements.pop()._props["name"]
+    )
+    # count limits
+    await user.should_see("status_expansion_unknown")
+    await user.should_see("status_expansion_maybe")
+    await delete_sheet(user, sheet_id)
+
+
+async def test_modify_sheet_comment(user: User, caplog) -> None:
+    sheet_id = await login_and_create_sheet(user)
+    # gotot edit
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
+    # add comment to entry
+    await user.should_see("sheet_comment_input")
+    user.find("sheet_comment_input").type("comment_abc")
+    user.find("sheet_comment_input").trigger("focusout")
+    await asyncio.sleep(2)
+    # goto display
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("display_tab").elements.pop()._props["name"]
+    )
+    # check if comment is displayed
+    await user.should_see("sheet_comments_display")
+    display_comment = user.find("sheet_comments_display").elements.pop()
+    assert display_comment.text == "comment_abc", display_comment
+
+    await delete_sheet(user, sheet_id)
+
+
+async def test_modify_sheet_custom_entry(user: User, caplog) -> None:
+    sheet_id = await login_and_create_sheet(user)
+    # goto edit
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
+    # add custom entry
+    await user.should_see("add_custom_entry_button")
+    user.find("add_custom_entry_button").click()
+    await user.should_see("custom_consent_entry_content")
+    # modify custom entry
+    user.find("custom_consent_entry_content").type("custom_abc")
+    user.find("custom_consent_entry_content").trigger("focusout")
+    user.find("custom_consent_entry_toggle").elements.pop().set_value(ConsentStatus.no)
+    user.find("custom_consent_entry_comment_toggle").click()
+    await user.should_see("custom_consent_entry_comment")
+    user.find("custom_consent_entry_comment").type("custom_comment_abc")
+    user.find("custom_consent_entry_comment").trigger("focusout")
+
+    # goto ordered_topics
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("ordered_topics_tab").elements.pop()._props["name"]
+    )
+    # count limits
+    await user.should_see("status_expansion_no")
+    await user.should_see("status_expansion_unknown")
+    # check comments
+    await user.should_see("custom_abc")
+    await user.should_see("custom_comment_abc")
+    # goto edt
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
+    # delete custom entry
+    user.find("custom_consent_entry_content").clear()
+    user.find("custom_consent_entry_content").trigger("focusout")
+    await asyncio.sleep(2)
+
+    # goto ordered_topics
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("ordered_topics_tab").elements.pop()._props["name"]
+    )
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("display_tab").elements.pop()._props["name"]
+    )
+    # count limits
+    await user.should_not_see("status_expansion_no")
+    await delete_sheet(user, sheet_id)

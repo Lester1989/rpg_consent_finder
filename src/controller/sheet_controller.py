@@ -14,6 +14,7 @@ from models.db_models import (
     CustomConsentEntry,
     RPGGroup,
     User,
+    ConsentStatus,
 )
 from models.model_utils import add_and_refresh, engine
 
@@ -122,9 +123,6 @@ def delete_sheet(user: User, sheet: ConsentSheet):
 
 
 def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
-    logging.getLogger("content_consent_finder").debug(
-        f"user_may_see_sheet {user} {sheet}"
-    )
     # is own sheet
     if sheet.user_id == user.id:
         return True
@@ -142,9 +140,6 @@ def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
 
 
 def _user_may_edit_sheet(user: User, sheet: ConsentSheet):
-    logging.getLogger("content_consent_finder").debug(
-        f"user_may_edit_sheet {user} {sheet}"
-    )
     # is own sheet
     if sheet.user_id == user.id:
         return True
@@ -161,9 +156,11 @@ def get_all_custom_entries() -> list[CustomConsentEntry]:
 
 
 def update_custom_entry(user: User, entry: CustomConsentEntry):
-    logging.getLogger("content_consent_finder").debug(f"update_custom_entry {entry}")
+    logging.getLogger("content_consent_finder").info(f"update_custom_entry {entry}")
     with Session(engine) as session:
         entry_sheet = session.get(ConsentSheet, entry.consent_sheet_id)
+        entry.consent_sheet = entry_sheet
+        entry.content = entry.content or ""
         _user_may_edit_sheet(user, entry_sheet)
         if entry.id:
             logging.getLogger("content_consent_finder").debug(f"saved {entry}")
@@ -187,14 +184,15 @@ def update_entry(user: User, entry: ConsentEntry):
             )
         ).first()
         if entry.id:
+            if entry.preference is None:
+                logging.getLogger("content_consent_finder").warning(f"repaired {entry}")
+                entry.preference = ConsentStatus.unknown
             session.merge(entry)
             session.commit()
         elif existing_by_template:
             existing_by_template.preference = entry.preference
             existing_by_template.comment = entry.comment
-            session.merge(existing_by_template)
-            session.commit()
-            session.refresh(existing_by_template)
+            add_and_refresh(session, existing_by_template)
             logging.getLogger("content_consent_finder").debug(
                 f"merged {existing_by_template}"
             )

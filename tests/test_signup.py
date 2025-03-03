@@ -5,6 +5,7 @@ import pytest
 from nicegui.testing import User
 import sys
 
+
 sys.path.append("src")
 from main import startup
 

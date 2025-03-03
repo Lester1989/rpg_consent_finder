@@ -128,6 +128,7 @@ class SheetDisplayComponent(ui.column):
             entry
             for sheet in self.sheets or [self.sheet]
             for entry in sheet.custom_consent_entries
+            if entry.content
         ]
         with ui.card().classes("row-span-1"):
             with ui.row().classes("w-full pt-6"):
@@ -157,8 +158,8 @@ class SheetDisplayComponent(ui.column):
 
     def display_head(self):
         with ui.row().classes("w-full bg-gray-700 p-2 rounded-lg"):
-            ui.label(self.sheet_name)
-            ui.label(self.sheet_comments)
+            ui.label(self.sheet_name).mark("sheet_name_display")
+            ui.label(self.sheet_comments).mark("sheet_comments_display")
             if self.sheet and self.sheet.public_share_id and not self.redact_name:
                 with ui.expansion("Share Link") as share_expansion:
                     make_localisable(

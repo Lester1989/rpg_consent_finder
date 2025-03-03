@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import ui
+from nicegui import ui, events
 
 from controller.sheet_controller import update_entry
 from controller.user_controller import get_user_from_storage
@@ -22,11 +22,23 @@ class ConsentEntryComponent(ui.row):
         self.user = get_user_from_storage()
         self.content()
 
+    def update_value(self, value_change: events.ValueChangeEventArguments):
+        if value_change.value is None:
+            return
+        logging.getLogger("content_consent_finder").debug(
+            f"ConsentEntryComponent {self.consent_entry.consent_template.id} {value_change}"
+        )
+        self.consent_entry.preference = value_change.value
+        update_entry(self.user, self.consent_entry)
+
     @ui.refreshable
     def content(self):
         self.clear()
         with self.classes("w-full pt-6 lg:pt-1 gap-0 lg:gap-2"):
             self.comment_toggle = ui.checkbox("🗨️")
+            self.comment_toggle.mark(
+                f"comment_toggle_{self.consent_entry.consent_template.id}"
+            )
             ui.label(
                 self.consent_entry.consent_template.topic_local.get_text(self.lang)
             ).classes("text-md").tooltip(
@@ -38,14 +50,15 @@ class ConsentEntryComponent(ui.row):
             self.toggle = ui.toggle(
                 {status: status.as_emoji for status in ConsentStatus}
             ).bind_value(self.consent_entry, "preference")
-            self.toggle.on_value_change(
-                lambda _: update_entry(self.user, self.consent_entry)
-            )
+            self.toggle.on_value_change(self.update_value)
+            self.toggle.mark(f"toggle_{self.consent_entry.consent_template.id}")
             self.comment_input = (
                 ui.input("Comment")
                 .bind_visibility_from(self.comment_toggle, "value")
                 .bind_value(self.consent_entry, "comment")
-            ).on("focusout", lambda _: update_entry(self.consent_entry))
+                .on("focusout", lambda _: update_entry(self.user, self.consent_entry))
+                .mark(f"comment_input_{self.consent_entry.consent_template.id}")
+            )
             make_localisable(self.comment_input, key="comment", language=self.lang)
 
 
@@ -63,8 +76,12 @@ class CategoryEntryComponent(ui.row):
                 {status: status.as_emoji for status in ConsentStatus},
                 on_change=self.on_change,
             )
+            self.toggle.mark(f"category_toggle_{self.category.lower()}")
 
     def on_change(self):
+        logging.getLogger("content_consent_finder").info(
+            f"CategoryEntryComponent {self.category} {self.toggle.value} clicked"
+        )
         for topic in self.topics:
             if topic.toggle.value == ConsentStatus.unknown:
                 topic.consent_entry.preference = self.toggle.value

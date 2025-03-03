@@ -91,7 +91,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
 
     @ui.refreshable
     def content(self):
-        logging.getLogger("content_consent_finder").debug(
+        logging.getLogger("content_consent_finder").warning(
             f"SheetDisplayComponent {self.sheet} {self.sheets}"
         )
         self.refresh_sheets()
@@ -124,6 +124,8 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         }
         for sheet in self.sheets or [self.sheet]:
             for custom_entry in sheet.custom_consent_entries:
+                if custom_entry.content == "":
+                    continue
                 prefence_entries[custom_entry.preference].append(custom_entry)
 
         for status in ConsentStatus.ordered():
@@ -134,8 +136,14 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             ):
                 with ui.expansion(
                     text=status.as_emoji + status.name.capitalize()
-                ).classes("mx-auto text-center border-2 rounded-lg"):
+                ).classes(
+                    "mx-auto text-center border-2 rounded-lg"
+                ) as status_expansion:
                     ui.markdown(status.explanation(self.lang))
+                logging.getLogger("content_consent_finder").warning(
+                    f"Displaying {status} with {len(prefence_entries[status])} entries"
+                )
+                status_expansion.mark(f"status_expansion_{status.name}")
                 for template_or_custom in prefence_entries[status]:
                     if isinstance(template_or_custom, ConsentTemplate):
                         logging.getLogger("content_consent_finder").debug(

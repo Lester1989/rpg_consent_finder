@@ -4,6 +4,7 @@ import os
 import random
 import string
 import traceback
+from pathlib import Path
 
 from fastapi import Depends, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -11,43 +12,8 @@ from fastapi_sso.sso.discord import DiscordSSO
 from fastapi_sso.sso.google import GoogleSSO
 from nicegui import Client, app, ui
 from nicegui.page import page
-from pathlib import Path
 
-
-def setup_app_logging():
-    """Configures logging for the application, leaving library loggers alone."""
-
-    # Get the desired log level from the environment or use INFO as default
-    log_level_str = os.getenv("LOGLEVEL", "INFO").upper()
-    try:
-        log_level = getattr(logging, log_level_str)
-    except AttributeError:
-        print(f"Invalid log level: {log_level_str}. Using INFO.")
-        log_level = logging.INFO
-
-    # Create a logger for your application
-    app_logger = logging.getLogger("content_consent_finder")
-    app_logger.setLevel(log_level)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-
-    # Create a formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)-8s - %(pathname)s:%(lineno)d | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    console_handler.setFormatter(formatter)
-
-    # Add the handler to the application logger
-    app_logger.addHandler(console_handler)
-
-    return app_logger
-
-
-setup_app_logging()
-
+import a_logger_setup
 from controller.user_controller import (
     get_user_by_id_name,
     get_user_from_storage,
@@ -67,7 +33,6 @@ from pages.playfun import content as playfun_content
 from pages.public_sheet import content as public_sheet_content
 from pages.questioneer import content as questioneer_content
 from public_share_qr import generate_sheet_share_qr_code
-
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "...")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "...")
@@ -189,7 +154,7 @@ def update_user_and_go_home(new_user: User, lang: str = "en"):
 
 @app.get("/healthcheck_and_heartbeat")
 def healthcheck_and_heartbeat(request: Request):
-    logging.getLogger("content_consent_finder").debug("healthcheck_and_heartbeat")
+    logging.getLogger(a_logger_setup.LOGGER_NAME).debug("healthcheck_and_heartbeat")
     return JSONResponse({"status": "ok"})
 
 

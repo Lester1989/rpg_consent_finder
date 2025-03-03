@@ -141,7 +141,7 @@ class SheetEditableComponent(ui.grid):
                     add_button,
                     key="add_entry",
                     language=self.lang,
-                )
+                ).mark("add_custom_entry_button")
                 make_localisable(
                     ui.label("empty_custom_entries_will_be_deleted").classes(
                         "text-sm text-gray-500"
@@ -151,6 +151,7 @@ class SheetEditableComponent(ui.grid):
                 )
 
     def add_custom_entry(self):
+        logging.getLogger("content_consent_finder").info("add custom entry")
         new_entry = CustomConsentEntry(
             consent_sheet_id=self.sheet.id,
             consent_sheet=self.sheet,
@@ -158,7 +159,7 @@ class SheetEditableComponent(ui.grid):
             preference=ConsentStatus.unknown,
             comment="",
         )
-        update_custom_entry(new_entry)
+        update_custom_entry(self.user, new_entry)
         self.sheet = get_consent_sheet_by_id(
             app.storage.user.get("user_id"), self.sheet.id
         )
