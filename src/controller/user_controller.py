@@ -121,9 +121,9 @@ def get_user_from_storage() -> User:
     # if user := app.storage.user.get("user"):
     #     return User.model_validate_json(user)
     if user_id := app.storage.user.get("user_id"):
-        user: User = get_user_by_id_name(user_id)
-        app.storage.user["user"] = user.model_dump_json()
-        return user
+        if user := get_user_by_id_name(user_id):
+            # app.storage.user["user"] = user.model_dump_json()
+            return user
 
 
 get_user_by_id_name_chache = {}
