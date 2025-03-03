@@ -1,5 +1,18 @@
 # TODOs
 
+* [X] Localisation
+* [X] Group creation
+* [X] Consent Sheet Saving
+* [X] Consent Sheet Viewing
+* [X] Consent Sheet Reuse
+* [X] Group summary
+* [X] Commenting
+* [X] Login without SSO
+* [X] Admin interface to modify texts
+* [X] Custom Triggers for Consent Sheet
+  * [X] Shared in Group
+* [X] Consent Summary preference based
+* [X] sanitize group names
 * [ ] Tutorial or explanation
   * [X] guided tours
   * [X] create a consent sheet tour
@@ -7,26 +20,22 @@
   * [X] create group tour
   * [ ] join group tour
 * [ ] Tests
-* [X] Localisation
-* [X] Group creation
-* [X] Consent Sheet Saving
-* [X] Consent Sheet Viewing
-* [X] Consent Sheet Reuse
-* [ ] Consent Sheet Reuse for group creation
-* [X] Group summary
-* [X] Commenting
-* [X] Login without SSO
-* [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
-* [ ] Groups from public sheets
-* [X] Admin interface to modify texts
+  * [X] login and registration
+  * [X] consent sheet creation, viewing and modification
+  * [ ] group
+  * [ ] playstyle
+  * [ ] feedback
 * [X] Radar plot for different playstyles
   * [ ] integrate into groups
   * [ ] summarize
-* [X] Custom Triggers for Consent Sheet
-  * [X] Shared in Group
-* [X] Consent Summary preference based
-* [X] sanitize group names
+* [ ] Consent Sheet Reuse for group creation
+* [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
+* [ ] Groups from public sheets
 * [ ] use caching and reduce database queries
+* [ ] News Page
+* [ ] Print/export as PDF for sheets and group consents
+* [ ] import/export sheet as json
+* [ ] Find better name
 
 # Environment Variables
 

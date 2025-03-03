@@ -9,7 +9,13 @@ Das Tool ist noch in der Entwicklung, daher gibt es vor allem viele Optimierunge
   * [X] Sheet Teilen
   * [X] Gruppe erstellen
   * [ ] Gruppe beitreten
+  * [ ] Playstyle
 * [ ] Tests **SEHR WICHTIG**
+  * [X] Login und Registrierung
+  * [X] Sheet erstellen, ansehen und bearbeiten
+  * [ ] Gruppe
+  * [ ] Playstyle
+  * [ ] Feedback
 * [X] Mehrsprachigkeit
   * [X] Deutsch
   * [X] Englisch
@@ -33,6 +39,7 @@ Das Tool ist noch in der Entwicklung, daher gibt es vor allem viele Optimierunge
   * [X] Angezeigt im Gruppenkonsent
 * [X] Verbesserte Sortierung (Harte Grenzen zuerst) in der Konsent zusammenfassung
 * [ ] Druck/Export als PDF für Sheets und Gruppenkonsent
+* [ ] Import/Export Sheet als JSON
 * [ ] Besserer Name finden
 
 
@@ -49,7 +56,13 @@ The tool is still under development, so there are mainly many optimizations and 
   * [X] Share sheet
   * [X] Create group
   * [ ] Join group
+  * [ ] Playstyle
 * [ ] Tests ** VERY IMPORTANT**
+  * [X] login and registration
+  * [X] consent sheet creation, viewing and modification
+  * [ ] group
+  * [ ] playstyle
+  * [ ] feedback
 * [X] Multilingualism
   * [X] German
   * [X] English
@@ -73,4 +86,5 @@ The tool is still under development, so there are mainly many optimizations and 
   * [X] Displayed in group context
 * [X] Improved sorting (hard limits first) in the consent summary
 * [ ] Print/export as PDF for sheets and group consents
+* [ ] Import/export sheet as JSON
 * [ ] Find better name
