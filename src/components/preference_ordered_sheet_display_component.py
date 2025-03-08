@@ -21,6 +21,7 @@ from models.db_models import (
     CustomConsentEntry,
     LocalizedText,
 )
+from controller.user_controller import get_user_from_storage
 
 
 class PreferenceOrderedSheetDisplayComponent(ui.column):
@@ -68,9 +69,9 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             else "\n---\n".join(sheet.comment for sheet in self.sheets if sheet.comment)
         )
 
-    def button_duplicate(self, user_id_name: str):
+    def button_duplicate(self, user_id: str):
         logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
-        if duplicate := duplicate_sheet(self.sheet, user_id_name):
+        if duplicate := duplicate_sheet(self.sheet, user_id):
             ui.navigate.to(f"/home?lang={self.lang}")
             ui.notify(
                 duplicate.human_name + get_localization("sheet_duplicated", self.lang)
@@ -165,15 +166,15 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                         )
 
     def display_foot(self):
-        user_id_name = app.storage.user.get("user_id")
-        if not user_id_name:
+        user = get_user_from_storage()
+        if not user:
             make_localisable(ui.label(), key="login_to_duplicate", language=self.lang)
             return
         if self.sheet:
             make_localisable(
                 ui.button(
                     "Duplicate",
-                    on_click=lambda: self.button_duplicate(user_id_name),
+                    on_click=lambda: self.button_duplicate(user.id),
                 ),
                 key="duplicate",
                 language=self.lang,

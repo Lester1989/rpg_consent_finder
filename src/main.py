@@ -32,6 +32,7 @@ from pages.login_page import content as login_page_content
 from pages.playfun import content as playfun_content
 from pages.public_sheet import content as public_sheet_content
 from pages.questioneer import content as questioneer_content
+from pages.news_page import content as news_content
 from public_share_qr import generate_sheet_share_qr_code
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "...")
@@ -74,9 +75,7 @@ def header(current_page=None, lang: str = "en"):
     highlight = " shadow-md shadow-yellow-500"
     with ui.row().classes("m-0 w-full bg-gray-800 text-white p-2"):
         with ui.column(align_items="start").classes("gap-0 p-0 m-0"):
-            ui.label("RPG Content Consent Finder").classes(
-                "text-md lg:text-2xl p-0 m-0"
-            )
+            ui.label("Lester's Content Pact").classes("text-md lg:text-2xl p-0 m-0")
             ui.label(project_version).classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
         if user_id := app.storage.user.get("user_id"):
@@ -98,6 +97,9 @@ def header(current_page=None, lang: str = "en"):
                 link_classes + (highlight if current_page == "home" else "")
             )
             home_link.mark("home_link")
+        ui.link("News", f"/news?lang={lang}").classes(
+            link_classes + (highlight if current_page == "news" else "")
+        )
         ui.link("Contents", f"/content_trigger?lang={lang}").classes(
             link_classes + (highlight if current_page == "content_trigger" else "")
         )
@@ -214,6 +216,11 @@ def startup():
     def login(lang: str = "en"):
         header("login", lang)
         login_page_content(lang=lang)
+
+    @ui.page("/news")
+    def news(lang: str = "en"):
+        header("news", lang)
+        news_content(lang=lang)
 
     @ui.page("/faq")
     def faq(lang: str = "en"):
@@ -349,13 +356,58 @@ def qr(share_id: str, sheet_id: str, lang: str = "en"):
     return Response(content=img_byte_arr.getvalue(), media_type="image/png")
 
 
+def redact_string(s: str) -> str:
+    if s == "-default-":
+        return s
+    return "!!NULL!!" if s is None else f"<REDACTED {len(s)}>"
+
+
 app.on_startup(startup)
 
-if __name__ == "__main__":
+if __name__ in {"__main__", "__mp_main__"}:
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        "========== Starting Lester's Content Pact =========="
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"DB_CONNECTION_STRING: {os.getenv('DB_CONNECTION_STRING', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"LOGLEVEL: {os.getenv('LOGLEVEL', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"GOOGLE_CLIENT_ID: {os.getenv('GOOGLE_CLIENT_ID', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"GOOGLE_CLIENT_SECRET: {redact_string(os.getenv('GOOGLE_CLIENT_SECRET', '-default-'))}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"DISCORD_CLIENT_ID: {os.getenv('DISCORD_CLIENT_ID', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"DISCORD_CLIENT_SECRET: {redact_string(os.getenv('DISCORD_CLIENT_SECRET', '-default-'))}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"BASE_URL: {os.getenv('BASE_URL', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"ADMINS: {os.getenv('ADMINS', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"SEED_ON_STARTUP: {os.getenv('SEED_ON_STARTUP', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"RELOAD: {os.getenv('RELOAD', '-default-')}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        f"STORAGE_SECRET: {redact_string(os.getenv('STORAGE_SECRET', '-default-'))}"
+    )
+    logging.getLogger(a_logger_setup.LOGGER_NAME).info(
+        "===================================================="
+    )
     ui.run(
-        title="RPG Content Consent Finder",
+        title="Lester's Content Pact",
         dark=True,
-        favicon="🔍",
+        favicon=Path("src/favicon.ico"),
         storage_secret=os.getenv(
             "STORAGE_SECRET",
             "".join(random.choices(string.ascii_letters + string.digits, k=32)),

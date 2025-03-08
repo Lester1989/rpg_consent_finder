@@ -117,6 +117,7 @@
     "tour_create_group_group_join_code": "Der Einladungscode ist ein zufällig generierter Code, den du nutzen kannst, um andere Spieler:innen in deine Gruppe einzuladen. \n\n **WICHTIG** Jede:r, der/die diesen Code kennt, kann der Gruppe beitreten.",
     "tour_create_group_new_code_button": "Mit einem Klick auf `Neuer Einladungscode` wird ein neuer Code generiert. \n\n **WICHTIG** Der alte Code wird ungültig und kann nicht mehr genutzt werden.",
     "tour_create_group_member_grid": "Hier siehst du Alle in deiner Gruppe. Du kannst hier auch sehen, ob bereits ein Sheet im Konsent der Gruppe eingerechnet ist. Der rote Button entfernt die Person aus der Gruppe. \n\nBei der Anderen Person verschwindet die Gruppe einfach aus der Liste, denk dran über bekannte Kanäle zu informieren, wenn du jemanden entfernst.",
-    "login_required_for_tour": "Du musst eingeloggt sein, um die Tour zu starten"
+    "login_required_for_tour": "Du musst eingeloggt sein, um die Tour zu starten",
+    "leave": "Verlassen"
 
 }

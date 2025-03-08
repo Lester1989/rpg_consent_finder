@@ -12,7 +12,7 @@ import sys
 sys.path.append("src")
 import os
 
-os.environ["LOGLEVEL"] = "INFO"
+os.environ["LOGLEVEL"] = "DEBUG"
 
 from main import startup  # type: ignore
 from models.db_models import ConsentStatus  # type: ignore
@@ -65,7 +65,11 @@ async def login_and_create_sheet(user: User):
         user.find("edit_tab").elements.pop()._props["name"]
     )
     # get sheet_id from url
-    return user.back_history[-1].split("/")[-1].split("?")[0]
+    sheet_id = user.back_history[-1].split("/")[-1].split("?")[0]
+    # check if created
+    user.find("home_link").click()
+    await user.should_see(f"details_button-{sheet_id}")
+    return sheet_id
 
 
 async def delete_sheet(user: User, sheet_id: str):
@@ -84,6 +88,11 @@ async def test_create_and_delete_sheet(user: User, caplog) -> None:
 
 async def test_modify_sheet_by_category(user: User, caplog) -> None:
     sheet_id = await login_and_create_sheet(user)
+    user.find(f"details_button-{sheet_id}").click()
+    await user.should_see("sheet_tabs")
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
     await user.should_see("category_toggle_horror")
     # set category to maybe
     marked_elements(user, "🟠").get("category_toggle_horror").set_value(
@@ -102,6 +111,8 @@ async def test_modify_sheet_by_category(user: User, caplog) -> None:
 
 async def test_modify_sheet_comment(user: User, caplog) -> None:
     sheet_id = await login_and_create_sheet(user)
+    user.find(f"details_button-{sheet_id}").click()
+    await user.should_see("sheet_tabs")
     # gotot edit
     user.find("sheet_tabs").elements.pop().set_value(
         user.find("edit_tab").elements.pop()._props["name"]
@@ -125,6 +136,8 @@ async def test_modify_sheet_comment(user: User, caplog) -> None:
 
 async def test_modify_sheet_custom_entry(user: User, caplog) -> None:
     sheet_id = await login_and_create_sheet(user)
+    user.find(f"details_button-{sheet_id}").click()
+    await user.should_see("sheet_tabs")
     # goto edit
     user.find("sheet_tabs").elements.pop().set_value(
         user.find("edit_tab").elements.pop()._props["name"]

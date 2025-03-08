@@ -8,9 +8,14 @@ from controller.group_controller import (
     join_group,
     leave_group,
 )
-from controller.sheet_controller import delete_sheet, get_consent_sheet_by_id
+from controller.sheet_controller import (
+    delete_sheet,
+    fetch_sheet_groups,
+    get_consent_sheet_by_id,
+)
 from controller.user_controller import (
     delete_account,
+    fetch_user_groups,
     get_user_from_storage,
 )
 from guided_tour import NiceGuidedTour
@@ -34,20 +39,18 @@ async def reload_after_async(func, *args, **kwargs):
 
 
 def confirm_before(key: str, lang: str, refresh_after: bool, func, *args, **kwargs):
-    return (
-        await confirm_before_async(key, lang, refresh_after, func, *args, **kwargs)
-        for _ in "_"
-    ).__anext__()
-
-
-async def confirm_before_async(
-    key: str, lang: str, refresh_after: bool, func, *args, **kwargs
-):
     with ui.dialog() as dialog, ui.card():
         make_localisable(ui.label(), key=f"{key}_confirm", language=lang)
         with ui.row():
-            yes_button = ui.button("Yes", on_click=lambda: dialog.submit("Yes"))
-            no_button = ui.button("No", on_click=lambda: dialog.submit("No"))
+            yes_button = ui.button(
+                "Yes",
+                on_click=lambda: (
+                    dialog.close(),
+                    func(*args, **kwargs),
+                    content.refresh() if refresh_after else None,
+                ),
+            )
+            no_button = ui.button("No", on_click=dialog.close)
             yes_button.mark("yes_button")
             no_button.mark("no_button")
             make_localisable(
@@ -60,11 +63,7 @@ async def confirm_before_async(
                 key="no",
                 language=lang,
             )
-
-        if await dialog == "Yes":
-            func(*args, **kwargs)
-            if refresh_after:
-                content.refresh()
+    dialog.open()
 
 
 def remove_account(user: User):
@@ -134,6 +133,7 @@ def sheet_content(
         tour_share_sheet.add_step(
             sheet_grid, get_localization("tour_share_sheet_sheet_grid", lang)
         )
+        user = get_user_from_storage()
         for sheet in user.consent_sheets:
             if not sheet:
                 continue
@@ -184,12 +184,19 @@ def sheet_display_row(
         with ui.column().classes("gap-1"):
             ui.label(sheet.display_name)
             group_text = get_localization("no_group", lang)
-            if sheet.groups:
-                group_text = ", ".join(group.name for group in sheet.groups)
+            sheet_groups = fetch_sheet_groups(sheet)
+            if sheet_groups:
+                group_text = ", ".join(group.name for group in sheet_groups)
             ui.label(group_text).classes("text-xs")
         ui.space()
-        details_button = ui.button("Details").on_click(
-            lambda sheet=sheet: ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
+        details_button = (
+            ui.button("Details")
+            .on_click(
+                lambda sheet=sheet: ui.navigate.to(
+                    f"/consentsheet/{sheet.id}?lang={lang}"
+                )
+            )
+            .mark(f"details_button-{sheet.id}")
         )
         tour_share_sheet.add_step(
             details_button,
@@ -200,8 +207,8 @@ def sheet_display_row(
             key="details",
             language=lang,
         )
-        can_be_deleted = len(sheet.groups) == 0 or all(
-            group.gm_consent_sheet_id != sheet.id for group in sheet.groups
+        can_be_deleted = len(sheet_groups) == 0 or all(
+            group.gm_consent_sheet_id != sheet.id for group in sheet_groups
         )
         delete_button = ui.button("Remove", color="red").on_click(
             lambda sheet=sheet: confirm_before(
@@ -219,13 +226,15 @@ def sheet_display_row(
 
 def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
     with ui.grid(columns=1):
-        for group in user.groups:
+        for group in fetch_user_groups(user):
             group_display_row(lang, user, group)
 
     ui.separator()
     # button to create group
-    create_group_button = ui.button("Create Group").on_click(
-        lambda: ui.navigate.to(f"/groupconsent/?lang={lang}")
+    create_group_button = (
+        ui.button("Create Group")
+        .on_click(lambda: ui.navigate.to(f"/groupconsent/?lang={lang}"))
+        .mark("create_group_button")
     )
     tour_create_group.add_step(
         create_group_button,
@@ -262,7 +271,7 @@ def group_display_row(lang: str, user: User, group: RPGGroup):
     if not group:
         return
     with ui.row():
-        ui.label(f"{group.name} {group.id}")
+        ui.label(f"{group.name} {group.id}").mark(f"group_name_{group.id}")
         make_localisable(
             ui.button("Details").on_click(
                 lambda group=group: ui.navigate.to(
@@ -274,11 +283,13 @@ def group_display_row(lang: str, user: User, group: RPGGroup):
         )
         if group.gm_user_id == user.id:
             make_localisable(
-                ui.button("DELETE", color="red").on_click(
+                ui.button("DELETE", color="red")
+                .on_click(
                     lambda group=group: confirm_before(
                         "delete_group", lang, True, delete_group, group
                     )
-                ),
+                )
+                .mark(f"delete_group_button_{group.id}"),
                 key="delete",
                 language=lang,
             )

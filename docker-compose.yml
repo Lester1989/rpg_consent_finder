@@ -18,6 +18,7 @@ services:
       - ADMINS=abc
       - SEED_ON_STARTUP=true
       - RELOAD=false
+      - STORAGE_SECRET=xxx
     volumes:
       - rpgconsentfinder-db:/db
     command: sh -c "alembic upgrade head && python app/main.py"

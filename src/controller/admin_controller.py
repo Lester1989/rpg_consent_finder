@@ -14,6 +14,7 @@ from models.db_models import (
     PlayFunResult,
     RPGGroup,
     User,
+    UserLogin,
     UserContentQuestion,
     UserFAQ,
     UserGroupLink,
@@ -86,6 +87,10 @@ def get_status():
                 lambda: clear_table(RPGGroup),
             ),
             "users": (len(session.exec(select(User)).all()), lambda: clear_table(User)),
+            "user_logins": (
+                len(session.exec(select(UserLogin)).all()),
+                lambda: clear_table(UserLogin),
+            ),
             "group_sheet_links": (
                 len(session.exec(select(GroupConsentSheetLink)).all()),
                 lambda: clear_table(GroupConsentSheetLink),

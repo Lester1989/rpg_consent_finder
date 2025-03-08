@@ -10,10 +10,15 @@ from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
 from controller.group_controller import (
     assign_consent_sheet_to_group,
+    create_new_group,
     unassign_consent_sheet_from_group,
 )
-from controller.sheet_controller import create_new_consentsheet, get_consent_sheet_by_id
-from controller.user_controller import get_user_from_storage
+from controller.sheet_controller import (
+    create_new_consentsheet,
+    fetch_sheet_groups,
+    get_consent_sheet_by_id,
+)
+from controller.user_controller import fetch_user_groups, get_user_from_storage
 from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
@@ -25,7 +30,9 @@ SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 @ui.refreshable
 def content(questioneer_id: str = None, lang: str = "en", **kwargs):
-    logging.getLogger("content_consent_finder").debug(f"{questioneer_id}")
+    logging.getLogger("content_consent_finder").debug(
+        f"displaying consent sheet {questioneer_id}"
+    )
     tour_create_sheet = NiceGuidedTour(
         storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
     )
@@ -41,10 +48,10 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
         return
     else:
-        sheet = get_consent_sheet_by_id(
-            app.storage.user.get("user_id"), int(questioneer_id)
-        )
-
+        sheet = get_consent_sheet_by_id(user.id_name, int(questioneer_id))
+    if not sheet:
+        ui.label(f'No sheet found with id "{questioneer_id}" for user "{user.id_name}"')
+        return
     consent_legend_grid = consent_legend_component(lang)
     tour_create_sheet.add_step(
         consent_legend_grid,
@@ -129,9 +136,11 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
 
         with ui.tab_panel(groups_tab):
             with ui.grid(columns=2) as group_grid:
-                for group in user.groups:
+                user_groups = fetch_user_groups(user)
+                for group in user_groups:
+                    sheet_groups = fetch_sheet_groups(sheet)
                     assign_checkbox = ui.checkbox(
-                        group.name, value=group.id in [g.id for g in sheet.groups]
+                        group.name, value=group.id in [g.id for g in sheet_groups]
                     ).on_value_change(
                         lambda change_evt_args, group=group: (
                             assign_consent_sheet_to_group(sheet, group)
@@ -145,11 +154,11 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
                         assign_checkbox.tooltip(
                             get_localization("cannot_unassign_gm_sheet", lang)
                         )
-                if not user.groups:
+                if not user_groups:
                     ui.label(get_localization("no_groups", lang))
                 create_group_from_sheet_button = ui.button(
                     get_localization("create_group_from_sheet", lang),
-                    on_click=lambda: ui.notify("Not implemented yet", type="negative"),
+                    on_click=lambda: create_new_group(user, sheet.id),
                 )
                 tour_create_sheet.add_step(
                     create_group_from_sheet_button,

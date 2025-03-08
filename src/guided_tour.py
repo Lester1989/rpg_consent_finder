@@ -41,6 +41,7 @@ class NiceGuidedTour:
             self.tooltip_buttons = ui.row().classes("justify-end")
 
         self.start_element = None
+        self.tooltip_container.set_visibility(False)
         app.on_connect(self.hide_tooltip)  # hide tooltip when page reloads
 
     @property

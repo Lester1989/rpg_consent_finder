@@ -10,6 +10,8 @@ from components.sheet_editable_component import SheetEditableComponent
 from controller.group_controller import (
     assign_consent_sheet_to_group,
     create_new_group,
+    fetch_group_sheets,
+    fetch_group_users,
     get_group_by_name_id,
     leave_group,
     regenerate_invite_code,
@@ -19,6 +21,7 @@ from controller.user_controller import get_user_by_id_name
 from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
+    ConsentSheet,
     RPGGroup,
     User,
 )
@@ -43,14 +46,24 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         return
     logging.getLogger("content_consent_finder").debug(f"{group_name_id}")
     if not group_name_id:
+        logging.getLogger("content_consent_finder").debug("creating new group")
         group = create_new_group(user)
         group_name_id = generate_group_name_id(group)
         ui.navigate.to(f"/groupconsent/{group_name_id}?lang={lang}")
         return
     group: RPGGroup = get_group_by_name_id(group_name_id)
+    logging.getLogger("content_consent_finder").debug(f"{group}")
+    logging.getLogger("content_consent_finder").debug(f"sheet {group.gm_consent_sheet}")
+    logging.getLogger("content_consent_finder").debug(
+        f"sheet_id {group.gm_consent_sheet_id}"
+    )
+    group_consent_sheets = fetch_group_sheets(group)
+    logging.getLogger("content_consent_finder").debug(
+        f"consent_sheets {group_consent_sheets}"
+    )
     is_gm = user.id == group.gm_user_id
     with ui.tabs() as tabs:
-        display_tab = ui.tab("Consent")
+        display_tab = ui.tab("Consent").mark("group_display_tab")
         ordered_topics_tab = ui.tab("ordered_topics")
         edit_tab = ui.tab("Edit")
         general_tab = ui.tab("General")
@@ -74,16 +87,21 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         "w-full"
     ) as panels:
         with ui.tab_panel(display_tab):
+            logging.getLogger("content_consent_finder").info(
+                f"sheet {group.gm_consent_sheet}"
+            )
             sheet_display = SheetDisplayComponent(
-                consent_sheets=group.consent_sheets,
+                consent_sheets=group_consent_sheets,
                 lang=lang,
             )
         with ui.tab_panel(ordered_topics_tab):
             ordered_topics_display = PreferenceOrderedSheetDisplayComponent(
-                consent_sheets=group.consent_sheets, lang=lang
+                consent_sheets=group_consent_sheets, lang=lang
             )
         with ui.tab_panel(edit_tab):
-            sheet_editor = edit_tab_content(lang, user, group, is_gm)
+            sheet_editor = edit_tab_content(
+                lang, user, group, is_gm, group_consent_sheets
+            )
             tour_create_group.add_step(
                 sheet_editor,
                 get_localization("tour_create_group_sheet_editor", lang),
@@ -95,7 +113,12 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
                 lambda: panels.set_value(general_tab),
             )
         with ui.tab_panel(general_tab):
-            general_tab_content(lang, group, is_gm, tour_create_group)
+            if group.invite_code == "global":
+                ui.label("Global Group")
+            else:
+                general_tab_content(
+                    lang, group, is_gm, tour_create_group, group_consent_sheets
+                )
     panels.on_value_change(
         lambda x: storage_show_tab_and_refresh(
             x.value, sheet_display, ordered_topics_display, sheet_editor
@@ -106,12 +129,18 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         ui.timer(0.5, tour_create_group.start_tour, once=True)
 
 
-def edit_tab_content(lang: str, user: User, group: RPGGroup, is_gm: bool):
+def edit_tab_content(
+    lang: str,
+    user: User,
+    group: RPGGroup,
+    is_gm: bool,
+    group_consent_sheets: list[ConsentSheet],
+):
     if is_gm:
         sheet_editor = SheetEditableComponent(group.gm_consent_sheet, lang)
     else:
         if user_sheet := next(
-            (sheet for sheet in group.consent_sheets if sheet.user_id == user.id),
+            (sheet for sheet in group_consent_sheets if sheet.user_id == user.id),
             None,
         ):
             sheet_editor = SheetEditableComponent(user_sheet, lang)
@@ -155,7 +184,11 @@ def storage_show_tab_and_refresh(
 
 
 def general_tab_content(
-    lang: str, group: RPGGroup, is_gm: bool, tour_create_group: NiceGuidedTour
+    lang: str,
+    group: RPGGroup,
+    is_gm: bool,
+    tour_create_group: NiceGuidedTour,
+    group_consent_sheets: list[ConsentSheet],
 ):
     group_name_input = (
         ui.input("Group Name")
@@ -203,10 +236,10 @@ def general_tab_content(
             grid,
             get_localization("tour_create_group_member_grid", lang),
         )
-        for player in group.users:
+        for player in fetch_group_users(group):
             ui.label(player.nickname)
             has_sheet_in_consent = any(
-                sheet for sheet in group.consent_sheets if sheet.user_id == player.id
+                sheet for sheet in group_consent_sheets if sheet.user_id == player.id
             )
             make_localisable(
                 ui.label("Part of Consent"),

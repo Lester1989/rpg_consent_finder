@@ -35,7 +35,8 @@
 * [ ] News Page
 * [ ] Print/export as PDF for sheets and group consents
 * [ ] import/export sheet as json
-* [ ] Find better name
+* [X] Find better name
+* [ ] Startup Message in Log
 
 # Environment Variables
 

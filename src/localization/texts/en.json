@@ -117,5 +117,6 @@
     "tour_create_group_group_join_code":"The invitation code is a randomly generated code that you can use to invite other players to join your group. \n\n **IMPORTANT** Anyone who knows this code can join the group.",
     "tour_create_group_new_code_button":"Click on 'New invitation code' to generate a new code. \n\n **IMPORTANT** The old code becomes invalid and can no longer be used.",
     "tour_create_group_member_grid":"Here you can see everyone in your group. You can also see here whether a sheet is already included in the group's consensus. The red button removes the person from the group. \n\nWith the Other person, the group simply disappears from the list, remember to inform via known channels when you remove someone.",
-    "login_required_for_tour": "You need to be logged in to take this tour."
+    "login_required_for_tour": "You need to be logged in to take this tour.",
+    "leave": "Leave"
 }

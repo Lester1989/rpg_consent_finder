@@ -16,6 +16,7 @@ from controller.util_controller import (
 )
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import ConsentSheet, ConsentTemplate, LocalizedText
+from controller.user_controller import get_user_from_storage
 
 
 class SheetDisplayComponent(ui.column):
@@ -35,6 +36,9 @@ class SheetDisplayComponent(ui.column):
         lang: str = "en",
     ):
         super().__init__()
+        logging.getLogger("content_consent_finder").debug(
+            f"SheetDisplayComponent {consent_sheet} {consent_sheets}"
+        )
         if consent_sheet is None:
             self.sheets = consent_sheets
         else:
@@ -61,7 +65,8 @@ class SheetDisplayComponent(ui.column):
         return (
             self.sheet.human_name
             if self.sheet
-            else get_localization("consent_of", self.lang) + str(len(self.sheets))
+            else get_localization("consent_of", self.lang)
+            + str(len(self.sheets) if self.sheets else 1)
         )
 
     @property
@@ -69,12 +74,14 @@ class SheetDisplayComponent(ui.column):
         return (
             self.sheet.comment
             if self.sheet
-            else "\n---\n".join(sheet.comment for sheet in self.sheets if sheet.comment)
+            else "\n---\n".join(
+                sheet.comment for sheet in self.sheets if sheet and sheet.comment
+            )
         )
 
-    def button_duplicate(self, user_id_name: str):
+    def button_duplicate(self, user_id: int):
         logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
-        if duplicate := duplicate_sheet(self.sheet, user_id_name):
+        if duplicate := duplicate_sheet(self.sheet, user_id):
             ui.navigate.to(f"/home?lang={self.lang}")
             ui.notify(
                 duplicate.human_name + get_localization("sheet_duplicated", self.lang)
@@ -96,7 +103,7 @@ class SheetDisplayComponent(ui.column):
     @ui.refreshable
     def content(self):
         logging.getLogger("content_consent_finder").debug(
-            f"SheetDisplayComponent {self.sheet} {self.sheets}"
+            f"SheetDisplayComponent {self.sheet or self.sheets}"
         )
         self.refresh_sheets()
         self.clear()
@@ -142,15 +149,15 @@ class SheetDisplayComponent(ui.column):
                     )
 
     def display_foot(self):
-        user_id_name = app.storage.user.get("user_id")
-        if not user_id_name:
+        user = get_user_from_storage()
+        if not user:
             make_localisable(ui.label(), key="login_to_duplicate", language=self.lang)
             return
         if self.sheet:
             make_localisable(
                 ui.button(
                     "Duplicate",
-                    on_click=lambda: self.button_duplicate(user_id_name),
+                    on_click=lambda: self.button_duplicate(user.id),
                 ),
                 key="duplicate",
                 language=self.lang,

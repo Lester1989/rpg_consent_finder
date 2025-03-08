@@ -4,9 +4,8 @@ import string
 from datetime import datetime
 from functools import lru_cache
 
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
-from controller.user_controller import get_user_by_id_name
 from models.db_models import (
     ConsentEntry,
     ConsentSheet,
@@ -15,8 +14,16 @@ from models.db_models import (
     RPGGroup,
     User,
     ConsentStatus,
+    UserGroupLink,
+    GroupConsentSheetLink,
 )
 from models.model_utils import add_and_refresh, engine
+
+
+def fetch_sheet_groups(sheet: ConsentSheet) -> list[RPGGroup]:
+    logging.getLogger("content_consent_finder").debug(f"fetch_sheet_groups {sheet}")
+    with Session(engine) as session:
+        return sheet.fetch_groups(session)
 
 
 def create_share_id():
@@ -32,44 +39,52 @@ def create_share_id():
         return share_id
 
 
-def create_new_consentsheet(user: User) -> ConsentSheet:
+def create_new_consentsheet(user: User, session: Session = None) -> ConsentSheet:
+    if not session:
+        with Session(engine) as session:
+            return create_new_consentsheet(user, session)
     logging.getLogger("content_consent_finder").info(
         f"create_new_consentsheet for {user}"
     )
     sheet_unique_name = "".join(
         random.choices(string.ascii_letters + string.digits, k=8)
     )
-    with Session(engine) as session:
-        possible_collision = set(session.exec(select(ConsentSheet.unique_name)).all())
-        while sheet_unique_name in possible_collision:
-            sheet_unique_name = "".join(
-                random.choices(string.ascii_letters + string.digits, k=8)
-            )
-        user = get_user_by_id_name(user.id_name)
-        sheet = ConsentSheet(
-            unique_name=sheet_unique_name,
-            user_id=user.id,
-            user=user,
+    possible_collision = set(session.exec(select(ConsentSheet.unique_name)).all())
+    while sheet_unique_name in possible_collision:
+        sheet_unique_name = "".join(
+            random.choices(string.ascii_letters + string.digits, k=8)
         )
-        add_and_refresh(session, sheet)
-        templates = session.exec(select(ConsentTemplate)).all()
-        for template in templates:
-            entry = ConsentEntry(
-                consent_sheet_id=sheet.id,
-                consent_sheet=sheet,
-                consent_template_id=template.id,
-                consent_template=template,
-            )
-            session.add(entry)
-            sheet.consent_entries.append(entry)
-        session.commit()
-        session.refresh(sheet)
-        return sheet
+    user = session.get(User, user.id)
+    sheet = ConsentSheet(
+        unique_name=sheet_unique_name,
+        user_id=user.id,
+        user=user,
+    )
+    user.consent_sheets.append(sheet)
+    session.commit()
+    session.refresh(sheet)
+    templates = session.exec(select(ConsentTemplate)).all()
+    for template in templates:
+        entry = ConsentEntry(
+            consent_sheet_id=sheet.id,
+            consent_sheet=sheet,
+            consent_template_id=template.id,
+            consent_template=template,
+        )
+        # session.add(entry)
+        sheet.consent_entries.append(entry)
+    # session.merge(sheet)
+    session.commit()
+    session.refresh(sheet)
+    session.merge(user)
+    session.commit()
+    logging.getLogger("content_consent_finder").info(f"created {sheet}")
+    return sheet
 
 
-def duplicate_sheet(sheet_id: int, user_id_name):
+def duplicate_sheet(sheet_id: int, user_id: str | int):
     logging.getLogger("content_consent_finder").debug(
-        f"duplicate_sheet {sheet_id} {user_id_name}"
+        f"duplicate_sheet {sheet_id} {user_id}"
     )
 
     sheet_unique_name = "".join(
@@ -82,8 +97,7 @@ def duplicate_sheet(sheet_id: int, user_id_name):
                 random.choices(string.ascii_letters + string.digits, k=8)
             )
         sheet = session.get(ConsentSheet, sheet_id)
-        user = get_user_by_id_name(user_id_name)
-        user = session.merge(user)
+        user = session.get(User, int(user_id))
         new_sheet = ConsentSheet(
             unique_name=sheet_unique_name,
             user_id=user.id,
@@ -111,15 +125,27 @@ def duplicate_sheet(sheet_id: int, user_id_name):
         return new_sheet
 
 
-def delete_sheet(user: User, sheet: ConsentSheet):
+def delete_sheet(user: User, sheet: ConsentSheet, session: Session = None):
     logging.getLogger("content_consent_finder").debug(f"delete_sheet {sheet}")
-    with Session(engine) as session:
-        _user_may_edit_sheet(user, sheet)
-        sheet = session.get(ConsentSheet, sheet.id)
-        session.delete(sheet)
-        session.commit()
-        logging.getLogger("content_consent_finder").debug(f"deleted {sheet}")
-        return sheet
+    if not session:
+        with Session(engine) as session:
+            return delete_sheet(user, sheet, session)
+    _user_may_edit_sheet(user, sheet)
+    sheet = session.get(ConsentSheet, sheet.id)
+    # delete group links
+    session.exec(
+        delete(GroupConsentSheetLink).where(
+            GroupConsentSheetLink.consent_sheet_id == sheet.id
+        )
+    )
+    # delete entries
+    session.exec(delete(ConsentEntry).where(ConsentEntry.consent_sheet_id == sheet.id))
+    if sheet in user.consent_sheets:
+        user.consent_sheets.remove(sheet)
+    session.delete(sheet)
+    session.commit()
+    logging.getLogger("content_consent_finder").debug(f"deleted {sheet}")
+    return sheet
 
 
 def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
@@ -128,9 +154,10 @@ def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
         return True
     # is in group
     if session.exec(
-        select(RPGGroup).where(
-            RPGGroup.users.any(User.id == user.id),
-            RPGGroup.consent_sheets.any(ConsentSheet.id == sheet.id),
+        select(GroupConsentSheetLink).where(
+            GroupConsentSheetLink.consent_sheet_id == sheet.id,
+            GroupConsentSheetLink.group_id == UserGroupLink.group_id,
+            UserGroupLink.user_id == user.id,
         )
     ).first():
         return True
@@ -226,16 +253,18 @@ def get_all_consent_topics() -> list[ConsentTemplate]:
         return session.exec(select(ConsentTemplate)).all()
 
 
-def get_consent_sheet_by_id(user_id: str, sheet_id: int) -> ConsentSheet:
+def get_consent_sheet_by_id(user_id_name: str, sheet_id: int) -> ConsentSheet:
     logging.getLogger("content_consent_finder").debug(
-        f"get_consent_sheet_by_id {sheet_id} as {user_id}"
+        f"get_consent_sheet_by_id {sheet_id} as {user_id_name}"
     )
     with Session(engine) as session:
         if sheet := session.get(ConsentSheet, sheet_id):
-            user = session.exec(select(User).where(User.id_name == user_id)).first()
+            user = session.exec(
+                select(User).where(User.id_name == user_id_name)
+            ).first()
             if not user:
                 logging.getLogger("content_consent_finder").warning(
-                    f"User not found {user_id}"
+                    f"User not found {user_id_name}"
                 )
                 all_users = session.exec(select(User)).all()
                 for user in all_users:

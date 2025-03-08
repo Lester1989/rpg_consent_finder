@@ -5,9 +5,14 @@ import pytest
 from nicegui.testing import User
 import sys
 
+import os
+
+os.environ["LOGLEVEL"] = "DEBUG"
 
 sys.path.append("src")
 from main import startup
+from controller.admin_controller import get_status
+from models.seeder import seed_consent_questioneer
 
 pytest_plugins = ["nicegui.testing.plugin"]
 
@@ -30,13 +35,15 @@ async def test_login_wrong_pw(user: User, caplog) -> None:
 
 async def test_login_success(user: User, caplog) -> None:
     await user.open("/login")
-    # await user.should_see("register_tab")
-    # user.find("register_tab").click()
-    # await user.should_see("register_account")
-    # user.find("register_account").type("testuser")
-    # user.find("register_pw").type("123123123")
-    # user.find("register_pw_confirm").type("123123123")
-    # user.find("register_button").click()
+    register_first = True
+    if register_first:
+        await user.should_see("register_tab")
+        user.find("register_tab").click()
+        await user.should_see("register_account")
+        user.find("register_account").type("testuser")
+        user.find("register_pw").type("123123123")
+        user.find("register_pw_confirm").type("123123123")
+        user.find("register_button").click()
     await user.should_see("login_tab")
     user.find("login_tab").click()
     await user.should_see("login_account")
@@ -44,11 +51,20 @@ async def test_login_success(user: User, caplog) -> None:
     user.find("login_account").type("testuser")
     user.find("login_pw").type("123123123")
     user.find("login_button").click()
-    # await user.should_see("welcome_nickname")
-    # user.find("welcome_nickname").type("testuser")
-    # user.find("welcome_save").click()
+    if register_first:
+        await user.should_see("welcome_nickname")
+        user.find("welcome_nickname").type("testuser")
+        user.find("welcome_save").click()
     await user.should_see("logout_btn")
     # assert len(caplog.records) == 1
+
+
+async def test_db_state(user: User) -> None:
+    table_stati: dict[str, tuple[int, callable]] = get_status()
+    for table, (count, clear) in table_stati.items():
+        print(f"Table {table} has {count} entries before clear")
+        clear()
+    seed_consent_questioneer()
 
 
 async def test_signup(user: User, caplog) -> None:
@@ -67,7 +83,7 @@ async def test_signup(user: User, caplog) -> None:
     user.find("login_button").click()
     await user.should_see("logout_btn")
     await user.should_see("welcome_nickname")
-    user.find("welcome_nickname").type("testuser")
+    user.find("welcome_nickname").type("temptestuser")
     user.find("welcome_save").click()
     await user.should_see("delete_account_button")
     user.find("delete_account_button").click()

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, Session, select
 from enum import Enum
 
 LAZY_MODE = "selectin"
@@ -236,14 +236,20 @@ class User(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": LAZY_MODE},
         cascade_delete=True,
     )
-    groups: list["RPGGroup"] = Relationship(
-        back_populates="users",
-        link_model=UserGroupLink,
-        sa_relationship_kwargs={"lazy": LAZY_MODE},
-    )
+
+    def fetch_groups(self, session: Session) -> list["RPGGroup"]:
+        return session.exec(
+            select(RPGGroup).where(
+                UserGroupLink.user_id == self.id,
+                RPGGroup.id == UserGroupLink.group_id,
+            )
+        ).all()
 
     def __repr__(self):
-        return f"<User {self.id} {self.id_name} {self.nickname} [{len(self.consent_sheets)} sheets] [{len(self.groups)} groups]>"
+        return f"<User {self.id} {self.id_name} {self.nickname} [{len(self.consent_sheets)} sheets] >"
+
+    def __str__(self):
+        return f"<User {self.id} {self.id_name} {self.nickname} [{len(self.consent_sheets)} sheets] >"
 
 
 class ConsentSheet(SQLModel, table=True):
@@ -266,13 +272,18 @@ class ConsentSheet(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": LAZY_MODE},
         cascade_delete=True,
     )
-    groups: list["RPGGroup"] = Relationship(
-        back_populates="consent_sheets",
-        link_model=GroupConsentSheetLink,
-        sa_relationship_kwargs={"lazy": LAZY_MODE},
-    )
     user_id: int = Field(default=None, foreign_key="user.id")
-    user: User = Relationship(sa_relationship_kwargs={"lazy": LAZY_MODE})
+    user: User = Relationship(
+        sa_relationship_kwargs={"lazy": LAZY_MODE}, back_populates="consent_sheets"
+    )
+
+    def fetch_groups(self, session: Session) -> list["RPGGroup"]:
+        return session.exec(
+            select(RPGGroup).where(
+                GroupConsentSheetLink.consent_sheet_id == self.id,
+                RPGGroup.id == GroupConsentSheetLink.group_id,
+            )
+        ).all()
 
     @property
     def consent_entries_dict(self):
@@ -325,19 +336,24 @@ class RPGGroup(SQLModel, table=True):
     gm_consent_sheet: ConsentSheet | None = Relationship(
         sa_relationship_kwargs={"lazy": LAZY_MODE}
     )
-    consent_sheets: list[ConsentSheet] = Relationship(
-        back_populates="groups",
-        link_model=GroupConsentSheetLink,
-        sa_relationship_kwargs={"lazy": LAZY_MODE},
-    )
-    users: list[User] = Relationship(
-        back_populates="groups",
-        link_model=UserGroupLink,
-        sa_relationship_kwargs={"lazy": LAZY_MODE},
-    )
+
+    def fetch_consent_sheets(self, session: Session) -> list[ConsentSheet]:
+        return session.exec(
+            select(ConsentSheet).where(
+                GroupConsentSheetLink.group_id == self.id,
+                ConsentSheet.id == GroupConsentSheetLink.consent_sheet_id,
+            )
+        ).all()
+
+    def fetch_users(self, session: Session) -> list[User]:
+        return session.exec(
+            select(User).where(
+                UserGroupLink.group_id == self.id, User.id == UserGroupLink.user_id
+            )
+        ).all()
 
     def __str__(self):
-        return f"<RPGGroup {self.id} {self.name} {len(self.consent_sheets)} GM:{self.gm_user.nickname}, {len(self.users)} users>"
+        return f"<RPGGroup {self.id} {self.name} GM:{self.gm_user.nickname}>"
 
     def __repr__(self):
-        return f"<RPGGroup {self.id} {self.name} {len(self.consent_sheets)} GM:{self.gm_user.nickname}, {len(self.users)} users>"
+        return f"<RPGGroup {self.id} {self.name} GM:{self.gm_user.nickname}>"

@@ -25,7 +25,7 @@ def setup_app_logging():
 
     # Create a formatter
     formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)-8s - %(pathname)s:%(lineno)d | %(message)s",
+        "%(asctime)s - %(levelname)-8s - %(filename)+28s:%(lineno)3d | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     console_handler.setFormatter(formatter)
