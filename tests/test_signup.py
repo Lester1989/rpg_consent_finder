@@ -34,16 +34,8 @@ async def test_login_wrong_pw(user: User, caplog) -> None:
 
 
 async def test_login_success(user: User, caplog) -> None:
+    await clean_db(user)
     await user.open("/login")
-    register_first = True
-    if register_first:
-        await user.should_see("register_tab")
-        user.find("register_tab").click()
-        await user.should_see("register_account")
-        user.find("register_account").type("testuser")
-        user.find("register_pw").type("123123123")
-        user.find("register_pw_confirm").type("123123123")
-        user.find("register_button").click()
     await user.should_see("login_tab")
     user.find("login_tab").click()
     await user.should_see("login_account")
@@ -51,23 +43,41 @@ async def test_login_success(user: User, caplog) -> None:
     user.find("login_account").type("testuser")
     user.find("login_pw").type("123123123")
     user.find("login_button").click()
-    if register_first:
-        await user.should_see("welcome_nickname")
-        user.find("welcome_nickname").type("testuser")
-        user.find("welcome_save").click()
     await user.should_see("logout_btn")
     # assert len(caplog.records) == 1
 
 
-async def test_db_state(user: User) -> None:
+async def clean_db(user: User) -> None:
     table_stati: dict[str, tuple[int, callable]] = get_status()
     for table, (count, clear) in table_stati.items():
         print(f"Table {table} has {count} entries before clear")
         clear()
     seed_consent_questioneer()
+    await user.open("/login")
+    await user.should_see("register_tab")
+    user.find("register_tab").click()
+    await user.should_see("register_account")
+    user.find("register_account").type("testuser")
+    user.find("register_pw").type("123123123")
+    user.find("register_pw_confirm").type("123123123")
+    user.find("register_button").click()
+    await user.should_see("login_tab")
+    user.find("login_tab").click()
+    await user.should_see("login_account")
+    await user.should_see("login_pw")
+    user.find("login_account").type("testuser")
+    user.find("login_pw").type("123123123")
+    user.find("login_button").click()
+    await user.should_see("welcome_nickname")
+    user.find("welcome_nickname").type("testuser")
+    user.find("welcome_save").click()
+    await user.should_see("logout_btn")
+    user.find("logout_btn").click()
+    await user.open("/faq")
 
 
 async def test_signup(user: User, caplog) -> None:
+    await clean_db(user)
     await user.open("/login")
     await user.should_see("register_tab")
     user.find("register_tab").click()

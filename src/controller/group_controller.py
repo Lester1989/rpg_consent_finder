@@ -217,8 +217,9 @@ def ensure_global_group(session: Session):
         gm_consent_sheet_id=global_gm_sheet.id,
         invite_code="global",
     )
-    session.merge(group)
+    session.add(group)
     session.commit()
+    session.refresh(group)
     return group
 
 

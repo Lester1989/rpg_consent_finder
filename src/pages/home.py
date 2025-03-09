@@ -251,16 +251,16 @@ def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
     ui.separator()
     # button to join group
     with ui.row():
-        invite_code_input = ui.input("Group Code")
+        invite_code_input = ui.input("Group Code").mark("group_join_code_input")
         make_localisable(
             invite_code_input,
             key="group_join_code",
             language=lang,
         )
         make_localisable(
-            ui.button("Join Group").on_click(
-                lambda: reload_after(join_group, invite_code_input.value, user)
-            ),
+            ui.button("Join Group")
+            .on_click(lambda: reload_after(join_group, invite_code_input.value, user))
+            .mark("join_group_button"),
             key="join_group",
             language=lang,
         )
@@ -295,11 +295,13 @@ def group_display_row(lang: str, user: User, group: RPGGroup):
             )
         else:
             make_localisable(
-                ui.button("Leave").on_click(
+                ui.button("Leave")
+                .on_click(
                     lambda group=group: confirm_before(
                         "leave_group", lang, True, leave_group, group, user
                     )
-                ),
+                )
+                .mark(f"leave_group_button_{group.id}"),
                 key="leave",
                 language=lang,
             )

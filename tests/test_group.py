@@ -38,13 +38,6 @@ async def login(
     user: User, account_name: str = "testuser", password: str = "123123123"
 ):
     await user.open("/login")
-    # await user.should_see("register_tab")
-    # user.find("register_tab").click()
-    # await user.should_see("register_account")
-    # user.find("register_account").type(account_name)
-    # user.find("register_pw").type(password)
-    # user.find("register_pw_confirm").type(password))
-    # user.find("register_button").click()
     await user.should_see("login_tab")
     user.find("login_tab").click()
     await user.should_see("login_account")
@@ -52,9 +45,6 @@ async def login(
     user.find("login_account").type(account_name)
     user.find("login_pw").type(password)
     user.find("login_button").click()
-    # await user.should_see("welcome_nickname")
-    # user.find("welcome_nickname").type(account_name)
-    # user.find("welcome_save").click()
     await user.should_see("logout_btn")
 
 
@@ -77,3 +67,16 @@ async def test_create_and_delete_group(user: User):
 
     # confirm deletion
     await user.should_not_see(f"group_name_{group_id}", retries=2)
+
+
+async def test_join_global_group(user: User):
+    await login(user)
+    await user.open("/home")
+    # join global group
+    await user.should_see("join_group_button")
+    await user.should_see("group_join_code_input")
+    user.find("group_join_code_input").type("global")
+    user.find("join_group_button").click()
+    await user.should_see("global")
+    global_group_id = user.find("global ").elements.pop()._text.split(" ")[-1]
+    user.find(f"leave_group_button_{global_group_id}").click()

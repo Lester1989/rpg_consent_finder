@@ -172,7 +172,7 @@ async def exception_handler_404(request: Request, exception: Exception) -> Respo
         header("notfound", lang=language)
         ui.label("Sorry, this page does not exist").classes(
             "text-2xl text-center mt-4 mx-auto"
-        )
+        ).mark("notfound_label")
     return client.build_response(request, 404)
 
 
@@ -184,7 +184,9 @@ async def exception_handler_500(request: Request, exception: Exception) -> Respo
         language = request.query_params.get("lang", "en")
         header("error", lang=language)
         with ui.card().classes("p-4 mx-auto border-red-800 rounded-lg"):
-            ui.label("Internal Application Error").classes("text-2xl")
+            ui.label("Internal Application Error").classes("text-2xl").mark(
+                "error_label"
+            )
             ui.markdown(msg_to_user)
 
     return client.build_response(request, 500)

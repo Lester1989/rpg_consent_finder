@@ -57,7 +57,11 @@ def make_tour_card(lang: str, tour: str):
         ui.markdown(
             get_localization(f"howto_text_{tour}", language=lang),
         )
-        start_button = ui.button().on_click(lambda tour=tour: start_tour(tour, lang))
+        start_button = (
+            ui.button()
+            .on_click(lambda tour=tour: start_tour(tour, lang))
+            .mark(f"start_tour_{tour}")
+        )
         if not get_user_from_storage():
             start_button.set_enabled(False)
             start_button.tooltip(get_localization("login_required_for_tour", lang))

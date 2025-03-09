@@ -104,23 +104,23 @@ class NiceGuidedTour:
         self.tooltip_buttons.clear()
         with self.tooltip_buttons:
             if self.current_step_idx > 0:
-                ui.button("Prev").on_click(self.prev_step)
+                ui.button("Prev").on_click(self.prev_step).mark("tour_prev_button")
             elif self.goto_prev_page:
                 ui.button("Prev").on_click(self.goto_prev_page)
             if self.current_step_idx < len(self.elements) - 1:
-                ui.button("Next").on_click(self.next_step)
+                ui.button("Next").on_click(self.next_step).mark("tour_next_button")
                 ui.button("X", color="red").on_click(
                     lambda: self.hide_tooltip(is_close_action=True)
-                )
+                ).mark("tour_close_button")
             elif self.goto_next_page:
-                ui.button("Next").on_click(self.goto_next_page)
+                ui.button("Next").on_click(self.goto_next_page).mark("tour_next_button")
                 ui.button("X", color="red").on_click(
                     lambda: self.hide_tooltip(is_close_action=True)
-                )
+                ).mark("tour_close_button")
             else:
                 ui.button("Finish", color="green").on_click(
                     lambda: self.hide_tooltip(is_close_action=True)
-                )
+                ).mark("tour_finish_button")
 
         # show tooltip
         self.tooltip_container.set_visibility(True)
