@@ -91,12 +91,10 @@ class SheetDisplayComponent(ui.column):
 
     def refresh_sheets(self):
         if self.sheet:
-            self.sheet = get_consent_sheet_by_id(
-                app.storage.user.get("user_id"), self.sheet.id
-            )
+            self.sheet = get_consent_sheet_by_id(self.user.id_name, self.sheet.id)
         if self.sheets:
             self.sheets = [
-                get_consent_sheet_by_id(app.storage.user.get("user_id"), sheet.id)
+                get_consent_sheet_by_id(self.user.id_name, sheet.id)
                 for sheet in self.sheets
             ]
 
@@ -105,6 +103,7 @@ class SheetDisplayComponent(ui.column):
         logging.getLogger("content_consent_finder").debug(
             f"SheetDisplayComponent {self.sheet or self.sheets}"
         )
+        self.user = get_user_from_storage()
         self.refresh_sheets()
         self.clear()
         with self.classes("w-full"):
@@ -149,15 +148,14 @@ class SheetDisplayComponent(ui.column):
                     )
 
     def display_foot(self):
-        user = get_user_from_storage()
-        if not user:
+        if not self.user:
             make_localisable(ui.label(), key="login_to_duplicate", language=self.lang)
             return
         if self.sheet:
             make_localisable(
                 ui.button(
                     "Duplicate",
-                    on_click=lambda: self.button_duplicate(user.id),
+                    on_click=lambda: self.button_duplicate(self.user.id),
                 ),
                 key="duplicate",
                 language=self.lang,

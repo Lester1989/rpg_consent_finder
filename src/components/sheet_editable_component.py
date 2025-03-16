@@ -111,6 +111,7 @@ class SheetEditableComponent(ui.grid):
                             ConsentEntryComponent(
                                 self.sheet.get_entry(topic.id),
                                 lang=self.lang,
+                                user=self.user,
                             )
                             for topic in templates
                         ]

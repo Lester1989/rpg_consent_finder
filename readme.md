@@ -18,25 +18,25 @@
   * [X] create a consent sheet tour
   * [X] share a consent sheet tour
   * [X] create group tour
-  * [ ] join group tour
+  * [X] join group tour
 * [ ] Tests
   * [X] login and registration
   * [X] consent sheet creation, viewing and modification
-  * [ ] group
+  * [X] group
   * [ ] playstyle
   * [ ] feedback
 * [X] Radar plot for different playstyles
   * [ ] integrate into groups
   * [ ] summarize
-* [ ] Consent Sheet Reuse for group creation
+* [X] Consent Sheet Reuse for group creation
 * [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
 * [ ] Groups from public sheets
 * [ ] use caching and reduce database queries
-* [ ] News Page
+* [X] News Page
 * [ ] Print/export as PDF for sheets and group consents
 * [ ] import/export sheet as json
 * [X] Find better name
-* [ ] Startup Message in Log
+* [X] Startup Message in Log
 
 # Environment Variables
 

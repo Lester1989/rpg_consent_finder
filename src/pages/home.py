@@ -83,6 +83,9 @@ def content(lang: str = "en", **kwargs):
     tour_create_group = NiceGuidedTour(
         storage_key="tour_create_group_progress", page_suffix="home"
     )
+    tour_join_group = NiceGuidedTour(
+        storage_key="tour_join_group_progress", page_suffix="home"
+    )
     user: User = get_user_from_storage()
     if not user:
         logging.getLogger("content_consent_finder").debug("No user found")
@@ -92,12 +95,14 @@ def content(lang: str = "en", **kwargs):
         # list groups with button to leave and button to show details
         with ui.card():
             make_localisable(ui.label("Groups"), key="groups", language=lang)
-            groups_content(lang, user, tour_create_group)
+            groups_content(lang, user, tour_create_group, tour_join_group)
 
         # list consent sheets with icons for public or private and button to remove or to copy/duplicate
         with ui.card():
             make_localisable(ui.label(), key="consent_sheets", language=lang)
-            sheet_content(lang, user, tour_create_sheet, tour_share_sheet)
+            sheet_content(
+                lang, user, tour_create_sheet, tour_share_sheet, tour_join_group
+            )
     delete_account_button = (
         ui.button(color="red")
         .on_click(
@@ -118,6 +123,8 @@ def content(lang: str = "en", **kwargs):
         ui.timer(0.5, tour_share_sheet.start_tour, once=True)
     elif active_tour == "create_group":
         ui.timer(0.5, tour_create_group.start_tour, once=True)
+    elif active_tour == "join_group":
+        ui.timer(0.5, tour_join_group.start_tour, once=True)
 
 
 def sheet_content(
@@ -125,6 +132,7 @@ def sheet_content(
     user: User,
     tour_create_sheet: NiceGuidedTour,
     tour_share_sheet: NiceGuidedTour,
+    tour_join_group: NiceGuidedTour,
 ):
     with ui.grid().classes("grid-cols-1 lg:grid-cols-2") as sheet_grid:
         tour_create_sheet.add_step(
@@ -132,6 +140,9 @@ def sheet_content(
         )
         tour_share_sheet.add_step(
             sheet_grid, get_localization("tour_share_sheet_sheet_grid", lang)
+        )
+        tour_join_group.add_step(
+            sheet_grid, get_localization("tour_join_group_sheet_grid", lang)
         )
         user = get_user_from_storage()
         for sheet in user.consent_sheets:
@@ -224,8 +235,13 @@ def sheet_display_row(
             )
 
 
-def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
-    with ui.grid(columns=1):
+def groups_content(
+    lang: str,
+    user: User,
+    tour_create_group: NiceGuidedTour,
+    tour_join_group: NiceGuidedTour,
+):
+    with ui.grid(columns=1) as group_grid:
         for group in fetch_user_groups(user):
             group_display_row(lang, user, group)
 
@@ -257,13 +273,26 @@ def groups_content(lang: str, user: User, tour_create_group: NiceGuidedTour):
             key="group_join_code",
             language=lang,
         )
-        make_localisable(
+        join_button = make_localisable(
             ui.button("Join Group")
             .on_click(lambda: reload_after(join_group, invite_code_input.value, user))
             .mark("join_group_button"),
             key="join_group",
             language=lang,
         )
+        tour_join_group.add_step(
+            invite_code_input,
+            get_localization("tour_join_group_invite_code_input", lang),
+        )
+        tour_join_group.add_step(
+            join_button,
+            get_localization("tour_join_group_join_button", lang),
+            lambda: invite_code_input.set_value("global"),
+        )
+    tour_join_group.add_step(
+        group_grid,
+        get_localization("tour_join_group_group_grid", lang),
+    )
 
 
 def group_display_row(lang: str, user: User, group: RPGGroup):

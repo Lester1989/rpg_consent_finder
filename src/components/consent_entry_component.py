@@ -5,21 +5,26 @@ from nicegui import ui, events
 from controller.sheet_controller import update_entry
 from controller.user_controller import get_user_from_storage
 from localization.language_manager import make_localisable
-from models.db_models import ConsentEntry, ConsentStatus
+from models.db_models import ConsentEntry, ConsentStatus, User
 
 
 class ConsentEntryComponent(ui.row):
     consent_entry: ConsentEntry
     lang: str
 
-    def __init__(self, consent_entry: ConsentEntry, lang: str = "en"):
+    def __init__(
+        self,
+        consent_entry: ConsentEntry,
+        user: User,
+        lang: str = "en",
+    ):
         super().__init__()
         if not consent_entry:
             logging.getLogger("content_consent_finder").error("No consent entry")
             return
         self.lang = lang
         self.consent_entry = consent_entry
-        self.user = get_user_from_storage()
+        self.user = user
         self.content()
 
     def update_value(self, value_change: events.ValueChangeEventArguments):

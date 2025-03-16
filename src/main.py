@@ -31,7 +31,7 @@ from pages.home import content as home_content
 from pages.login_page import content as login_page_content
 from pages.playfun import content as playfun_content
 from pages.public_sheet import content as public_sheet_content
-from pages.questioneer import content as questioneer_content
+from pages.sheet_page import content as sheet_content
 from pages.news_page import content as news_content
 from public_share_qr import generate_sheet_share_qr_code
 
@@ -305,12 +305,12 @@ def startup():
     @ui.page("/consentsheet/{questioneer_id}")
     def questioneer(questioneer_id: str, show: str = None, lang: str = None):
         header(f"consentsheet/{questioneer_id}", lang or "en")
-        questioneer_content(lang=lang or "en", questioneer_id=questioneer_id, show=show)
+        sheet_content(lang=lang or "en", questioneer_id=questioneer_id, show=show)
 
     @ui.page("/consentsheet")
     def constentsheet_new(lang: str = "en"):
         header("consentsheet", lang)
-        questioneer_content(lang=lang)
+        sheet_content(lang=lang)
 
     @ui.page("/groupconsent")
     def group_new(lang: str = "en"):

@@ -118,5 +118,9 @@
     "tour_create_group_new_code_button":"Click on 'New invitation code' to generate a new code. \n\n **IMPORTANT** The old code becomes invalid and can no longer be used.",
     "tour_create_group_member_grid":"Here you can see everyone in your group. You can also see here whether a sheet is already included in the group's consensus. The red button removes the person from the group. \n\nWith the Other person, the group simply disappears from the list, remember to inform via known channels when you remove someone.",
     "login_required_for_tour": "You need to be logged in to take this tour.",
-    "leave": "Leave"
+    "leave": "Leave",
+    "tour_join_group_invite_code_input":"There is an invitation code for each group. If you know this code, you can join the group. \n\n Normally this code consists only of numbers and hyphens, but there is one exception, the global group. This is a special case and is only used for explanation and testing. Click on continue. ",
+    "tour_join_group_join_button":"In this tutorial you will join the global group. \n\nBy clicking on 'Join group' you will be added to the group and see the groups in the overview.",
+    "tour_join_group_group_grid":"You should now see the global group here. \n\n Click on 'Details' to view the group and see the consensus of the group.",
+    "tour_join_group_sheet_grid":"After you have joined a group, it is important to assign a sheet to this group. \n\nIn a sheet view, you can select the group you want to add in the last tab 'Groups'."
 }

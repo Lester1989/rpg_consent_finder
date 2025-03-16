@@ -8,12 +8,12 @@ Das Tool ist noch in der Entwicklung, daher gibt es vor allem viele Optimierunge
   * [X] Sheet Erstellen
   * [X] Sheet Teilen
   * [X] Gruppe erstellen
-  * [ ] Gruppe beitreten
+  * [X] Gruppe beitreten
   * [ ] Playstyle
 * [ ] Tests **SEHR WICHTIG**
   * [X] Login und Registrierung
   * [X] Sheet erstellen, ansehen und bearbeiten
-  * [ ] Gruppe
+  * [X] Gruppe
   * [ ] Playstyle
   * [ ] Feedback
 * [X] Mehrsprachigkeit
@@ -23,7 +23,7 @@ Das Tool ist noch in der Entwicklung, daher gibt es vor allem viele Optimierunge
 * [X] Gruppe erstellen
   * [X] Gruppenverwaltung (Einladungscode, Beitreten, Entfernen)
   * [X] Gruppen Konsent
-  * [ ] Bestehendes Sheet für Erstellung nutzen
+  * [X] Bestehendes Sheet für Erstellung nutzen
 * [X] Sheet
   * [X] speichern und bearbeiten
   * [X] Teilen (QR-Code und Link)
@@ -33,14 +33,14 @@ Das Tool ist noch in der Entwicklung, daher gibt es vor allem viele Optimierunge
 * [X] 8 Typen des Spielspaßes
   * [X] Hilfe zur Selbsteinschätzung (Fragebogen)
   * [ ] Einbinden in Gruppen
-  * [ ] Zusammenfassung als Text
+  * [X] Zusammenfassung als Text
   * [X] Zusammenfassung als Grafik
 * [X] Freitext Inhalte im Sheet
   * [X] Angezeigt im Gruppenkonsent
 * [X] Verbesserte Sortierung (Harte Grenzen zuerst) in der Konsent zusammenfassung
 * [ ] Druck/Export als PDF für Sheets und Gruppenkonsent
 * [ ] Import/Export Sheet als JSON
-* [ ] Besserer Name finden
+* [X] Besserer Name finden
 
 
 ---ENG---
@@ -55,12 +55,12 @@ The tool is still under development, so there are mainly many optimizations and 
   * [X] Create sheet
   * [X] Share sheet
   * [X] Create group
-  * [ ] Join group
+  * [X] Join group
   * [ ] Playstyle
 * [ ] Tests ** VERY IMPORTANT**
   * [X] login and registration
   * [X] consent sheet creation, viewing and modification
-  * [ ] group
+  * [X] group
   * [ ] playstyle
   * [ ] feedback
 * [X] Multilingualism
@@ -70,7 +70,7 @@ The tool is still under development, so there are mainly many optimizations and 
 * [X] Create group
   * [X] Group management (invite code, join, remove)
   * [X] Group Consent
-  * [ ] Use existing sheet for creation
+  * [X] Use existing sheet for creation
 * [X] Sheet
   * [X] Save and edit
   * [X] Share (QR code and link)
@@ -80,11 +80,11 @@ The tool is still under development, so there are mainly many optimizations and 
 * [X] 8 types of game fun
   * [X] Help for self-assessment (questionnaire)
   * [ ] Integration in groups
-  * [ ] Summary as text
+  * [X] Summary as text
   * [X] Summary as graphic
 * [X] Free text content in the sheet
   * [X] Displayed in group context
 * [X] Improved sorting (hard limits first) in the consent summary
 * [ ] Print/export as PDF for sheets and group consents
 * [ ] Import/export sheet as JSON
-* [ ] Find better name
+* [X] Find better name

@@ -42,9 +42,9 @@ def start_tour(tour_name: str, lang: str = "en"):
         for key in app.storage.user.keys():
             if isinstance(key, str) and key.startswith("tour_join_group_progress"):
                 app.storage.user[key] = 0
-        ui.notify("Tour coming soon", type="negative")
-        # ui.navigate.to(f"/home?lang={lang}")
+        ui.navigate.to(f"/home?lang={lang}")
         return
+    # ui.notify("Tour coming soon", type="negative")
 
 
 def make_tour_card(lang: str, tour: str):

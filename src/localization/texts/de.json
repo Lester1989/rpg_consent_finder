@@ -118,6 +118,9 @@
     "tour_create_group_new_code_button": "Mit einem Klick auf `Neuer Einladungscode` wird ein neuer Code generiert. \n\n **WICHTIG** Der alte Code wird ungültig und kann nicht mehr genutzt werden.",
     "tour_create_group_member_grid": "Hier siehst du Alle in deiner Gruppe. Du kannst hier auch sehen, ob bereits ein Sheet im Konsent der Gruppe eingerechnet ist. Der rote Button entfernt die Person aus der Gruppe. \n\nBei der Anderen Person verschwindet die Gruppe einfach aus der Liste, denk dran über bekannte Kanäle zu informieren, wenn du jemanden entfernst.",
     "login_required_for_tour": "Du musst eingeloggt sein, um die Tour zu starten",
-    "leave": "Verlassen"
-
+    "leave": "Verlassen",
+    "tour_join_group_invite_code_input":"Für jede Gruppe gibt es einen Einladungscode. Wenn du diesen Code kennst, kannst du der Gruppe beitreten. \n\n Normalerweise besteht dieser Code nur aus Zahlen und Bindestrichen, allerdings gibt es eine Ausnahme, die globale Gruppe. Diese ist ein Spezialfall und dient nur der Erklärung und Tests. Klicke auf weiter. ",
+    "tour_join_group_join_button":"In diesem Tutorial trittst du der globalen Gruppe bei. \n\n Mit einem Klick auf `Gruppe beitreten` wirst du der Gruppe hinzugefügt und siehst die Gruppen in der Übersicht.",
+    "tour_join_group_group_grid":"Hier sollte jetzt die globale Gruppe zu sehen sein. \n\n Mit einem Klick auf `Details` kannst du die Gruppe ansehen und den Konsent der Gruppe einsehen.",
+    "tour_join_group_sheet_grid":"Nachdem du einer Gruppe beigetreten bist, ist es wichtig dieser Gruppe auch einen Sheet zuzuweisen. \n\n In einer Sheet-Ansicht kannst du im letzten Tab `Gruppen` die Gruppe auswählen, die du hinzufügen möchtest."
 }
