@@ -14,7 +14,7 @@ WORKDIR /src
 COPY pyproject.toml poetry.lock ./
 RUN touch readme.md
 
-RUN poetry install --no-root --no-dev && rm -rf $POETRY_CACHE_DIR
+RUN poetry install --no-root --without dev && rm -rf $POETRY_CACHE_DIR
 
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.13-slim AS runtime
