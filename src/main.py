@@ -40,7 +40,7 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "...")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "...")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "...")
 
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8080")
+BASE_URL = os.getenv("BASE_URL", f"http://localhost:{os.getenv('PORT', 8080)}")
 
 SEED_ON_STARTUP = os.getenv("SEED_ON_STARTUP", "False").lower() == "true"
 if SEED_ON_STARTUP:
@@ -415,4 +415,5 @@ if __name__ in {"__main__", "__mp_main__"}:
             "".join(random.choices(string.ascii_letters + string.digits, k=32)),
         ),
         reload=RELOAD,
+        port=int(os.getenv("PORT", 8080)),
     )
