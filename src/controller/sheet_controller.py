@@ -262,7 +262,7 @@ def get_consent_sheet_by_id(user_id_name: str, sheet_id: int) -> ConsentSheet:
             user = session.exec(
                 select(User).where(User.id_name == user_id_name)
             ).first()
-            if not user:
+            if not user and not sheet.public_share_id:
                 logging.getLogger("content_consent_finder").warning(
                     f"User not found {user_id_name}"
                 )
