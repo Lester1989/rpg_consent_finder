@@ -150,7 +150,7 @@ def delete_sheet(user: User, sheet: ConsentSheet, session: Session = None):
 
 def _user_may_see_sheet(user: User, sheet: ConsentSheet, session: Session):
     # is own sheet
-    if sheet.user_id == user.id or sheet.public_share_id:
+    if (user and sheet.user_id == user.id) or sheet.public_share_id:
         return True
     # is in group
     if session.exec(
