@@ -22,6 +22,7 @@ class ConsentStatus(str, Enum):
     yes = "yes"
     okay = "okay"
     maybe = "maybe"
+    # veil
     no = "no"
     unknown = "unknown"
 

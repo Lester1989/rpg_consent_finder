@@ -33,11 +33,6 @@ def reload_after(func, *args, **kwargs):
     content.refresh()
 
 
-async def reload_after_async(func, *args, **kwargs):
-    await func(*args, **kwargs)
-    content.refresh()
-
-
 def confirm_before(key: str, lang: str, refresh_after: bool, func, *args, **kwargs):
     with ui.dialog() as dialog, ui.card():
         make_localisable(ui.label(), key=f"{key}_confirm", language=lang)

@@ -174,7 +174,8 @@ class SheetDisplayComponent(ui.column):
                         ui.link(
                             "Link to this sheet",
                             f"/consent/{self.sheet.public_share_id}/{self.sheet.id}?lang={self.lang}",
-                        ),
+                            new_tab=True,
+                        ).mark("share_link"),
                         key="share_link",
                         language=self.lang,
                     )

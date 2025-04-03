@@ -20,31 +20,10 @@ def store_user_faq(user_faq: str, lang: str = "en"):
 def start_tour(tour_name: str, lang: str = "en"):
     logging.getLogger("content_consent_finder").info(f"Starting tour {tour_name}")
     app.storage.user["active_tour"] = tour_name
-    if tour_name == "create_sheet":
-        for key in app.storage.user.keys():
-            if isinstance(key, str) and key.startswith("tour_create_sheet_progress"):
-                app.storage.user[key] = 0
-        ui.navigate.to(f"/home?lang={lang}")
-        return
-    elif tour_name == "share_sheet":
-        for key in app.storage.user.keys():
-            if isinstance(key, str) and key.startswith("tour_share_sheet_progress"):
-                app.storage.user[key] = 0
-        ui.navigate.to(f"/home?lang={lang}")
-        return
-    elif tour_name == "create_group":
-        for key in app.storage.user.keys():
-            if isinstance(key, str) and key.startswith("tour_create_group_progress"):
-                app.storage.user[key] = 0
-        ui.navigate.to(f"/home?lang={lang}")
-        return
-    elif tour_name == "join_group":
-        for key in app.storage.user.keys():
-            if isinstance(key, str) and key.startswith("tour_join_group_progress"):
-                app.storage.user[key] = 0
-        ui.navigate.to(f"/home?lang={lang}")
-        return
-    # ui.notify("Tour coming soon", type="negative")
+    for key in app.storage.user.keys():
+        if isinstance(key, str) and key.startswith(f"tour_{tour_name}_progress"):
+            app.storage.user[key] = 0
+    ui.navigate.to(f"/home?lang={lang}")
 
 
 def make_tour_card(lang: str, tour: str):

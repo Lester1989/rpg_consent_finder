@@ -86,6 +86,34 @@ async def test_create_and_delete_sheet(user: User, caplog) -> None:
     await delete_sheet(user, sheet_id)
 
 
+async def test_public_sheet(user: User, caplog) -> None:
+    sheet_id = await login_and_create_sheet(user)
+    user.find(f"details_button-{sheet_id}").click()
+    await user.should_see("sheet_tabs")
+    # goto edit
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("edit_tab").elements.pop()._props["name"]
+    )
+    # set public
+    await user.should_see("share_button")
+    user.find("share_button").click()
+
+    # go to display
+    user.find("sheet_tabs").elements.pop().set_value(
+        user.find("display_tab").elements.pop()._props["name"]
+    )
+    user.find("share_link").click()
+    await user.should_see("public_sheet_separator")
+    public_sheet_url = user.back_history[-1]
+    await user.should_see("logout_btn")
+    user.find("logout_btn").click()
+    user.open(public_sheet_url)
+    await user.should_see("public_sheet_separator")
+    await user.should_not_see("logout_btn")
+    await login(user)
+    await delete_sheet(user, sheet_id)
+
+
 async def test_modify_sheet_by_category(user: User, caplog) -> None:
     sheet_id = await login_and_create_sheet(user)
     user.find(f"details_button-{sheet_id}").click()

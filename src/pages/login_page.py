@@ -10,11 +10,6 @@ from controller.user_controller import (
 from localization.language_manager import get_localization, make_localisable
 
 
-def reload_after(func, *args, **kwargs):
-    func(*args, **kwargs)
-    content.refresh()
-
-
 @ui.refreshable
 def content(lang: str = "en", **kwargs):
     logging.getLogger("content_consent_finder").debug("showing login page")

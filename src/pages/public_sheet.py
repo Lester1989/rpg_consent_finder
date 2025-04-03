@@ -22,7 +22,7 @@ def content(share_id: str, sheet_id: str, lang: str = "en", **kwargs):
         make_localisable(ui.label(), key="no_sheet", language=lang)
         return
     PreferenceOrderedSheetDisplayComponent(sheet, lang=lang, redact_name=True)
-    ui.separator()
+    ui.separator().mark("public_sheet_separator")
     consent_legend_component(lang)
     try:
         user: User = get_user_by_id_name(app.storage.user.get("user_id"))
