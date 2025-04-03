@@ -21,5 +21,7 @@ class FAQElementComponent(ui.expansion):
 
     @ui.refreshable
     def content(self):
-        with self.classes("w-full border border-gray-200 rounded p-4 text-lg"):
+        with self.classes(
+            "w-full border border-gray-200 rounded p-4 text-lg dark:text-stone-200 text-stone-900 dark:bg-zinc-800 bg-zinc-100"
+        ):
             ui.markdown(self.answer).classes("text-sm")

@@ -118,6 +118,9 @@ def header(current_page=None, lang: str = "en"):
             ui.link("EN", f"/{current_page}?lang=en").classes(link_classes)
         else:
             ui.link("DE", f"/{current_page}?lang=de").classes(link_classes)
+
+        dark = ui.dark_mode(value=True)
+        ui.switch("Dark").bind_value(dark)
         if user_id:
             ui.link("Logout", "/logout").classes(
                 link_classes.replace("bg-gray-600", "bg-red-800")
@@ -408,7 +411,6 @@ if __name__ in {"__main__", "__mp_main__"}:
     )
     ui.run(
         title="Lester's Content Pact",
-        dark=True,
         favicon=Path("src/favicon.ico"),
         storage_secret=os.getenv(
             "STORAGE_SECRET",

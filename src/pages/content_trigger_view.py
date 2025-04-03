@@ -33,11 +33,11 @@ def content(lang: str = "en", **kwargs):
     ):
         for topic in topics:
             with ui.column().classes(
-                "w-full gap-0 p-2 rounded-lg shadow-sm shadow-white"
+                "w-full gap-0 p-2 rounded-lg shadow-sm dark:shadow-white bg-zinc-100 dark:bg-zinc-800 text-stone-900 dark:text-orange-50"
             ):
                 ui.label(topic.topic_local.get_text(lang)).classes("text-lg")
                 ui.label(topic.category_local.get_text(lang)).classes(
-                    "text-xs text-gray-500"
+                    "text-xs dark:text-amber-100 text-zinc-800 font-bold"
                 )
                 ui.space()
                 ui.markdown(

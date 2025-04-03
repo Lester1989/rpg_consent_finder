@@ -14,10 +14,10 @@ def consent_legend_component(lang: str = "en"):
     ) as grid:
         for preference in ConsentStatus:
             with ui.column().classes(
-                "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center"
+                "p-2 rounded-lg shadow-sm shadow-white gap-1 items-center rounded-lg shadow-sm dark:shadow-white bg-zinc-100 dark:bg-zinc-800 text-stone-900 dark:text-orange-50"
             ):
                 ui.label(preference.as_emoji + preference.name.capitalize()).classes(
-                    "text-xs text-gray-500 text-center"
+                    "text-xs dark:text-amber-100 text-zinc-800 font-bold"
                 )
                 ui.markdown(preference.explanation(lang))
     return grid
