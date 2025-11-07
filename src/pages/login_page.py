@@ -10,7 +10,6 @@ from controller.user_controller import (
 from localization.language_manager import get_localization, make_localisable
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     logging.getLogger("content_consent_finder").debug("showing login page")
     if user_id := app.storage.user.get("user_id"):
@@ -126,7 +125,7 @@ def register(account: str, password: str, confirm: str, lang: str):
         return
     try:
         if create_user_account(account, password):
-            content.refresh()
+            ui.navigate.reload()
             ui.notify(get_localization("account_created", lang), type="positive")
             return
     except ValueError as e:

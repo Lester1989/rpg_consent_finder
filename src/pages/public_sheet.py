@@ -12,7 +12,6 @@ from localization.language_manager import make_localisable
 from models.db_models import User
 
 
-@ui.refreshable
 def content(share_id: str, sheet_id: str, lang: str = "en", **kwargs):
     if not share_id:
         make_localisable(ui.label(), key="no_share_id", language=lang)

@@ -9,7 +9,7 @@ from localization.language_manager import get_localization, make_localisable
 
 def reload_after(func, *args, **kwargs):
     func(*args, **kwargs)
-    content.refresh()
+    ui.navigate.reload()
 
 
 @ui.refreshable

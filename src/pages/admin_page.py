@@ -37,10 +37,9 @@ def reload_after(func, *args, **kwargs):
         f"Reloading after {func.__name__}"
     )
     func(*args, **kwargs)
-    content.refresh()
+    ui.navigate.reload()
 
 
-@ui.refreshable
 def content(**kwargs):
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     if not user:
@@ -137,7 +136,7 @@ def trigger_content():
     if open_questions:
         with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 w-full lg:p-4"):
             for content_question in open_questions:
-                ContentQuestionComponent(content_question, content.refresh)
+                ContentQuestionComponent(content_question, ui.navigate.reload)
         ui.separator()
     custom_entries = get_all_custom_entries()
     ui.label(f"Custom Entries: {len(custom_entries)}")

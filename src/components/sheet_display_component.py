@@ -15,8 +15,14 @@ from controller.util_controller import (
     get_all_localized_texts,
 )
 from localization.language_manager import get_localization, make_localisable
-from models.db_models import ConsentSheet, ConsentTemplate, LocalizedText
+from models.db_models import (
+    ConsentSheet,
+    ConsentTemplate,
+    CustomConsentEntry,
+    LocalizedText,
+)
 from controller.user_controller import get_user_from_storage
+from models.db_models import ConsentStatus
 
 
 class SheetDisplayComponent(ui.column):
@@ -136,15 +142,25 @@ class SheetDisplayComponent(ui.column):
             for entry in sheet.custom_consent_entries
             if entry.content
         ]
+        grouped_custom_entries: dict[str, list[CustomConsentEntry]] = {}
+        for entry in custom_entries:
+            key = entry.content.lower()
+            if key not in grouped_custom_entries:
+                grouped_custom_entries[key] = []
+            grouped_custom_entries[key].append(entry)
         with ui.card().classes("row-span-1"):
             with ui.row().classes("w-full pt-6"):
                 ui.label("Custom Entries").classes("text-xl")
-                for custom_entry in custom_entries:
+                for custom_entries in grouped_custom_entries.values():
                     PreferenceConsentDisplayComponent(
-                        custom_entry.preference,
-                        custom_text=custom_entry.content,
+                        status=ConsentStatus.get_consent(
+                            [entry.preference for entry in custom_entries]
+                        ),
+                        custom_text=custom_entries[0].content,
                         lang=self.lang,
-                        comments=[custom_entry.comment],
+                        comments=[
+                            entry.comment for entry in custom_entries if entry.comment
+                        ],
                     )
 
     def display_foot(self):

@@ -18,7 +18,6 @@ def load_news() -> list[tuple[str, dict[str, str]]]:
 news: list[tuple[str, dict[str, str]]] = load_news()
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     if not news:
         ui.markdown("No news available")

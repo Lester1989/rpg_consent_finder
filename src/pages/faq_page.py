@@ -51,7 +51,6 @@ def make_tour_card(lang: str, tour: str):
         )
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     tours = ["create_sheet", "share_sheet", "create_group", "join_group"]
     with ui.grid().classes("gap-4 mx-auto lg:grid-cols-4 grid-cols-1 2xl:w-2/3"):

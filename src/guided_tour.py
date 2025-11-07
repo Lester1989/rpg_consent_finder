@@ -32,7 +32,7 @@ class NiceGuidedTour:
             )
             .mark("GUIDED")
         )
-        self.overlay = ui.html().classes(
+        self.overlay = ui.html(sanitize=False).classes(
             f"fixed top-0 left-0 w-full h-full bg-black/50 z-{NiceGuidedTour.TOUR_Z_INDEX - 1} hidden backdrop-blur-sm"
         )
 

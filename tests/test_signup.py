@@ -10,17 +10,10 @@ import os
 os.environ["LOGLEVEL"] = "DEBUG"
 
 sys.path.append("src")
-from main import startup
 from controller.admin_controller import get_status
 from models.seeder import seed_consent_questioneer
 
 pytest_plugins = ["nicegui.testing.plugin"]
-
-
-@pytest.fixture
-def user(user: User) -> Generator[User, None, None]:
-    startup()
-    yield user
 
 
 async def test_login_wrong_pw(user: User, caplog) -> None:

@@ -28,7 +28,7 @@ from pages.dsgvo import dsgvo_html
 from pages.faq_page import content as faq_content
 from pages.group_overview import content as group_overview_content
 from pages.home import content as home_content
-from pages.login_page import content as login_page_content
+from pages.login_page import content as login_content
 from pages.playfun import content as playfun_content
 from pages.public_sheet import content as public_sheet_content
 from pages.sheet_page import content as sheet_content
@@ -50,6 +50,7 @@ RELOAD = os.getenv("RELOAD", "False").lower() == "true"
 
 ADMINS = os.getenv("ADMINS", "").split(",")
 
+
 project_version = Path("src/version.txt").read_text().strip()
 
 
@@ -70,7 +71,13 @@ def get_discord_sso() -> DiscordSSO:
     )
 
 
-def header(current_page=None, lang: str = "en"):
+def set_language(lang: str):
+    # app.storage.user.set("lang", lang)
+    app.storage.user["lang"] = lang
+    ui.navigate.reload()
+
+
+def page_header(current_page: str = None):
     link_classes = "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
     highlight = " shadow-md shadow-yellow-500"
     with ui.row().classes("m-0 w-full bg-gray-800 text-white p-2"):
@@ -81,7 +88,7 @@ def header(current_page=None, lang: str = "en"):
         if user_id := app.storage.user.get("user_id"):
             user: User = get_user_by_id_name(user_id)
             if not user and current_page in {"home", "admin"}:
-                ui.navigate.to(f"/welcome?lang={lang}")
+                ui.navigate.to("/welcome")
                 return
             ui.label(f"Hi {user.nickname if user else ''}!").classes(
                 "text-md lg:text-xl mt-1"
@@ -93,31 +100,32 @@ def header(current_page=None, lang: str = "en"):
             user = None
         ui.space()
         if user:
-            home_link = ui.link("Home", f"/home?lang={lang}").classes(
+            home_link = ui.link("Home", "/home").classes(
                 link_classes + (highlight if current_page == "home" else "")
             )
             home_link.mark("home_link")
-        ui.link("News", f"/news?lang={lang}").classes(
+        ui.link("News", "/news").classes(
             link_classes + (highlight if current_page == "news" else "")
         )
-        ui.link("Contents", f"/content_trigger?lang={lang}").classes(
+        ui.link("Contents", "/content_trigger").classes(
             link_classes + (highlight if current_page == "content_trigger" else "")
         )
-        ui.link("FAQ", f"/faq?lang={lang}").classes(
+        ui.link("FAQ", "/faq").classes(
             link_classes + (highlight if current_page == "faq" else "")
         )
-        ui.link("Playstyle", f"/playstyle?lang={lang}").classes(
+        ui.link("Playstyle", "/playstyle").classes(
             link_classes + (highlight if current_page == "playstyle" else "")
         )
         if user_id in ADMINS:
-            ui.link("Admin", f"/admin?lang={lang}").classes(
+            ui.link("Admin", "/admin").classes(
                 link_classes + (highlight if current_page == "admin" else "")
             )
         ui.space()
+        lang = app.storage.user.get("lang", "en")
         if lang == "de":
-            ui.link("EN", f"/{current_page}?lang=en").classes(link_classes)
+            ui.button("EN", on_click=lambda: set_language("en")).classes(link_classes)
         else:
-            ui.link("DE", f"/{current_page}?lang=de").classes(link_classes)
+            ui.button("DE", on_click=lambda: set_language("de")).classes(link_classes)
 
         dark = ui.dark_mode(value=True)
         ui.switch("Dark").bind_value(dark)
@@ -130,6 +138,14 @@ def header(current_page=None, lang: str = "en"):
                 link_classes
                 + (highlight if current_page in {"welcome", "login"} else "")
             )
+
+
+def page_frame(current_page=None):
+    page_header(current_page=current_page)
+    page_footer()
+
+
+def page_footer():
     impressum_h1_classes = "text-lg lg:text-xl"
     impressum_p_classes = "text-sm lg:text-md"
     with ui.footer(fixed=False).classes("m-0 w-full bg-gray-800 text-white p-4"):
@@ -168,15 +184,15 @@ def dsgvo():
     return HTMLResponse(content=dsgvo_html, media_type="text/html")
 
 
-@app.exception_handler(404)
-async def exception_handler_404(request: Request, exception: Exception) -> Response:
-    with Client(page(""), request=request) as client:
-        language = request.query_params.get("lang", "en")
-        header("notfound", lang=language)
-        ui.label("Sorry, this page does not exist").classes(
-            "text-2xl text-center mt-4 mx-auto"
-        ).mark("notfound_label")
-    return client.build_response(request, 404)
+# @app.exception_handler(404)
+# async def exception_handler_404(request: Request, exception: Exception) -> Response:
+#     with Client(page(""), request=request) as client:
+#         language = request.query_params.get("lang", "en")
+#         header("notfound", lang=language)
+#         ui.label("Sorry, this page does not exist").classes(
+#             "text-2xl text-center mt-4 mx-auto"
+#         ).mark("notfound_label")
+#     return client.build_response(request, 404)
 
 
 @app.exception_handler(500)
@@ -184,8 +200,7 @@ async def exception_handler_500(request: Request, exception: Exception) -> Respo
     stack_trace = traceback.format_exc()
     msg_to_user = f"**{exception}**\n\nStack trace: \n<pre>{stack_trace}"
     with Client(page(""), request=request) as client:
-        language = request.query_params.get("lang", "en")
-        header("error", lang=language)
+        page_frame("error")
         with ui.card().classes("p-4 mx-auto border-red-800 rounded-lg"):
             ui.label("Internal Application Error").classes("text-2xl").mark(
                 "error_label"
@@ -195,161 +210,128 @@ async def exception_handler_500(request: Request, exception: Exception) -> Respo
     return client.build_response(request, 500)
 
 
-def startup():
-    @ui.page("/impressum")
-    def impressum_page(lang: str = "en"):
-        header("impressum", lang)
-        ui.html("""
-        <h1>Impressum</h1>
-        <p>Lukas Jaspaert
-                <br />
-        J&uuml;rgingsm&uuml;hle 9
-                <br />
-        33739 Bielefeld</p>
+def root():
+    page_frame(ui.context.client.request.url.path[1:])
+    ui.sub_pages(
+        {
+            "/": empty_uri_redirect,
+            "/impressum": impressum_page,
+            "/login": login_content,
+            "/news": news_content,
+            "/faq": faq_content,
+            "/content_trigger": content_trigger_view,
+            "/home": home_content,
+            "/welcome": welcome_page,
+            "/admin": admin_page_content,
+            "/logout": logout_page,
+            "/playstyle": playfun_content,
+            "/consent/{share_id}/{sheet_id}": public_sheet_content,
+            "/consentsheet/{questioneer_id}": sheet_content,
+            "/consentsheet": sheet_content,
+            "/groupconsent": group_overview_content,
+            "/groupconsent/{group_name_id}": group_overview_content,
+            "/google/login": google_login_redirect,
+            "/google/callback": google_callback_redirect,
+            "/discord/login": discord_login_redirect,
+            "/discord/callback": discord_callback_redirect,
+        }
+    ).classes("m-0 p-0 w-full")
 
-        <h2>Kontakt</h2>
-        <p>Telefon: 015150236860
-                <br />
-        E-Mail: l.ester@gmx.de
-                </p>""")
 
-    @ui.page("/")
-    def empty_uri(lang: str = "en"):
-        return ui.navigate.to(f"/welcome?lang={lang}")
+def impressum_page():
+    ui.html(
+        """
+    <h1>Impressum</h1>
+    <p>Lukas Jaspaert
+            <br />
+    J&uuml;rgingsm&uuml;hle 9
+            <br />
+    33739 Bielefeld</p>
 
-    @ui.page("/login")
-    def login(lang: str = "en"):
-        header("login", lang)
-        login_page_content(lang=lang)
+    <h2>Kontakt</h2>
+    <p>Telefon: 015150236860
+            <br />
+    E-Mail: l.ester@gmx.de
+            </p>""",
+        sanitize=False,
+    )
 
-    @ui.page("/news")
-    def news(lang: str = "en"):
-        header("news", lang)
-        news_content(lang=lang)
 
-    @ui.page("/faq")
-    def faq(lang: str = "en"):
-        header("faq", lang or "en")
-        faq_content(lang or "en")
+def empty_uri_redirect():
+    return ui.navigate.to("/welcome")
 
-    @ui.page("/content_trigger")
-    def content_trigger(lang: str = "en"):
-        header("content_trigger", lang or "en")
-        content_trigger_view(lang=lang or "en")
 
-    @ui.page("/home")
-    def home(lang: str = "en"):
-        header("home", lang or "en")
-        home_content(lang=lang or "en")
-
-    @ui.page("/welcome")
-    def welcome(lang: str = "en"):
-        header("welcome", lang or "en")
-        if user_id := app.storage.user.get("user_id"):
-            user: User = get_user_by_id_name(user_id)
-            logging.getLogger("content_consent_finder").debug(f"welcoming {user}")
-            if not user or not user.nickname:
-                ui.label("Welcome, yet unknown user").classes("text-2xl")
-                new_user = user or User(
-                    id_name=user_id,
-                    nickname="",
-                )
-                nick_input = ui.input("Your name").bind_value(new_user, "nickname")
-                save_nick_button = ui.button(
-                    "Save", on_click=lambda: update_user_and_go_home(new_user, lang)
-                )
-                nick_input.mark("welcome_nickname")
-                save_nick_button.mark("welcome_save")
-            else:
-                ui.navigate.to("/home")
+def welcome_page():
+    if user_id := app.storage.user.get("user_id"):
+        user: User = get_user_by_id_name(user_id)
+        logging.getLogger("content_consent_finder").debug(f"welcoming {user}")
+        if not user or not user.nickname:
+            ui.label("Welcome, yet unknown user").classes("text-2xl")
+            new_user = user or User(
+                id_name=user_id,
+                nickname="",
+            )
+            nick_input = ui.input("Your name").bind_value(new_user, "nickname")
+            save_nick_button = ui.button(
+                "Save", on_click=lambda: update_user_and_go_home(new_user)
+            )
+            nick_input.mark("welcome_nickname")
+            save_nick_button.mark("welcome_save")
         else:
-            logging.getLogger("content_consent_finder").debug("no user_id")
-            with ui.card().classes("p-4 mx-auto"):
-                make_localisable(
-                    ui.label("Welcome, please sign in").classes("text-2xl"),
-                    key="welcome_signin",
-                    language=lang,
-                )
-                ui.button(
-                    "Log/Sign in via Google",
-                    on_click=lambda: ui.navigate.to("/google/login"),
-                )
-                ui.button(
-                    "Log/Sign in via Discord",
-                    on_click=lambda: ui.navigate.to("/discord/login"),
-                )
-                local_sign_in_button = ui.button(
-                    "Log/Sign in via Account and Password",
-                    on_click=lambda: ui.navigate.to("/login"),
-                )
-                local_sign_in_button.mark("local_sign_in_button")
+            ui.navigate.to("/home")
+    else:
+        logging.getLogger("content_consent_finder").debug("no user_id")
+        with ui.card().classes("p-4 mx-auto"):
+            make_localisable(
+                ui.label("Welcome, please sign in").classes("text-2xl"),
+                key="welcome_signin",
+                language=app.storage.user.get("lang", "en"),
+            )
+            ui.button(
+                "Log/Sign in via Google",
+                on_click=lambda: ui.navigate.to("/google/login"),
+            )
+            ui.button(
+                "Log/Sign in via Discord",
+                on_click=lambda: ui.navigate.to("/discord/login"),
+            )
+            local_sign_in_button = ui.button(
+                "Log/Sign in via Account and Password",
+                on_click=lambda: ui.navigate.to("/login"),
+            )
+            local_sign_in_button.mark("local_sign_in_button")
 
-    @ui.page("/admin")
-    def admin(lang: str = "en"):
-        header("admin", lang)
-        admin_page_content()
 
-    @ui.page("/logout")
-    def logout(lang: str = "en"):
-        logging.getLogger("content_consent_finder").debug("logout")
-        app.storage.user["user_id"] = None
-        return ui.navigate.to(f"/home?lang={lang}")
+def logout_page(lang: str = "en"):
+    logging.getLogger("content_consent_finder").debug("logout")
+    app.storage.user["user_id"] = None
+    return ui.navigate.to(f"/home?lang={lang}")
 
-    @ui.page("/playstyle")
-    def playstyle(lang: str = "en"):
-        header("playstyle", lang)
-        playfun_content(lang=lang)
 
-    @ui.page("/consent/{share_id}/{sheet_id}")
-    def public_sheet(share_id: str, sheet_id: str, lang: str = None):
-        header(f"consent/{share_id}/{sheet_id}", lang or "en")
-        public_sheet_content(lang=lang or "en", share_id=share_id, sheet_id=sheet_id)
+async def google_login_redirect(google_sso: GoogleSSO = Depends(get_google_sso)):
+    return await google_sso.get_login_redirect()
 
-    @ui.page("/consentsheet/{questioneer_id}")
-    def questioneer(questioneer_id: str, show: str = None, lang: str = None):
-        header(f"consentsheet/{questioneer_id}", lang or "en")
-        sheet_content(lang=lang or "en", questioneer_id=questioneer_id, show=show)
 
-    @ui.page("/consentsheet")
-    def constentsheet_new(lang: str = "en"):
-        header("consentsheet", lang)
-        sheet_content(lang=lang)
+async def google_callback_redirect(
+    request: Request, google_sso: GoogleSSO = Depends(get_google_sso)
+):
+    user = await google_sso.verify_and_process(request)
+    logging.getLogger("content_consent_finder").debug(f"google {user}")
+    app.storage.user["user_id"] = f"google-{user.id}"
+    return ui.navigate.to("/welcome")
 
-    @ui.page("/groupconsent")
-    def group_new(lang: str = "en"):
-        header("groupconsent", lang)
-        group_overview_content(lang=lang)
 
-    @ui.page("/groupconsent/{group_name_id}")
-    def groupconsent(group_name_id: str, lang: str = None):
-        header(f"groupconsent/{group_name_id}", lang or "en")
-        group_overview_content(lang=lang or "en", group_name_id=group_name_id)
+async def discord_callback_redirect(
+    request: Request, discord_sso: DiscordSSO = Depends(get_discord_sso)
+):
+    user = await discord_sso.verify_and_process(request)
+    logging.getLogger("content_consent_finder").debug(f"discord {user}")
+    app.storage.user["user_id"] = f"discord-{user.id}"
+    return ui.navigate.to("/welcome")
 
-    @ui.page("/google/login")
-    async def google_login(google_sso: GoogleSSO = Depends(get_google_sso)):
-        return await google_sso.get_login_redirect()
 
-    @ui.page("/google/callback")
-    async def google_callback(
-        request: Request, google_sso: GoogleSSO = Depends(get_google_sso)
-    ):
-        user = await google_sso.verify_and_process(request)
-        logging.getLogger("content_consent_finder").debug(f"google {user}")
-        app.storage.user["user_id"] = f"google-{user.id}"
-        return ui.navigate.to("/welcome")
-
-    @ui.page("/discord/callback")
-    async def discord_callback(
-        request: Request, discord_sso: DiscordSSO = Depends(get_discord_sso)
-    ):
-        user = await discord_sso.verify_and_process(request)
-        logging.getLogger("content_consent_finder").debug(f"discord {user}")
-        app.storage.user["user_id"] = f"discord-{user.id}"
-        return ui.navigate.to("/welcome")
-
-    @ui.page("/discord/login")
-    async def discord_login(discord_sso: DiscordSSO = Depends(get_discord_sso)):
-        return await discord_sso.get_login_redirect()
+async def discord_login_redirect(discord_sso: DiscordSSO = Depends(get_discord_sso)):
+    return await discord_sso.get_login_redirect()
 
 
 @app.get("/api/qr")
@@ -367,9 +349,7 @@ def redact_string(s: str) -> str:
     return "!!NULL!!" if s is None else f"<REDACTED {len(s)}>"
 
 
-app.on_startup(startup)
-
-if __name__ in {"__main__", "__mp_main__"}:
+def startup_message():
     logging.getLogger(a_logger_setup.LOGGER_NAME).info(
         "========== Starting Lester's Content Pact =========="
     )
@@ -409,13 +389,18 @@ if __name__ in {"__main__", "__mp_main__"}:
     logging.getLogger(a_logger_setup.LOGGER_NAME).info(
         "===================================================="
     )
+
+
+if __name__ in {"__main__", "__mp_main__"}:
+    startup_message()
     ui.run(
+        root=root,
         title="Lester's Content Pact",
         favicon=Path("src/favicon.ico"),
         storage_secret=os.getenv(
             "STORAGE_SECRET",
             "".join(random.choices(string.ascii_letters + string.digits, k=32)),
         ),
-        reload=RELOAD,
+        reload=RELOAD or True,
         port=int(os.getenv("PORT", 8080)),
     )

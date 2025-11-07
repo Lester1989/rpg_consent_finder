@@ -17,7 +17,6 @@ def store_user_question(question: str, lang: str = "en"):
         ui.notify(get_localization("question_not_stored", lang), type="negative")
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     topics = get_all_consent_topics()
 

@@ -8,7 +8,7 @@ def setup_app_logging():
     """Configures logging for the application, leaving library loggers alone."""
 
     # Get the desired log level from the environment or use INFO as default
-    log_level_str = os.getenv("LOGLEVEL", "INFO").upper()
+    log_level_str = os.getenv("LOGLEVEL", "DEBUG").upper()
     try:
         log_level = getattr(logging, log_level_str)
     except AttributeError:

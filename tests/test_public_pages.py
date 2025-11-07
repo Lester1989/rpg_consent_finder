@@ -14,15 +14,7 @@ import os
 
 os.environ["LOGLEVEL"] = "INFO"
 
-from main import startup  # type: ignore
-
 pytest_plugins = ["nicegui.testing.plugin"]
-
-
-@pytest.fixture
-def user(user: User) -> Generator[User, None, None]:
-    startup()
-    yield user
 
 
 async def test_news_page(user: User):

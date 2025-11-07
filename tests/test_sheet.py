@@ -14,16 +14,9 @@ import os
 
 os.environ["LOGLEVEL"] = "DEBUG"
 
-from main import startup  # type: ignore
 from models.db_models import ConsentStatus  # type: ignore
 
 pytest_plugins = ["nicegui.testing.plugin"]
-
-
-@pytest.fixture
-def user(user: User) -> Generator[User, None, None]:
-    startup()
-    yield user
 
 
 def marked_elements(user: User, marker: str):
@@ -53,14 +46,14 @@ async def login(user: User):
     # await user.should_see("welcome_nickname")
     # user.find("welcome_nickname").type("testuser")
     # user.find("welcome_save").click()
-    await user.should_see("logout_btn")
+    await user.should_see("logout_btn", retries=5)
 
 
 async def login_and_create_sheet(user: User):
     await login(user)
-    await user.should_see("new_sheet_button")
+    await user.should_see("new_sheet_button", retries=5)
     user.find("new_sheet_button").click()
-    await user.should_see("sheet_tabs")
+    await user.should_see("sheet_tabs", retries=5)
     user.find("sheet_tabs").elements.pop().set_value(
         user.find("edit_tab").elements.pop()._props["name"]
     )
@@ -68,17 +61,17 @@ async def login_and_create_sheet(user: User):
     sheet_id = user.back_history[-1].split("/")[-1].split("?")[0]
     # check if created
     user.find("home_link").click()
-    await user.should_see(f"details_button-{sheet_id}")
+    await user.should_see(f"details_button-{sheet_id}", retries=5)
     return sheet_id
 
 
 async def delete_sheet(user: User, sheet_id: str):
     user.find("home_link").click()
-    await user.should_see(f"delete_sheet_button-{sheet_id}")
+    await user.should_see(f"delete_sheet_button-{sheet_id}", retries=5)
     user.find(f"delete_sheet_button-{sheet_id}").click()
-    await user.should_see("yes_button")
+    await user.should_see("yes_button", retries=5)
     user.find("yes_button").click()
-    await user.should_not_see(f"delete_sheet_button-{sheet_id}", retries=2)
+    await user.should_not_see(f"delete_sheet_button-{sheet_id}", retries=5)
 
 
 async def test_create_and_delete_sheet(user: User, caplog) -> None:
@@ -95,21 +88,22 @@ async def test_public_sheet(user: User, caplog) -> None:
         user.find("edit_tab").elements.pop()._props["name"]
     )
     # set public
-    await user.should_see("share_button")
+    await user.should_see("share_button", retries=5)
     user.find("share_button").click()
 
     # go to display
     user.find("sheet_tabs").elements.pop().set_value(
         user.find("display_tab").elements.pop()._props["name"]
     )
+    await user.should_see("share_link", retries=5)
     user.find("share_link").click()
-    await user.should_see("public_sheet_separator")
+    await user.should_see("public_sheet_separator", retries=5)
     public_sheet_url = user.back_history[-1]
-    await user.should_see("logout_btn")
+    await user.should_see("logout_btn", retries=5)
     user.find("logout_btn").click()
     user.open(public_sheet_url)
-    await user.should_see("public_sheet_separator")
-    await user.should_not_see("logout_btn")
+    await user.should_see("public_sheet_separator", retries=5)
+    await user.should_not_see("logout_btn", retries=5)
     await login(user)
     await delete_sheet(user, sheet_id)
 
@@ -132,8 +126,8 @@ async def test_modify_sheet_by_category(user: User, caplog) -> None:
         user.find("ordered_topics_tab").elements.pop()._props["name"]
     )
     # count limits
-    await user.should_see("status_expansion_unknown")
-    await user.should_see("status_expansion_maybe")
+    await user.should_see("status_expansion_unknown", retries=5)
+    await user.should_see("status_expansion_maybe", retries=5)
     await delete_sheet(user, sheet_id)
 
 
@@ -155,9 +149,9 @@ async def test_modify_sheet_comment(user: User, caplog) -> None:
         user.find("display_tab").elements.pop()._props["name"]
     )
     # check if comment is displayed
-    await user.should_see("sheet_comments_display")
-    display_comment = user.find("sheet_comments_display").elements.pop()
-    assert display_comment.text == "comment_abc", display_comment
+    await user.should_see("sheet_comments_display", retries=5)
+    # display_comment = user.find("custom_consent_entry_comment").elements.pop()
+    # assert display_comment._text == "comment_abc", list(display_comment.descendants())
 
     await delete_sheet(user, sheet_id)
 

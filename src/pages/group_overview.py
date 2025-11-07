@@ -2,6 +2,7 @@ import logging
 
 from nicegui import app, ui
 
+from a_logger_setup import LOGGER_NAME
 from components.preference_ordered_sheet_display_component import (
     PreferenceOrderedSheetDisplayComponent,
 )
@@ -32,10 +33,9 @@ SHOW_TAB_STORAGE_KEY = "group_show_tab"
 
 def reload_after(func, *args, **kwargs):
     func(*args, **kwargs)
-    content.refresh()
+    ui.navigate.reload()
 
 
-@ui.refreshable
 def content(lang: str = "en", group_name_id: str = None, **kwargs):
     tour_create_group = NiceGuidedTour(
         storage_key="tour_create_group_progress", page_suffix="home"
@@ -44,23 +44,19 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
     if not user:
         ui.navigate.to(f"/welcome?lang={lang}")
         return
-    logging.getLogger("content_consent_finder").debug(f"{group_name_id}")
+    logging.getLogger(LOGGER_NAME).debug(f"{group_name_id}")
     if not group_name_id:
-        logging.getLogger("content_consent_finder").debug("creating new group")
+        logging.getLogger(LOGGER_NAME).debug("creating new group")
         group = create_new_group(user)
         group_name_id = generate_group_name_id(group)
         ui.navigate.to(f"/groupconsent/{group_name_id}?lang={lang}")
         return
     group: RPGGroup = get_group_by_name_id(group_name_id)
-    logging.getLogger("content_consent_finder").debug(f"{group}")
-    logging.getLogger("content_consent_finder").debug(f"sheet {group.gm_consent_sheet}")
-    logging.getLogger("content_consent_finder").debug(
-        f"sheet_id {group.gm_consent_sheet_id}"
-    )
+    logging.getLogger(LOGGER_NAME).debug(f"{group}")
+    logging.getLogger(LOGGER_NAME).debug(f"sheet {group.gm_consent_sheet}")
+    logging.getLogger(LOGGER_NAME).debug(f"sheet_id {group.gm_consent_sheet_id}")
     group_consent_sheets = fetch_group_sheets(group)
-    logging.getLogger("content_consent_finder").debug(
-        f"consent_sheets {group_consent_sheets}"
-    )
+    logging.getLogger(LOGGER_NAME).debug(f"consent_sheets {group_consent_sheets}")
     is_gm = user.id == group.gm_user_id
     with ui.tabs() as tabs:
         display_tab = ui.tab("Consent").mark("group_display_tab")
@@ -87,9 +83,7 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         "w-full"
     ) as panels:
         with ui.tab_panel(display_tab):
-            logging.getLogger("content_consent_finder").info(
-                f"sheet {group.gm_consent_sheet}"
-            )
+            logging.getLogger(LOGGER_NAME).info(f"sheet {group.gm_consent_sheet}")
             sheet_display = SheetDisplayComponent(
                 consent_sheets=group_consent_sheets,
                 lang=lang,
@@ -172,9 +166,7 @@ def storage_show_tab_and_refresh(
 ):
     tab = tab.lower()
     app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
-    logging.getLogger("content_consent_finder").debug(
-        f"storage_show_tab_and_refresh {tab}"
-    )
+    logging.getLogger(LOGGER_NAME).debug(f"storage_show_tab_and_refresh {tab}")
     if tab == "consent":
         category_topics_display.content.refresh()
     elif tab == "ordered_topics":

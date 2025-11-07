@@ -28,7 +28,6 @@ from models.db_models import (
 SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 
-@ui.refreshable
 def content(questioneer_id: str = None, lang: str = "en", **kwargs):
     logging.getLogger("content_consent_finder").debug(
         f"displaying consent sheet {questioneer_id}"

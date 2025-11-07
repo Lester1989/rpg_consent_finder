@@ -20,10 +20,9 @@ SHOW_TAB_STORAGE_KEY = "playfun_tab"
 
 def reload_after(func, *args, **kwargs):
     func(*args, **kwargs)
-    content.refresh()
+    ui.navigate.reload()
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     ui.add_css("""
     .nicegui-markdown h3 {

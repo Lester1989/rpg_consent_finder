@@ -30,7 +30,7 @@ from models.model_utils import generate_group_name_id
 
 def reload_after(func, *args, **kwargs):
     func(*args, **kwargs)
-    content.refresh()
+    ui.navigate.reload()
 
 
 def confirm_before(key: str, lang: str, refresh_after: bool, func, *args, **kwargs):
@@ -42,7 +42,7 @@ def confirm_before(key: str, lang: str, refresh_after: bool, func, *args, **kwar
                 on_click=lambda: (
                     dialog.close(),
                     func(*args, **kwargs),
-                    content.refresh() if refresh_after else None,
+                    ui.navigate.reload() if refresh_after else None,
                 ),
             )
             no_button = ui.button("No", on_click=dialog.close)
@@ -67,7 +67,6 @@ def remove_account(user: User):
     ui.notify("Bye Bye!")
 
 
-@ui.refreshable
 def content(lang: str = "en", **kwargs):
     tour_create_sheet = NiceGuidedTour(
         storage_key="tour_create_sheet_progress", page_suffix="home"
@@ -244,16 +243,14 @@ def groups_content(
     # button to create group
     create_group_button = (
         ui.button("Create Group")
-        .on_click(lambda: ui.navigate.to(f"/groupconsent/?lang={lang}"))
+        .on_click(lambda: ui.navigate.to("/groupconsent"))
         .mark("create_group_button")
     )
     tour_create_group.add_step(
         create_group_button,
         get_localization("tour_create_group_create_group_button", lang),
     )
-    tour_create_group.add_next_page(
-        lambda: ui.navigate.to(f"/groupconsent/?lang={lang}")
-    )
+    tour_create_group.add_next_page(lambda: ui.navigate.to("/groupconsent"))
     make_localisable(
         create_group_button,
         key="create_group",
