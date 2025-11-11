@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import app, ui, events
 
 from controller.group_controller import (
     delete_group,
@@ -12,6 +12,7 @@ from controller.sheet_controller import (
     delete_sheet,
     fetch_sheet_groups,
     get_consent_sheet_by_id,
+    import_sheet_from_json,
 )
 from controller.user_controller import (
     delete_account,
@@ -148,8 +149,18 @@ def sheet_content(
     tour_create_sheet.add_step(
         new_sheet_button, get_localization("tour_create_sheet_new_sheet_button")
     )
+    ui.upload(on_upload=handle_sheet_upload)
     tour_create_sheet.add_next_page(lambda: ui.navigate.to("/consentsheet/"))
     make_localisable(new_sheet_button, key="create_sheet")
+
+
+async def handle_sheet_upload(upload_event: events.UploadEventArguments):
+    user = get_user_from_storage()
+    if imported_sheet_id := import_sheet_from_json(
+        await upload_event.file.text(), user
+    ):
+        ui.notify(get_localization("sheet_imported_successfully"))
+        ui.navigate.to(f"/consentsheet/{imported_sheet_id}")
 
 
 def sheet_display_row(

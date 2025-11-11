@@ -82,6 +82,22 @@ def create_new_consentsheet(user: User, session: Session = None) -> ConsentSheet
     return sheet
 
 
+def import_sheet_from_json(json_text: str, user: User):
+    import json
+
+    logging.getLogger("content_consent_finder").info(
+        f"import_sheet_from_json for {user}"
+    )
+    logging.getLogger("content_consent_finder").debug(f"json: {type(json_text)}")
+    sheet_data = json.loads(json_text)
+    with Session(engine) as session:
+        user = session.get(User, user.id)
+        imported_sheet = ConsentSheet.import_sheet_from_json(sheet_data, user, session)
+        session.commit()
+        logging.getLogger("content_consent_finder").info(f"imported {imported_sheet}")
+        return imported_sheet.id
+
+
 def duplicate_sheet(sheet_id: int, user_id: str | int):
     logging.getLogger("content_consent_finder").debug(
         f"duplicate_sheet {sheet_id} {user_id}"

@@ -286,6 +286,99 @@ class ConsentSheet(SQLModel, table=True):
             )
         ).all()
 
+    @staticmethod
+    def export_sheets_as_json(sheets: list["ConsentSheet"]) -> str:
+        import json
+
+        sheet_data = {
+            "unique_name": f"export_of_sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            if len(sheets) == 1
+            else "export_of_multiple_sheets",
+            "human_name": sheets[0].human_name if len(sheets) == 1 else None,
+            "comment": sheets[0].comment
+            if len(sheets) == 1
+            else "; ".join(sheet.comment for sheet in sheets if sheet.comment),
+            "consent_entries": [
+                {
+                    "consent_template_id": entry.consent_template_id,
+                    "preference": ConsentStatus.get_consent(
+                        sheet_entry.preference
+                        for sheet in sheets
+                        for sheet_entry in sheet.consent_entries
+                        if entry.consent_template_id == sheet_entry.consent_template_id
+                    ),
+                    "comment": "; ".join(
+                        sheet_entry.comment
+                        for sheet in sheets
+                        for sheet_entry in sheet.consent_entries
+                        if entry.consent_template_id == sheet_entry.consent_template_id
+                        and sheet_entry.comment
+                    )
+                    or None,
+                }
+                for entry in sheets[0].consent_entries
+            ],
+            "custom_consent_entries": [
+                {
+                    "content": entry.content,
+                    "preference": ConsentStatus.get_consent(
+                        sheet_entry.preference
+                        for sheet in sheets
+                        for sheet_entry in sheet.custom_consent_entries
+                        if entry.content == sheet_entry.content
+                    ),
+                    "comment": "; ".join(
+                        sheet_entry.comment
+                        for sheet in sheets
+                        for sheet_entry in sheet.custom_consent_entries
+                        if entry.content == sheet_entry.content and sheet_entry.comment
+                    )
+                    or None,
+                }
+                for entry in sheets[0].custom_consent_entries
+            ],
+        }
+        return json.dumps(sheet_data, indent=4)
+
+    @staticmethod
+    def import_sheet_from_json(
+        data: dict, user: User, session: Session
+    ) -> "ConsentSheet":
+        import random
+        import string
+
+        sheet_unique_name = "".join(
+            random.choices(string.ascii_letters + string.digits, k=8)
+        )
+
+        sheet = ConsentSheet(
+            unique_name=sheet_unique_name,
+            human_name=data.get("human_name"),
+            comment=data.get("comment"),
+            user_id=user.id,
+        )
+        session.add(sheet)
+        session.commit()
+        session.refresh(sheet)
+        for entry_data in data.get("consent_entries", []):
+            entry = ConsentEntry(
+                consent_sheet_id=sheet.id,
+                consent_template_id=entry_data["consent_template_id"],
+                preference=entry_data["preference"],
+                comment=entry_data.get("comment"),
+            )
+            session.add(entry)
+        for custom_entry_data in data.get("custom_consent_entries", []):
+            custom_entry = CustomConsentEntry(
+                consent_sheet_id=sheet.id,
+                content=custom_entry_data["content"],
+                preference=custom_entry_data["preference"],
+                comment=custom_entry_data.get("comment"),
+            )
+            session.add(custom_entry)
+        session.commit()
+        return sheet
+
     @property
     def consent_entries_dict(self):
         return {entry.consent_template_id: entry for entry in self.consent_entries}

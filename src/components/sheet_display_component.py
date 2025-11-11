@@ -170,6 +170,14 @@ class SheetDisplayComponent(ui.column):
                 ),
                 key="duplicate",
             )
+        ui.button("Export as JSON").on_click(
+            lambda: ui.download.content(
+                ConsentSheet.export_sheets_as_json(
+                    [self.sheet] if self.sheet else self.sheets
+                ),
+                f"export_consent_sheet_{self.sheet.id if self.sheet else 'group'}.json",
+            )
+        )
 
     def display_head(self):
         with ui.row().classes("w-full bg-gray-700 p-2 rounded-lg"):
