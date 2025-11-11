@@ -54,21 +54,19 @@ ADMINS = os.getenv("ADMINS", "").split(",")
 project_version = Path("src/version.txt").read_text().strip()
 
 
-def get_google_sso() -> GoogleSSO:
-    return GoogleSSO(
-        GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET,
-        redirect_uri=f"{BASE_URL}/google/callback",
-    )
+google_sso = GoogleSSO(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    redirect_uri=f"{BASE_URL}/google/callback",
+)
 
 
-def get_discord_sso() -> DiscordSSO:
-    return DiscordSSO(
-        DISCORD_CLIENT_ID,
-        DISCORD_CLIENT_SECRET,
-        redirect_uri=f"{BASE_URL}/discord/callback",
-        allow_insecure_http=True,
-    )
+discord_sso = DiscordSSO(
+    DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_SECRET,
+    redirect_uri=f"{BASE_URL}/discord/callback",
+    allow_insecure_http=True,
+)
 
 
 def set_language(lang: str):
@@ -296,30 +294,38 @@ def logout_page():
     return ui.navigate.to("/home")
 
 
-async def google_login_redirect(google_sso: GoogleSSO = Depends(get_google_sso)):
-    return await google_sso.get_login_redirect()
+async def google_login_redirect():
+    async with google_sso:
+        redirect_response = await google_sso.get_login_redirect()
+        ui.navigate.to(redirect_response.headers["location"])
 
 
-async def google_callback_redirect(
-    request: Request, google_sso: GoogleSSO = Depends(get_google_sso)
-):
-    user = await google_sso.verify_and_process(request)
+@ui.page("/google/callback")
+async def google_callback_redirect(request: Request):
+    async with google_sso:
+        user = await google_sso.verify_and_process(request)
     logging.getLogger("content_consent_finder").debug(f"google {user}")
     app.storage.user["user_id"] = f"google-{user.id}"
     return ui.navigate.to("/welcome")
 
 
-async def discord_callback_redirect(
-    request: Request, discord_sso: DiscordSSO = Depends(get_discord_sso)
-):
-    user = await discord_sso.verify_and_process(request)
+@ui.page("/discord/callback")
+async def discord_callback_redirect(request: Request):
+    logging.getLogger("content_consent_finder").info("discord callback")
+    async with discord_sso:
+        user = await discord_sso.verify_and_process(request)
     logging.getLogger("content_consent_finder").debug(f"discord {user}")
     app.storage.user["user_id"] = f"discord-{user.id}"
     return ui.navigate.to("/welcome")
 
 
-async def discord_login_redirect(discord_sso: DiscordSSO = Depends(get_discord_sso)):
-    return await discord_sso.get_login_redirect()
+async def discord_login_redirect():
+    logging.getLogger("content_consent_finder").info("discord login")
+    async with discord_sso:
+        redirect_response = await discord_sso.get_login_redirect(
+            redirect_uri="http://localhost:8080/discord/callback"
+        )
+        ui.navigate.to(redirect_response.headers["location"])
 
 
 @app.get("/api/qr")

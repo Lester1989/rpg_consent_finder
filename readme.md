@@ -19,12 +19,15 @@
   * [X] share a consent sheet tour
   * [X] create group tour
   * [X] join group tour
+  * [ ] import + export tour
 * [ ] Tests
   * [X] login and registration
   * [X] consent sheet creation, viewing and modification
   * [X] group
   * [ ] playstyle
   * [ ] feedback
+  * [ ] import/export
+  * [ ] localization
 * [X] Radar plot for different playstyles
   * [ ] integrate into groups
   * [ ] summarize
@@ -34,7 +37,7 @@
 * [ ] use caching and reduce database queries
 * [X] News Page
 * [ ] Print/export as PDF for sheets and group consents
-* [ ] import/export sheet as json
+* [X] import/export sheet as json
 * [X] Find better name
 * [X] Startup Message in Log
 
