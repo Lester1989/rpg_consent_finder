@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import ui, app
 import pandas as pd
 import numpy as np
 from matplotlib.axes import Axes
@@ -83,13 +83,13 @@ class PlayfunPlot(ui.card):
     def __init__(
         self,
         datas: list[PlayFunResult] | dict[str, PlayFunResult],
-        lang: str = "en",
         **kwargs,
     ):
         super().__init__(**kwargs)
+        lang = app.storage.user.get("lang", "en")
         data = {"categories": PlayFunResult.categories(lang)}
         if not datas:
-            ui.label(get_localization("no_data", lang))
+            ui.label(get_localization("no_data"))
             return
         if isinstance(datas, dict):
             data |= {key: list(data.ratings.values()) for key, data in datas.items()}
@@ -109,5 +109,5 @@ class PlayfunPlot(ui.card):
                     data_series_list,
                     ax,
                     series_names,
-                    title=get_localization("playfun_plot_title", lang),
+                    title=get_localization("playfun_plot_title"),
                 )

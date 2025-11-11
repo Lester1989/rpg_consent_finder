@@ -1,6 +1,6 @@
 import random
 
-from nicegui import ui
+from nicegui import ui, app
 
 from controller.sheet_controller import get_consent_template_by_id
 from models.db_models import ConsentStatus, ConsentTemplate
@@ -11,7 +11,6 @@ class PreferenceConsentDisplayComponent(ui.row):
     consent_template: ConsentTemplate | None = None
     comments: list[str]
     custom_text: str
-    lang: str
 
     def __init__(
         self,
@@ -19,10 +18,8 @@ class PreferenceConsentDisplayComponent(ui.row):
         consent_template_id: int = None,
         custom_text: str = None,
         comments: list[str] = None,
-        lang: str = "en",
     ):
         super().__init__()
-        self.lang = lang
         self.preference = status
         self.custom_text = custom_text
         if consent_template_id:
@@ -35,18 +32,19 @@ class PreferenceConsentDisplayComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
+        lang = app.storage.user.get("lang", "en")
         content_text = (
-            self.consent_template.topic_local.get_text(self.lang)
+            self.consent_template.topic_local.get_text(lang)
             if self.consent_template
             else self.custom_text
         )
         content_tooltip = (
-            self.consent_template.explanation_local.get_text(self.lang)
+            self.consent_template.explanation_local.get_text(lang)
             if self.consent_template
             else ""
         )
         category_text = (
-            self.consent_template.category_local.get_text(self.lang)
+            self.consent_template.category_local.get_text(lang)
             if self.consent_template
             else "Custom"
         )
@@ -55,7 +53,7 @@ class PreferenceConsentDisplayComponent(ui.row):
             ui.label(category_text).classes("text-xs text-gray-500")
             ui.space()
             ui.label(f"{self.preference.as_emoji}").tooltip(
-                self.preference.explanation(self.lang)
+                self.preference.explanation(lang)
             )
             if self.comments:
                 ui.label(" |#| ".join(self.comments)).classes("text-md")

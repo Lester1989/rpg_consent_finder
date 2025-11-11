@@ -28,7 +28,6 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
     sheet: ConsentSheet = None
     sheets: list[ConsentSheet] = None
     redact_name: bool
-    lang: str
     text_lookup: dict[int, LocalizedText]
     share_expansion: ui.expansion
     share_image: ui.image
@@ -38,14 +37,12 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         consent_sheet: ConsentSheet = None,
         consent_sheets: list[ConsentSheet] = None,
         redact_name: bool = False,
-        lang: str = "en",
     ):
         super().__init__()
         if consent_sheet is None:
             self.sheets = consent_sheets
         else:
             self.sheet = consent_sheet
-        self.lang = lang
         self.text_lookup = get_all_localized_texts()
         self.redact_name = redact_name
         self.templates: list[ConsentTemplate] = get_all_consent_topics()
@@ -58,7 +55,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         return (
             self.sheet.display_name
             if self.sheet
-            else get_localization("consent_of", self.lang) + str(len(self.sheets))
+            else get_localization("consent_of") + str(len(self.sheets))
         )
 
     @property
@@ -72,12 +69,10 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
     def button_duplicate(self, user_id: str):
         logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
         if duplicate := duplicate_sheet(self.sheet, user_id):
-            ui.navigate.to(f"/home?lang={self.lang}")
-            ui.notify(
-                duplicate.human_name + get_localization("sheet_duplicated", self.lang)
-            )
+            ui.navigate.to("/home")
+            ui.notify(duplicate.human_name + get_localization("sheet_duplicated"))
         else:
-            ui.notify(get_localization("sheet_not_duplicated", self.lang))
+            ui.notify(get_localization("sheet_not_duplicated"))
 
     def refresh_sheets(self):
         if self.sheet:
@@ -104,6 +99,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             self.display_foot()
 
     def content_topic_displays(self):
+        lang = app.storage.user.get("lang", "en")
         lookup_consents = {
             template.id: ConsentStatus.get_consent(
                 [
@@ -123,11 +119,26 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             ]
             for status in ConsentStatus
         }
+        grouped_custom_entries: dict[str, list[CustomConsentEntry]] = {}
         for sheet in self.sheets or [self.sheet]:
             for custom_entry in sheet.custom_consent_entries:
                 if custom_entry.content == "":
                     continue
-                prefence_entries[custom_entry.preference].append(custom_entry)
+                grouped_custom_entries.setdefault(
+                    custom_entry.content.lower(), []
+                ).append(custom_entry)
+
+        for content, entries in grouped_custom_entries.items():
+            status = ConsentStatus.get_consent([entry.preference for entry in entries])
+            prefence_entries.setdefault(status, []).append(
+                CustomConsentEntry(
+                    content=content,
+                    preference=status,
+                    comment="; ".join(
+                        entry.comment for entry in entries if entry.comment
+                    ),
+                )
+            )
 
         for status in ConsentStatus.ordered():
             if not prefence_entries.get(status):
@@ -140,7 +151,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                 ).classes(
                     "mx-auto text-center border-2 rounded-lg"
                 ) as status_expansion:
-                    ui.markdown(status.explanation(self.lang))
+                    ui.markdown(status.explanation(lang))
                 logging.getLogger("content_consent_finder").warning(
                     f"Displaying {status} with {len(prefence_entries[status])} entries"
                 )
@@ -153,7 +164,6 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                         PreferenceConsentDisplayComponent(
                             status,
                             consent_template_id=template_or_custom.id,
-                            lang=self.lang,
                         )
                     elif isinstance(template_or_custom, CustomConsentEntry):
                         logging.getLogger("content_consent_finder").debug(
@@ -162,13 +172,12 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                         PreferenceConsentDisplayComponent(
                             status,
                             custom_text=template_or_custom.content,
-                            lang=self.lang,
                         )
 
     def display_foot(self):
         user = get_user_from_storage()
         if not user:
-            make_localisable(ui.label(), key="login_to_duplicate", language=self.lang)
+            make_localisable(ui.label(), key="login_to_duplicate")
             return
         if self.sheet:
             make_localisable(
@@ -177,7 +186,6 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                     on_click=lambda: self.button_duplicate(user.id),
                 ),
                 key="duplicate",
-                language=self.lang,
             )
 
     def display_head(self):
@@ -189,18 +197,16 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                     make_localisable(
                         self.share_expansion,
                         key="share_link_expansion",
-                        language=self.lang,
                     )
                     make_localisable(
                         ui.link(
                             "Link to this sheet",
-                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}?lang={self.lang}",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
                         ),
                         key="share_link",
-                        language=self.lang,
                     )
                     self.share_image = ui.image(
-                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}&lang={self.lang}"
+                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}"
                     )
             else:
                 self.share_image = None

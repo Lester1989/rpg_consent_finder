@@ -8,54 +8,51 @@ from controller.util_controller import get_all_faq, store_faq_question
 from localization.language_manager import get_localization, make_localisable
 
 
-def store_user_faq(user_faq: str, lang: str = "en"):
+def store_user_faq(user_faq: str):
     logging.getLogger("content_consent_finder").debug(user_faq)
     result = store_faq_question(user_faq)
     if result.id:
-        ui.notify(get_localization("question_stored", lang), type="positive")
+        ui.notify(get_localization("question_stored"), type="positive")
     else:
-        ui.notify(get_localization("question_not_stored", lang), type="negative")
+        ui.notify(get_localization("question_not_stored"), type="negative")
 
 
-def start_tour(tour_name: str, lang: str = "en"):
+def start_tour(tour_name: str):
     logging.getLogger("content_consent_finder").info(f"Starting tour {tour_name}")
     app.storage.user["active_tour"] = tour_name
     for key in app.storage.user.keys():
         if isinstance(key, str) and key.startswith(f"tour_{tour_name}_progress"):
             app.storage.user[key] = 0
-    ui.navigate.to(f"/home?lang={lang}")
+    ui.navigate.to("/home")
 
 
-def make_tour_card(lang: str, tour: str):
+def make_tour_card(tour: str):
     with ui.card():
         make_localisable(
             ui.label().classes("text-xl font-bold"),
             key=f"howto_header_{tour}",
-            language=lang,
         )
-        ui.markdown(
-            get_localization(f"howto_text_{tour}", language=lang),
-        )
+        ui.markdown(get_localization(f"howto_text_{tour}"))
         start_button = (
             ui.button()
-            .on_click(lambda tour=tour: start_tour(tour, lang))
+            .on_click(lambda tour=tour: start_tour(tour))
             .mark(f"start_tour_{tour}")
         )
         if not get_user_from_storage():
             start_button.set_enabled(False)
-            start_button.tooltip(get_localization("login_required_for_tour", lang))
+            start_button.tooltip(get_localization("login_required_for_tour"))
         make_localisable(
             start_button,
             key=f"howto_button_{tour}",
-            language=lang,
         )
 
 
-def content(lang: str = "en", **kwargs):
+def content(**kwargs):
+    lang = app.storage.user.get("lang", "en")
     tours = ["create_sheet", "share_sheet", "create_group", "join_group"]
     with ui.grid().classes("gap-4 mx-auto lg:grid-cols-4 grid-cols-1 2xl:w-2/3"):
         for tour in tours:
-            make_tour_card(lang, tour)
+            make_tour_card(tour)
     ui.separator()
     faq_items = get_all_faq()
     with ui.grid().classes("gap-4 mx-auto lg:grid-cols-2 grid-cols-1 2xl:w-2/3"):
@@ -69,12 +66,8 @@ def content(lang: str = "en", **kwargs):
         make_localisable(
             user_faq,
             key="faq_question",
-            language=lang,
         )
         make_localisable(
-            ui.button("Abschicken").on_click(
-                lambda: store_user_faq(user_faq.value, lang)
-            ),
+            ui.button("Abschicken").on_click(lambda: store_user_faq(user_faq.value)),
             key="submit",
-            language=lang,
         )

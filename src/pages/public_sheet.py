@@ -12,22 +12,22 @@ from localization.language_manager import make_localisable
 from models.db_models import User
 
 
-def content(share_id: str, sheet_id: str, lang: str = "en", **kwargs):
+def content(share_id: str, sheet_id: str, **kwargs):
     if not share_id:
-        make_localisable(ui.label(), key="no_share_id", language=lang)
+        make_localisable(ui.label(), key="no_share_id")
         return
     sheet = get_consent_sheet_by_id(app.storage.user.get("user_id"), int(sheet_id))
     if not sheet or sheet.public_share_id != share_id:
-        make_localisable(ui.label(), key="no_sheet", language=lang)
+        make_localisable(ui.label(), key="no_sheet")
         return
-    PreferenceOrderedSheetDisplayComponent(sheet, lang=lang, redact_name=True)
+    PreferenceOrderedSheetDisplayComponent(sheet, redact_name=True)
     ui.separator().mark("public_sheet_separator")
-    consent_legend_component(lang)
+    consent_legend_component()
     try:
         user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     except Exception:
         user = None
     if not user:
-        ui.link("Sign Up/in", f"/welcome?lang={lang}").classes(
+        ui.link("Sign Up/in", "/welcome").classes(
             "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-green-600 p-1 lg:p-2 rounded"
         )

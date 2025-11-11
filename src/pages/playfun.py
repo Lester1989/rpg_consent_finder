@@ -23,7 +23,7 @@ def reload_after(func, *args, **kwargs):
     ui.navigate.reload()
 
 
-def content(lang: str = "en", **kwargs):
+def content(**kwargs):
     ui.add_css("""
     .nicegui-markdown h3 {
         font-size: 1.5em;
@@ -40,8 +40,8 @@ def content(lang: str = "en", **kwargs):
     with ui.tabs().classes("w-5/6 mx-auto") as tabs:
         question_tab = ui.tab("questions")
         plot_tab = ui.tab("plot")
-        make_localisable(question_tab, key="play_fun_statements", language=lang)
-        make_localisable(plot_tab, key="play_fun_plot", language=lang)
+        make_localisable(question_tab, key="play_fun_statements")
+        make_localisable(plot_tab, key="play_fun_plot")
 
     named_tabs = {"questions": question_tab, "plot": plot_tab}
     show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "questions")
@@ -50,9 +50,9 @@ def content(lang: str = "en", **kwargs):
         "w-5/6 mx-auto"
     ) as panels:
         with ui.tab_panel(question_tab):
-            question_content(lang)
+            question_content()
         with ui.tab_panel(plot_tab):
-            plot_content(lang, user)
+            plot_content(user)
     panels.on_value_change(lambda x: storage_show_tab_and_refresh(x.value))
 
     if user:
@@ -61,13 +61,11 @@ def content(lang: str = "en", **kwargs):
                 lambda: store_playfun_result(user, construct_ratings(user))
             ),
             key="save",
-            language=lang,
         )
     else:
         make_localisable(
             ui.label(),
             key="please_log_in_to_store_playfun",
-            language=lang,
         )
 
 
@@ -85,12 +83,13 @@ def ensure_answers_in_user_storage(statements: list[PlayFunQuestion] = None):
     app.storage.user["answers"] = answers
 
 
-def question_content(lang):
+def question_content():
     statements = get_playfun_questions()
     ensure_answers_in_user_storage(statements)
-    ui.markdown(get_localization("playfun_questions_introduction", lang)).classes(
+    ui.markdown(get_localization("playfun_questions_introduction")).classes(
         "lg:w-1/2 mx-auto"
     )
+    lang = app.storage.user.get("lang", "en")
     with ui.grid().classes("w-full lg:grid-cols-2 gap-4"):
         for playfun_question in statements:
             with ui.card():
@@ -119,10 +118,10 @@ def question_content(lang):
 
 
 @ui.refreshable
-def plot_content(lang: str, user: User):
+def plot_content(user: User):
     with ui.row().classes("w-full"):
-        PlayfunPlot({"me": construct_ratings(user)}, lang=lang)
-        ui.markdown(get_localization("playfun_plot_explanation", lang)).classes(
+        PlayfunPlot({"me": construct_ratings(user)})
+        ui.markdown(get_localization("playfun_plot_explanation")).classes(
             "xl:w-2/5 w-full text-sm"
         )
 

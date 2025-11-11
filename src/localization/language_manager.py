@@ -2,7 +2,7 @@ import logging
 import pathlib
 import json
 from nicegui.elements import label
-from nicegui import ui
+from nicegui import ui, app
 
 
 class LabelMeta(type):
@@ -112,6 +112,7 @@ def get_available_languages():
 
 def get_localization(key: str, language: str | None = None):
     """Get a localized string"""
+    language = language or app.storage.user.get("lang", "en")
     return localizations.get(key, {}).get(
         language or current_language,
         localizations.get(key, {}).get("en", f"UNKNOWN_{key}"),
@@ -124,7 +125,6 @@ def make_localisable(
     key: str = None,
     option_localizations: dict[str, list[str]] = None,
     options_key: str = None,
-    language: str | None = None,
 ):
     """
     Register a component for localization.
@@ -144,6 +144,7 @@ def make_localisable(
     localized_components.append(
         (component, component_localizations, option_localizations)
     )
+    language = app.storage.user.get("lang", "en")
     if isinstance(component, label.TextElement):
         _localize_as_text(component, component_localizations, language)
     elif isinstance(component, ui.select) and option_localizations:
@@ -169,6 +170,7 @@ def set_language(lang: str):
     global current_language
     current_language = lang
     remove = []
+    app.storage.user["lang"] = lang
     for component, localizations, option_localizations in localized_components:
         try:
             if isinstance(component, label.TextElement):

@@ -18,10 +18,11 @@ def load_news() -> list[tuple[str, dict[str, str]]]:
 news: list[tuple[str, dict[str, str]]] = load_news()
 
 
-def content(lang: str = "en", **kwargs):
+def content(**kwargs):
     if not news:
         ui.markdown("No news available")
         return
+    lang = app.storage.user.get("lang", "en")
     for news_point in sorted(news, key=lambda x: x[0], reverse=True):
         _, news_dict = news_point
         ui.markdown(news_dict[lang])

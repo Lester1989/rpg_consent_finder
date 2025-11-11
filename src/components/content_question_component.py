@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import ui
+from nicegui import ui, app
 
 from controller.admin_controller import (
     remove_content_question,
@@ -36,9 +36,10 @@ class ContentQuestionComponent(ui.expansion):
 
     @ui.refreshable
     def content(self):
+        lang = app.storage.user.get("lang", "en")
         templates = get_all_consent_topics()
         categories = {
-            template.category_id: template.category_local.get_text("de")
+            template.category_id: template.category_local.get_text(lang)
             for template in templates
         }
         with self.classes("w-full border border-gray-200 rounded p-4 text-lg"):

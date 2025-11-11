@@ -5,10 +5,9 @@ from models.db_models import (
 from localization.language_manager import make_localisable
 
 
-def consent_legend_component(lang: str = "en"):
-    make_localisable(
-        ui.label().classes("text-2xl mx-auto"), key="consent_levels", language=lang
-    )
+def consent_legend_component():
+    lang = app.storage.user.get("lang", "en")
+    make_localisable(ui.label().classes("text-2xl mx-auto"), key="consent_levels")
     with ui.grid().classes(
         "lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"
     ) as grid:

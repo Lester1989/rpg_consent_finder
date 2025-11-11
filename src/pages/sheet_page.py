@@ -28,7 +28,7 @@ from models.db_models import (
 SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 
-def content(questioneer_id: str = None, lang: str = "en", **kwargs):
+def content(questioneer_id: str = None, **kwargs):
     logging.getLogger("content_consent_finder").debug(
         f"displaying consent sheet {questioneer_id}"
     )
@@ -40,21 +40,21 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
     )
     user: User = get_user_from_storage()
     if not user:
-        ui.navigate.to(f"/welcome?lang={lang}")
+        ui.navigate.to("/welcome")
         return
     if not questioneer_id:
         sheet = create_new_consentsheet(user)
-        ui.navigate.to(f"/consentsheet/{sheet.id}?lang={lang}")
+        ui.navigate.to(f"/consentsheet/{sheet.id}")
         return
     else:
         sheet = get_consent_sheet_by_id(user.id_name, int(questioneer_id))
     if not sheet:
         ui.label(f'No sheet found with id "{questioneer_id}" for user "{user.id_name}"')
         return
-    consent_legend_grid = consent_legend_component(lang)
+    consent_legend_grid = consent_legend_component()
     tour_create_sheet.add_step(
         consent_legend_grid,
-        get_localization("tour_create_sheet_consent_legend_grid", lang),
+        get_localization("tour_create_sheet_consent_legend_grid"),
     )
     ui.separator()
 
@@ -74,62 +74,60 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
         display_tab.mark("display_tab")
         ordered_topics_tab.mark("ordered_topics_tab")
         tour_create_sheet.add_step(
-            edit_tab, get_localization("tour_create_sheet_edit_tab", lang)
+            edit_tab, get_localization("tour_create_sheet_edit_tab")
         )
         tour_create_sheet.add_step(
-            display_tab, get_localization("tour_create_sheet_display_tab", lang)
+            display_tab, get_localization("tour_create_sheet_display_tab")
         )
         tour_create_sheet.add_step(
             ordered_topics_tab,
-            get_localization("tour_create_sheet_ordered_topics_tab", lang),
+            get_localization("tour_create_sheet_ordered_topics_tab"),
         )
         tour_create_sheet.add_step(
-            groups_tab, get_localization("tour_create_sheet_groups_tab", lang)
+            groups_tab, get_localization("tour_create_sheet_groups_tab")
         )
-        make_localisable(display_tab, key="display", language=lang)
-        make_localisable(ordered_topics_tab, key="ordered_topics", language=lang)
-        make_localisable(edit_tab, key="edit", language=lang)
-        make_localisable(groups_tab, key="groups", language=lang)
+        make_localisable(display_tab, key="display")
+        make_localisable(ordered_topics_tab, key="ordered_topics")
+        make_localisable(edit_tab, key="edit")
+        make_localisable(groups_tab, key="groups")
     show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "display")
     logging.getLogger("content_consent_finder").warning(f"show_tab {show_tab}")
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
         "w-full"
     ) as panels:
         with ui.tab_panel(display_tab):
-            category_topics_display = SheetDisplayComponent(sheet, lang=lang)
+            category_topics_display = SheetDisplayComponent(sheet)
         with ui.tab_panel(ordered_topics_tab):
-            ordered_topics_display = PreferenceOrderedSheetDisplayComponent(
-                sheet, lang=lang
-            )
+            ordered_topics_display = PreferenceOrderedSheetDisplayComponent(sheet)
         with ui.tab_panel(edit_tab):
-            sheet_editor = SheetEditableComponent(sheet, lang=lang)
+            sheet_editor = SheetEditableComponent(sheet)
             tour_create_sheet.add_step(
                 sheet_editor,
-                get_localization("tour_create_sheet_sheet_editor", lang),
+                get_localization("tour_create_sheet_sheet_editor"),
                 lambda: tabs.set_value(edit_tab),
             )
             tour_share_sheet.add_step(
                 sheet_editor,
-                get_localization("tour_share_sheet_sheet_editor", lang),
+                get_localization("tour_share_sheet_sheet_editor"),
                 lambda: tabs.set_value(edit_tab),
             )
             tour_share_sheet.add_step(
                 sheet_editor.share_button,
-                get_localization("tour_share_sheet_share_button", lang),
+                get_localization("tour_share_sheet_share_button"),
                 lambda: tabs.set_value(edit_tab),
             )
             tour_share_sheet.add_step(
                 ordered_topics_tab,
-                get_localization("tour_share_sheet_ordered_topics_tab", lang),
+                get_localization("tour_share_sheet_ordered_topics_tab"),
             )
             tour_share_sheet.add_step(
                 ordered_topics_display.share_expansion,
-                get_localization("tour_share_sheet_share_expansion", lang),
+                get_localization("tour_share_sheet_share_expansion"),
                 lambda: tabs.set_value(ordered_topics_tab),
             )
             tour_share_sheet.add_step(
                 ordered_topics_display.share_image,
-                get_localization("tour_share_sheet_share_image", lang),
+                get_localization("tour_share_sheet_share_image"),
                 lambda: ordered_topics_display.share_expansion.set_value(True),
             )
 
@@ -151,18 +149,21 @@ def content(questioneer_id: str = None, lang: str = "en", **kwargs):
                     if is_gm_sheet:
                         assign_checkbox.enabled = False
                         assign_checkbox.tooltip(
-                            get_localization("cannot_unassign_gm_sheet", lang)
+                            get_localization("cannot_unassign_gm_sheet")
                         )
                 if not user_groups:
-                    ui.label(get_localization("no_groups", lang))
+                    ui.label(get_localization("no_groups"))
                 create_group_from_sheet_button = ui.button(
-                    get_localization("create_group_from_sheet", lang),
-                    on_click=lambda: create_new_group(user, sheet.id),
+                    get_localization("create_group_from_sheet"),
+                    on_click=lambda: (
+                        create_new_group(user, sheet.id),
+                        ui.navigate.to("/home"),
+                    ),
                 )
                 tour_create_sheet.add_step(
                     create_group_from_sheet_button,
                     get_localization(
-                        "tour_create_sheet_create_group_from_sheet_button", lang
+                        "tour_create_sheet_create_group_from_sheet_button"
                     ),
                     lambda: tabs.set_value(groups_tab),
                 )

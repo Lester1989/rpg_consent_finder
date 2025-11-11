@@ -10,14 +10,12 @@ from controller.user_controller import get_user_from_storage
 
 class CustomConsentEntryComponent(ui.row):
     consent_entry: CustomConsentEntry
-    lang: str
 
-    def __init__(self, consent_entry: CustomConsentEntry, lang: str = "en"):
+    def __init__(self, consent_entry: CustomConsentEntry):
         super().__init__()
         if not consent_entry:
             logging.getLogger("content_consent_finder").error("No consent entry")
             return
-        self.lang = lang
         self.consent_entry = consent_entry
         self.user = get_user_from_storage()
         self.content()
@@ -30,11 +28,7 @@ class CustomConsentEntryComponent(ui.row):
             content_input = (
                 ui.input(
                     "Content",
-                    validation={
-                        get_localization(
-                            "empty_will_be_removed", self.lang
-                        ): lambda x: x
-                    },
+                    validation={get_localization("empty_will_be_removed"): lambda x: x},
                 )
                 .classes("text-md")
                 .bind_value(self.consent_entry, "content")
@@ -45,7 +39,7 @@ class CustomConsentEntryComponent(ui.row):
             )
             self.comment_toggle.mark("custom_consent_entry_comment_toggle")
             content_input.mark("custom_consent_entry_content")
-            make_localisable(content_input, key="content", language=self.lang)
+            make_localisable(content_input, key="content")
             ui.space()
             self.toggle = ui.toggle(
                 {status: status.as_emoji for status in ConsentStatus}
@@ -64,4 +58,4 @@ class CustomConsentEntryComponent(ui.row):
                 )
             )
             self.comment_input.mark("custom_consent_entry_comment")
-            make_localisable(self.comment_input, key="comment", language=self.lang)
+            make_localisable(self.comment_input, key="comment")

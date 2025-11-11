@@ -134,7 +134,7 @@ def page_header(current_page: str = None):
                 link_classes.replace("bg-gray-600", "bg-red-800")
             ).mark("logout_btn")
         else:
-            ui.link("Login", f"/welcome?lang={lang}").classes(
+            ui.link("Login", "/welcome").classes(
                 link_classes
                 + (highlight if current_page in {"welcome", "login"} else "")
             )
@@ -168,9 +168,9 @@ def page_footer():
                 ui.label("E-Mail: l.ester@gmx.de").classes(impressum_p_classes)
 
 
-def update_user_and_go_home(new_user: User, lang: str = "en"):
+def update_user_and_go_home(new_user: User):
     update_user(new_user)
-    ui.navigate.to(f"/home?lang={lang}")
+    ui.navigate.to("/home")
 
 
 @app.get("/healthcheck_and_heartbeat")
@@ -182,17 +182,6 @@ def healthcheck_and_heartbeat(request: Request):
 @app.get("/dsgvo")
 def dsgvo():
     return HTMLResponse(content=dsgvo_html, media_type="text/html")
-
-
-# @app.exception_handler(404)
-# async def exception_handler_404(request: Request, exception: Exception) -> Response:
-#     with Client(page(""), request=request) as client:
-#         language = request.query_params.get("lang", "en")
-#         header("notfound", lang=language)
-#         ui.label("Sorry, this page does not exist").classes(
-#             "text-2xl text-center mt-4 mx-auto"
-#         ).mark("notfound_label")
-#     return client.build_response(request, 404)
 
 
 @app.exception_handler(500)
@@ -285,7 +274,6 @@ def welcome_page():
             make_localisable(
                 ui.label("Welcome, please sign in").classes("text-2xl"),
                 key="welcome_signin",
-                language=app.storage.user.get("lang", "en"),
             )
             ui.button(
                 "Log/Sign in via Google",
@@ -302,10 +290,10 @@ def welcome_page():
             local_sign_in_button.mark("local_sign_in_button")
 
 
-def logout_page(lang: str = "en"):
+def logout_page():
     logging.getLogger("content_consent_finder").debug("logout")
     app.storage.user["user_id"] = None
-    return ui.navigate.to(f"/home?lang={lang}")
+    return ui.navigate.to("/home")
 
 
 async def google_login_redirect(google_sso: GoogleSSO = Depends(get_google_sso)):
@@ -335,11 +323,9 @@ async def discord_login_redirect(discord_sso: DiscordSSO = Depends(get_discord_s
 
 
 @app.get("/api/qr")
-def qr(share_id: str, sheet_id: str, lang: str = "en"):
+def qr(share_id: str, sheet_id: str):
     img_byte_arr = io.BytesIO()
-    generate_sheet_share_qr_code(share_id, sheet_id, lang).save(
-        img_byte_arr, format="PNG"
-    )
+    generate_sheet_share_qr_code(share_id, sheet_id).save(img_byte_arr, format="PNG")
     return Response(content=img_byte_arr.getvalue(), media_type="image/png")
 
 

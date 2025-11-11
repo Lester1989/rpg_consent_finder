@@ -32,10 +32,9 @@ class SheetEditableComponent(ui.grid):
     topics: list[ConsentTemplate]
     categories: list[str]
     grouped_topics: dict[str, list[ConsentTemplate]]
-    lang: str
     share_button: ui.button
 
-    def __init__(self, consent_sheet: ConsentSheet, lang: str = "en"):
+    def __init__(self, consent_sheet: ConsentSheet):
         super().__init__()
         self.sheet = consent_sheet
 
@@ -43,7 +42,6 @@ class SheetEditableComponent(ui.grid):
             cce for cce in self.sheet.custom_consent_entries if cce.content != ""
         ]
         logging.getLogger("content_consent_finder").debug(self.sheet)
-        self.lang = lang
         self.text_lookup = get_all_localized_texts()
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
         self.categories = sorted(list({topic.category_id for topic in self.topics}))
@@ -61,15 +59,16 @@ class SheetEditableComponent(ui.grid):
     def unshare(self):
         self.sheet.public_share_id = None
         update_consent_sheet(self.user, self.sheet)
-        ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit&lang={self.lang}")
+        ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit")
 
     def share(self):
         self.sheet.public_share_id = create_share_id()
         update_consent_sheet(self.user, self.sheet)
-        ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit&lang={self.lang}")
+        ui.navigate.to(f"/consentsheet/{self.sheet.id}?show=edit")
 
     @ui.refreshable
     def content(self):
+        lang = app.storage.user.get("lang", "en")
         self.clear()
         with self.classes("lg:grid-cols-3 grid-cols-1"):
             make_localisable(
@@ -77,40 +76,35 @@ class SheetEditableComponent(ui.grid):
                 .bind_value(self.sheet, "human_name")
                 .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_name",
-                language=self.lang,
             ).mark("sheet_name_input")
             make_localisable(
                 ui.input("Comment")
                 .bind_value(self.sheet, "comment")
                 .on("focusout", lambda _: update_consent_sheet(self.user, self.sheet)),
                 key="sheet_comment",
-                language=self.lang,
             ).mark("sheet_comment_input")
             if self.sheet.public_share_id:
                 self.share_button = ui.button("Unshare").on_click(self.unshare)
                 make_localisable(
                     self.share_button,
                     key="unshare",
-                    language=self.lang,
                 ).mark("unshare_button")
             else:
                 self.share_button = ui.button("Share").on_click(self.share)
                 make_localisable(
                     self.share_button,
                     key="share",
-                    language=self.lang,
                 ).mark("share_button")
             for category_id in self.categories:
                 templates = self.grouped_topics[category_id]
                 with ui.card().classes(f"row-span-{(len(templates) // 2) + 1} "):
                     with ui.row().classes("w-full pt-0"):
                         category_component = CategoryEntryComponent(
-                            category=self.text_lookup[category_id].get_text(self.lang),
+                            category=self.text_lookup[category_id].get_text(lang),
                         )
                         category_component.topics = [
                             ConsentEntryComponent(
                                 self.sheet.get_entry(topic.id),
-                                lang=self.lang,
                                 user=self.user,
                             )
                             for topic in templates
@@ -124,7 +118,7 @@ class SheetEditableComponent(ui.grid):
                         empty_entries += 1
                         if empty_entries > 1:
                             continue
-                    CustomConsentEntryComponent(custom_entry, lang=self.lang)
+                    CustomConsentEntryComponent(custom_entry)
                 add_button = ui.button("Add Entry", on_click=self.add_custom_entry)
                 add_button.bind_enabled_from(
                     self.sheet,
@@ -141,14 +135,12 @@ class SheetEditableComponent(ui.grid):
                 make_localisable(
                     add_button,
                     key="add_entry",
-                    language=self.lang,
                 ).mark("add_custom_entry_button")
                 make_localisable(
                     ui.label("empty_custom_entries_will_be_deleted").classes(
                         "text-sm text-gray-500"
                     ),
                     key="empty_custom_entries_will_be_deleted",
-                    language=self.lang,
                 )
 
     def add_custom_entry(self):

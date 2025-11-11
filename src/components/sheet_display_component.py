@@ -31,7 +31,6 @@ class SheetDisplayComponent(ui.column):
     redact_name: bool
     categories: list[int]
     grouped_topics: dict[int, list[ConsentTemplate]]
-    lang: str
     text_lookup: dict[int, LocalizedText]
 
     def __init__(
@@ -39,7 +38,6 @@ class SheetDisplayComponent(ui.column):
         consent_sheet: ConsentSheet = None,
         consent_sheets: list[ConsentSheet] = None,
         redact_name: bool = False,
-        lang: str = "en",
     ):
         super().__init__()
         logging.getLogger("content_consent_finder").debug(
@@ -49,7 +47,6 @@ class SheetDisplayComponent(ui.column):
             self.sheets = consent_sheets
         else:
             self.sheet = consent_sheet
-        self.lang = lang
         self.text_lookup = get_all_localized_texts()
         self.redact_name = redact_name
         self.topics: list[ConsentTemplate] = get_all_consent_topics()
@@ -71,7 +68,7 @@ class SheetDisplayComponent(ui.column):
         return (
             self.sheet.human_name
             if self.sheet
-            else get_localization("consent_of", self.lang)
+            else get_localization("consent_of")
             + str(len(self.sheets) if self.sheets else 1)
         )
 
@@ -88,12 +85,10 @@ class SheetDisplayComponent(ui.column):
     def button_duplicate(self, user_id: int):
         logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
         if duplicate := duplicate_sheet(self.sheet, user_id):
-            ui.navigate.to(f"/home?lang={self.lang}")
-            ui.notify(
-                duplicate.human_name + get_localization("sheet_duplicated", self.lang)
-            )
+            ui.navigate.to("/home")
+            ui.notify(duplicate.human_name + get_localization("sheet_duplicated"))
         else:
-            ui.notify(get_localization("sheet_not_duplicated", self.lang))
+            ui.notify(get_localization("sheet_not_duplicated"))
 
     def refresh_sheets(self):
         if self.sheet:
@@ -119,6 +114,7 @@ class SheetDisplayComponent(ui.column):
             self.display_foot()
 
     def content_topic_displays(self):
+        lang = app.storage.user.get("lang", "en")
         for category_id in self.categories:
             templates = self.grouped_topics[category_id]
             lookup_consents = {
@@ -130,11 +126,11 @@ class SheetDisplayComponent(ui.column):
             }
             with ui.card().classes(f"row-span-{(len(templates) // 3) + 1} "):
                 with ui.row().classes("w-full pt-6"):
-                    ui.label(self.text_lookup[category_id].get_text(self.lang)).classes(
+                    ui.label(self.text_lookup[category_id].get_text(lang)).classes(
                         "text-xl"
                     )
                     for topic in templates:
-                        ConsentDisplayComponent(lookup_consents[topic.id], self.lang)
+                        ConsentDisplayComponent(lookup_consents[topic.id])
 
         custom_entries = [
             entry
@@ -157,7 +153,6 @@ class SheetDisplayComponent(ui.column):
                             [entry.preference for entry in custom_entries]
                         ),
                         custom_text=custom_entries[0].content,
-                        lang=self.lang,
                         comments=[
                             entry.comment for entry in custom_entries if entry.comment
                         ],
@@ -165,7 +160,7 @@ class SheetDisplayComponent(ui.column):
 
     def display_foot(self):
         if not self.user:
-            make_localisable(ui.label(), key="login_to_duplicate", language=self.lang)
+            make_localisable(ui.label(), key="login_to_duplicate")
             return
         if self.sheet:
             make_localisable(
@@ -174,7 +169,6 @@ class SheetDisplayComponent(ui.column):
                     on_click=lambda: self.button_duplicate(self.user.id),
                 ),
                 key="duplicate",
-                language=self.lang,
             )
 
     def display_head(self):
@@ -183,18 +177,15 @@ class SheetDisplayComponent(ui.column):
             ui.label(self.sheet_comments).mark("sheet_comments_display")
             if self.sheet and self.sheet.public_share_id and not self.redact_name:
                 with ui.expansion("Share Link") as share_expansion:
-                    make_localisable(
-                        share_expansion, key="share_link_expansion", language=self.lang
-                    )
+                    make_localisable(share_expansion, key="share_link_expansion")
                     make_localisable(
                         ui.link(
                             "Link to this sheet",
-                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}?lang={self.lang}",
+                            f"/consent/{self.sheet.public_share_id}/{self.sheet.id}",
                             new_tab=True,
                         ).mark("share_link"),
                         key="share_link",
-                        language=self.lang,
                     )
                     ui.image(
-                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}&lang={self.lang}"
+                        f"/api/qr?share_id={self.sheet.public_share_id}&sheet_id={self.sheet.id}"
                     )

@@ -1,28 +1,24 @@
 import logging
 
-from nicegui import ui, events
+from nicegui import ui, events, app
 
 from controller.sheet_controller import update_entry
-from controller.user_controller import get_user_from_storage
 from localization.language_manager import make_localisable
 from models.db_models import ConsentEntry, ConsentStatus, User
 
 
 class ConsentEntryComponent(ui.row):
     consent_entry: ConsentEntry
-    lang: str
 
     def __init__(
         self,
         consent_entry: ConsentEntry,
         user: User,
-        lang: str = "en",
     ):
         super().__init__()
         if not consent_entry:
             logging.getLogger("content_consent_finder").error("No consent entry")
             return
-        self.lang = lang
         self.consent_entry = consent_entry
         self.user = user
         self.content()
@@ -39,17 +35,16 @@ class ConsentEntryComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
+        lang = app.storage.user.get("lang", "en")
         with self.classes("w-full pt-6 lg:pt-1 gap-0 lg:gap-2"):
             self.comment_toggle = ui.checkbox("🗨️")
             self.comment_toggle.mark(
                 f"comment_toggle_{self.consent_entry.consent_template.id}"
             )
             ui.label(
-                self.consent_entry.consent_template.topic_local.get_text(self.lang)
+                self.consent_entry.consent_template.topic_local.get_text(lang)
             ).classes("text-md").tooltip(
-                self.consent_entry.consent_template.explanation_local.get_text(
-                    self.lang
-                )
+                self.consent_entry.consent_template.explanation_local.get_text(lang)
             )
             ui.space()
             self.toggle = ui.toggle(
@@ -64,7 +59,7 @@ class ConsentEntryComponent(ui.row):
                 .on("focusout", lambda _: update_entry(self.user, self.consent_entry))
                 .mark(f"comment_input_{self.consent_entry.consent_template.id}")
             )
-            make_localisable(self.comment_input, key="comment", language=self.lang)
+            make_localisable(self.comment_input, key="comment")
 
 
 class CategoryEntryComponent(ui.row):

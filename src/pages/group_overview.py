@@ -36,20 +36,20 @@ def reload_after(func, *args, **kwargs):
     ui.navigate.reload()
 
 
-def content(lang: str = "en", group_name_id: str = None, **kwargs):
+def content(group_name_id: str = None, **kwargs):
     tour_create_group = NiceGuidedTour(
         storage_key="tour_create_group_progress", page_suffix="home"
     )
     user: User = get_user_by_id_name(app.storage.user.get("user_id"))
     if not user:
-        ui.navigate.to(f"/welcome?lang={lang}")
+        ui.navigate.to("/welcome")
         return
     logging.getLogger(LOGGER_NAME).debug(f"{group_name_id}")
     if not group_name_id:
         logging.getLogger(LOGGER_NAME).debug("creating new group")
         group = create_new_group(user)
         group_name_id = generate_group_name_id(group)
-        ui.navigate.to(f"/groupconsent/{group_name_id}?lang={lang}")
+        ui.navigate.to(f"/groupconsent/{group_name_id}")
         return
     group: RPGGroup = get_group_by_name_id(group_name_id)
     logging.getLogger(LOGGER_NAME).debug(f"{group}")
@@ -63,13 +63,13 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
         ordered_topics_tab = ui.tab("ordered_topics")
         edit_tab = ui.tab("Edit")
         general_tab = ui.tab("General")
-        make_localisable(display_tab, key="display", language=lang)
-        make_localisable(edit_tab, key="edit", language=lang)
-        make_localisable(ordered_topics_tab, key="ordered_topics", language=lang)
-        make_localisable(general_tab, key="general", language=lang)
+        make_localisable(display_tab, key="display")
+        make_localisable(edit_tab, key="edit")
+        make_localisable(ordered_topics_tab, key="ordered_topics")
+        make_localisable(general_tab, key="general")
         tour_create_group.add_step(
             edit_tab,
-            get_localization("tour_create_group_edit_tab", lang),
+            get_localization("tour_create_group_edit_tab"),
         )
         named_tabs = {
             "consent": display_tab,
@@ -86,24 +86,21 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
             logging.getLogger(LOGGER_NAME).info(f"sheet {group.gm_consent_sheet}")
             sheet_display = SheetDisplayComponent(
                 consent_sheets=group_consent_sheets,
-                lang=lang,
             )
         with ui.tab_panel(ordered_topics_tab):
             ordered_topics_display = PreferenceOrderedSheetDisplayComponent(
-                consent_sheets=group_consent_sheets, lang=lang
+                consent_sheets=group_consent_sheets
             )
         with ui.tab_panel(edit_tab):
-            sheet_editor = edit_tab_content(
-                lang, user, group, is_gm, group_consent_sheets
-            )
+            sheet_editor = edit_tab_content(user, group, is_gm, group_consent_sheets)
             tour_create_group.add_step(
                 sheet_editor,
-                get_localization("tour_create_group_sheet_editor", lang),
+                get_localization("tour_create_group_sheet_editor"),
                 lambda: panels.set_value(edit_tab),
             )
             tour_create_group.add_step(
                 general_tab,
-                get_localization("tour_create_group_general_tab", lang),
+                get_localization("tour_create_group_general_tab"),
                 lambda: panels.set_value(general_tab),
             )
         with ui.tab_panel(general_tab):
@@ -111,7 +108,7 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
                 ui.label("Global Group")
             else:
                 general_tab_content(
-                    lang, group, is_gm, tour_create_group, group_consent_sheets
+                    group, is_gm, tour_create_group, group_consent_sheets
                 )
     panels.on_value_change(
         lambda x: storage_show_tab_and_refresh(
@@ -124,26 +121,24 @@ def content(lang: str = "en", group_name_id: str = None, **kwargs):
 
 
 def edit_tab_content(
-    lang: str,
     user: User,
     group: RPGGroup,
     is_gm: bool,
     group_consent_sheets: list[ConsentSheet],
 ):
     if is_gm:
-        sheet_editor = SheetEditableComponent(group.gm_consent_sheet, lang)
+        sheet_editor = SheetEditableComponent(group.gm_consent_sheet)
     else:
         if user_sheet := next(
             (sheet for sheet in group_consent_sheets if sheet.user_id == user.id),
             None,
         ):
-            sheet_editor = SheetEditableComponent(user_sheet, lang)
+            sheet_editor = SheetEditableComponent(user_sheet)
         else:
             sheet_editor = None
             make_localisable(
                 ui.label("No Consent Sheet assigned yet"),
                 key="no_sheet_assigned",
-                language=lang,
             )
             for consent_sheet in user.consent_sheets:
                 ui.button(
@@ -176,7 +171,6 @@ def storage_show_tab_and_refresh(
 
 
 def general_tab_content(
-    lang: str,
     group: RPGGroup,
     is_gm: bool,
     tour_create_group: NiceGuidedTour,
@@ -190,43 +184,40 @@ def general_tab_content(
     )
     tour_create_group.add_step(
         group_name_input,
-        get_localization("tour_create_group_group_name_input", lang),
+        get_localization("tour_create_group_group_name_input"),
     )
     group_name_input.set_enabled(is_gm)
     make_localisable(
         group_name_input,
         key="group_name",
-        language=lang,
     )
     with ui.row():
         make_localisable(
             ui.label("Group Join Code"),
             key="group_join_code",
-            language=lang,
         )
         code_label = ui.label(group.invite_code).bind_text(group, "invite_code")
         tour_create_group.add_step(
             code_label,
-            get_localization("tour_create_group_group_join_code", lang),
+            get_localization("tour_create_group_group_join_code"),
         )
         new_button = ui.button(
             "New Code", on_click=lambda: regenerate_invite_code(group)
-        ).tooltip(get_localization("gm_only_invite_code", lang))
+        ).tooltip(get_localization("gm_only_invite_code"))
         tour_create_group.add_step(
             new_button,
-            get_localization("tour_create_group_new_code_button", lang),
+            get_localization("tour_create_group_new_code_button"),
         )
         new_button.set_enabled(is_gm)
         make_localisable(
             new_button,
             key="new_code",
-            language=lang,
         )
 
     with ui.grid().classes("grid-cols-3 lg:gap-4 gap-1") as grid:
         tour_create_group.add_step(
             grid,
-            get_localization("tour_create_group_member_grid", lang),
+            get_localization("tour_create_group_member_grid"),
         )
         for player in fetch_group_users(group):
             ui.label(player.nickname)
@@ -238,7 +229,6 @@ def general_tab_content(
                 key="part_of_consent"
                 if has_sheet_in_consent
                 else "sheet_missing_in_consent",
-                language=lang,
             )
             if player.id == group.gm_user_id:
                 ui.label("GM")
@@ -246,11 +236,10 @@ def general_tab_content(
                 remove_button = (
                     ui.button("Remove Player", color="red")
                     .on_click(lambda player=player: leave_group(group, player))
-                    .tooltip(get_localization("gm_only_remove_player", lang))
+                    .tooltip(get_localization("gm_only_remove_player"))
                 )
                 remove_button.set_enabled(is_gm)
                 make_localisable(
                     remove_button,
                     key="remove_player",
-                    language=lang,
                 )

@@ -75,6 +75,7 @@ async def delete_sheet(user: User, sheet_id: str):
 
 
 async def test_create_and_delete_sheet(user: User, caplog) -> None:
+    caplog.set_level(logging.INFO)
     sheet_id = await login_and_create_sheet(user)
     await delete_sheet(user, sheet_id)
 
@@ -120,6 +121,8 @@ async def test_modify_sheet_by_category(user: User, caplog) -> None:
     marked_elements(user, "🟠").get("category_toggle_horror").set_value(
         ConsentStatus.maybe
     )
+    # await user.should_see("🟠", kind=ui.select)
+    # user.find("🟠", kind=ui.select).click()
     await asyncio.sleep(2)
     # goto ordered_topics
     user.find("sheet_tabs").elements.pop().set_value(
