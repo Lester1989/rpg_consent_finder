@@ -322,9 +322,7 @@ async def discord_callback_redirect(request: Request):
 async def discord_login_redirect():
     logging.getLogger("content_consent_finder").info("discord login")
     async with discord_sso:
-        redirect_response = await discord_sso.get_login_redirect(
-            redirect_uri="http://localhost:8080/discord/callback"
-        )
+        redirect_response = await discord_sso.get_login_redirect()
         ui.navigate.to(redirect_response.headers["location"])
 
 
