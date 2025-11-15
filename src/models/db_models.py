@@ -103,6 +103,11 @@ class PlayFunResult(SQLModel, table=True):
     user_id: int = Field(default=None, foreign_key="user.id")
     user: "User" = Relationship(sa_relationship_kwargs={"lazy": LAZY_MODE})
     created_at: datetime = Field(default=datetime.now())
+    answers: list["PlayFunAnswer"] = Relationship(
+        sa_relationship_kwargs={"lazy": LAZY_MODE},
+        cascade_delete=True,
+        back_populates="result",
+    )
 
     @staticmethod
     def categories(lang: str) -> list[str]:
@@ -142,6 +147,19 @@ class PlayFunResult(SQLModel, table=True):
             "sensation": self.sensation_rating,
             "submission": self.submission_rating,
         }
+
+
+class PlayFunAnswer(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    question_id: int = Field(default=None, foreign_key="playfunquestion.id")
+    question: PlayFunQuestion = Relationship(sa_relationship_kwargs={"lazy": LAZY_MODE})
+    rating: int = Field(default=0)
+    created_at: datetime = Field(default=datetime.now())
+    result_id: int = Field(default=None, foreign_key="playfunresult.id")
+    result: PlayFunResult = Relationship(
+        sa_relationship_kwargs={"lazy": LAZY_MODE},
+        back_populates="answers",
+    )
 
 
 class UserFAQ(SQLModel, table=True):

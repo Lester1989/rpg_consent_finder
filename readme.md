@@ -1,65 +1,80 @@
-# TODOs
+# RPG Consent Finder
 
-* [X] Localisation
-* [X] Group creation
-* [X] Consent Sheet Saving
-* [X] Consent Sheet Viewing
-* [X] Consent Sheet Reuse
-* [X] Group summary
-* [X] Commenting
-* [X] Login without SSO
-* [X] Admin interface to modify texts
-* [X] Custom Triggers for Consent Sheet
-  * [X] Shared in Group
-* [X] Consent Summary preference based
-* [X] sanitize group names
-* [ ] Tutorial or explanation
-  * [X] guided tours
-  * [X] create a consent sheet tour
-  * [X] share a consent sheet tour
-  * [X] create group tour
-  * [X] join group tour
-  * [ ] import + export tour
-* [ ] Tests
-  * [X] login and registration
-  * [X] consent sheet creation, viewing and modification
-  * [X] group
-  * [ ] playstyle
-  * [ ] feedback
-  * [ ] import/export
-  * [ ] localization
-* [X] Radar plot for different playstyles
-  * [ ] integrate into groups
-  * [ ] summarize
-* [X] Consent Sheet Reuse for group creation
-* [ ] Anonymous Public Sheets -> Sheet with Passcode and without any comments
-* [ ] Groups from public sheets
-* [ ] use caching and reduce database queries
-* [X] News Page
-* [ ] Print/export as PDF for sheets and group consents
-* [X] import/export sheet as json
-* [X] Find better name
-* [X] Startup Message in Log
+RPG Consent Finder helps tabletop groups capture and share their consent and play-style preferences. The application delivers a NiceGUI front end backed by SQLModel for persistence and a lightweight service layer that keeps UI code declarative and testable.
 
-# Environment Variables
+---
 
-* DB_CONNECTION_STRING used to connect to the database. Default is `sqlite:///db/database.sqlite`.
-* LOGLEVEL used to set the loglevel. Default is `INFO`.
-* GOOGLE_CLIENT_ID used to authenticate with Google. Default is `...`.
-* GOOGLE_CLIENT_SECRET used to authenticate with Google. Default is `...`.
-* DISCORD_CLIENT_ID used to authenticate with Discord. Default is `...`.
-* DISCORD_CLIENT_SECRET used to authenticate with Discord. Default is `...`.
-* BASE_URL used to set the base url. Default is `http://localhost:8080`.
-* ADMINS comma separated list of user ids that are admins. Default is no admin.
-* SEED_ON_STARTUP used to seed the database on startup. Default is `False`.
-* RELOAD used to reload the server on code changes. Default is `False`.
-* STORAGE_SECRET used to encrypt the storage. Default is random string on every restart.
+## Architecture Overview
 
-# Example Environment Variables
+- **Presentation**: NiceGUI `pages/*.py` build the interactive UI. Long handlers are decomposed into helper functions and reusable components under `src/components`. Guided tours walk new players through key flows.
+- **Controllers**: `src/controller/*` expose thin adapters that maintain backward compatibility with existing imports while delegating to services.
+- **Service Layer**: `src/services/*.py` owns business rules such as group lifecycle (`group_service`) and consent sheet creation (`sheet_service`). Functions accept optional SQLModel sessions so they can participate in larger transactions or be isolated in tests.
+- **Persistence**: SQLModel models in `src/models/db_models.py` define users, groups, sheets, and linking tables. `models.model_utils.session_scope` standardises session lifecycle management.
+- **Settings & Logging**: `src/settings.py` supplies a cached `Settings` dataclass. Logging is configured via `src/a_logger_setup.py` to avoid side effects at import time.
+
+---
+
+## Data Model Cheatsheet
+
+- `User`: authentication identity containing NiceGUI storage ids, nickname, and consent sheets.
+- `ConsentSheet`: per-user sheet composed of multiple `ConsentEntry` records populated from `ConsentTemplate` definitions.
+- `RPGGroup`: campaign grouping with GM ownership, unique invite code, and many-to-many links to consent sheets (`GroupConsentSheetLink`) and members (`UserGroupLink`).
+- `ConsentStatus`: enum backing the traffic-light style consent options shown in the UI.
+
+The service layer hides the join-table manipulation so most call sites work with `User`, `ConsentSheet`, and `RPGGroup` instances directly.
+
+---
+
+## Development Workflow
+
+1. **Install dependencies**
+   ```ps1
+   poetry install
+   ```
+2. **Run the development server**
+   ```ps1
+   poetry run python .\src\main.py --reload
+   ```
+3. **Execute tests with coverage guard**
+   ```ps1
+   poetry run pytest
+   ```
+   The suite must meet the configured `fail-under=70` coverage threshold. Targeted test runs (for example `pytest tests/test_group.py`) are useful during refactors but still enforce the global gate.
+4. **Format and lint**
+   - The project currently relies on editor/CI tooling for formatting. Keep functions small, prefer service helpers for business logic, and add concise comments only when intent is non-obvious.
+
+---
+
+## Environment Configuration
+
+- `DB_CONNECTION_STRING`: database connection URL (default `sqlite:///db/database.sqlite`).
+- `LOGLEVEL`: python logging level (default `INFO`).
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: OAuth values for Google login.
+- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`: OAuth values for Discord login.
+- `BASE_URL`: external URL for callback construction, default `http://localhost:8080`.
+- `ADMINS`: comma separated list of `User.id_name` values that receive admin rights.
+- `SEED_ON_STARTUP`: bootstrap the database with sample data (`False` by default).
+- `RELOAD`: toggles auto-reload during development (default `False`).
+- `STORAGE_SECRET`: secret used by NiceGUI to encrypt session storage (random per start when omitted).
+
+**Quick start snippet (PowerShell):**
 ```ps1
 $env:DB_CONNECTION_STRING = "sqlite:///db/database.sqlite"
 $env:LOGLEVEL = "INFO"
-$env:ADMINS = ""
 $env:SEED_ON_STARTUP = "true"
 $env:RELOAD = "true"
 ```
+
+---
+
+## Roadmap Snapshot
+
+Tracked tasks that still need attention:
+
+- Guided tour coverage for import/export flows.
+- Additional automated tests (playstyle scoring, feedback loop, import/export edge cases, localisation fallbacks).
+- Integrate radar plot summaries into group views and provide campaign-level summaries.
+- Anonymous public sheets with passcode protection and printable/PDF exports.
+- Performance work: caching hot localisation lookups and reducing N+1 queries.
+- Prompt users to rename generated sheet and group titles.
+- Investigate migration path from SQLite to PostgreSQL for production deployments.

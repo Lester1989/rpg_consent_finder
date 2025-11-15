@@ -70,14 +70,5 @@ async def test_join_global_group(user: User):
     await user.should_see("group_join_code_input")
     user.find("group_join_code_input").type("global")
     user.find("join_group_button").click()
-    await user.should_see("global 1")
-    global_group_id_elements = user.find("global 1").elements
-    assert len(global_group_id_elements) > 0, (
-        "Could not find joined global group in home page"
-    )
-    global_group_id_first = global_group_id_elements.pop()
-    assert global_group_id_first._text.startswith("global "), (
-        global_group_id_first._to_dict()
-    )
-    global_group_id = global_group_id_first._text.split(" ")[-1]
-    user.find(f"leave_group_button_{global_group_id}").click()
+    await user.should_see("group_name_1")
+    user.find("leave_group_button_1").click()

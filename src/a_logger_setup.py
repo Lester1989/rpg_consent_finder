@@ -1,39 +1,37 @@
 import logging
-import os
 
 LOGGER_NAME = "content_consent_finder"
+_LOGGER_CONFIGURED = False
 
 
-def setup_app_logging():
-    """Configures logging for the application, leaving library loggers alone."""
-
-    # Get the desired log level from the environment or use INFO as default
-    log_level_str = os.getenv("LOGLEVEL", "DEBUG").upper()
-    try:
-        log_level = getattr(logging, log_level_str)
-    except AttributeError:
-        print(f"Invalid log level: {log_level_str}. Using INFO.")
-        log_level = logging.INFO
-
-    # Create a logger for your application
-    app_logger = logging.getLogger(LOGGER_NAME)
-    app_logger.setLevel(log_level)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-
-    # Create a formatter
+def _create_console_handler(level: int) -> logging.Handler:
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
     formatter = logging.Formatter(
         "%(asctime)s - %(levelname)-8s - %(filename)+28s:%(lineno)3d | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    console_handler.setFormatter(formatter)
-
-    # Add the handler to the application logger
-    app_logger.addHandler(console_handler)
-
-    return app_logger
+    handler.setFormatter(formatter)
+    return handler
 
 
-setup_app_logging()
+def configure_logging(log_level: str | int = "DEBUG") -> logging.Logger:
+    """Configure and return the application logger."""
+
+    global _LOGGER_CONFIGURED
+
+    if isinstance(log_level, str):
+        log_level = log_level.upper()
+        log_level = getattr(logging, log_level, logging.INFO)
+
+    logger = logging.getLogger(LOGGER_NAME)
+    logger.setLevel(log_level)
+
+    if not _LOGGER_CONFIGURED:
+        console_handler = _create_console_handler(log_level)
+        logger.handlers.clear()
+        logger.addHandler(console_handler)
+        logger.propagate = False
+        _LOGGER_CONFIGURED = True
+
+    return logger

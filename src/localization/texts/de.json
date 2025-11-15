@@ -36,6 +36,7 @@
     "details": "Details",
     "remove": "Entfernen",
     "create_sheet": "Sheet erstellen",
+    "import_sheet": "Sheet importieren",
     "delete": "Löschen",
     "leave_group": "Gruppe verlassen",
     "create_group": "Gruppe erstellen",
@@ -101,6 +102,7 @@
     "tour_share_sheet_ordered_topics_tab": "Um den Link zu sehen, wechseln wir in einen der Ansichtsmodi",
     "tour_share_sheet_share_expansion": "Um die den Um den Link und QRCode zu sehen musst du hier klicken",
     "tour_share_sheet_share_image": "Hier siehst du den Link und den QR-Code, den du teilen kannst. \n\n Der Link führt direkt zu deinem Sheet. Der QR-Code kann von anderen gescannt werden, um direkt zu deinem Sheet zu gelangen.",
+    "export_as_json": "Als JSON exportieren",
     "playfun_plot_title": "Spielspaß Visualisierung",
     "no_data": "Keine Daten",
     "play_fun_statements": "Spielspaß Einschätzung vornehmen",
@@ -122,5 +124,11 @@
     "tour_join_group_invite_code_input":"Für jede Gruppe gibt es einen Einladungscode. Wenn du diesen Code kennst, kannst du der Gruppe beitreten. \n\n Normalerweise besteht dieser Code nur aus Zahlen und Bindestrichen, allerdings gibt es eine Ausnahme, die globale Gruppe. Diese ist ein Spezialfall und dient nur der Erklärung und Tests. Klicke auf weiter. ",
     "tour_join_group_join_button":"In diesem Tutorial trittst du der globalen Gruppe bei. \n\n Mit einem Klick auf `Gruppe beitreten` wirst du der Gruppe hinzugefügt und siehst die Gruppen in der Übersicht.",
     "tour_join_group_group_grid":"Hier sollte jetzt die globale Gruppe zu sehen sein. \n\n Mit einem Klick auf `Details` kannst du die Gruppe ansehen und den Konsent der Gruppe einsehen.",
-    "tour_join_group_sheet_grid":"Nachdem du einer Gruppe beigetreten bist, ist es wichtig dieser Gruppe auch einen Sheet zuzuweisen. \n\n In einer Sheet-Ansicht kannst du im letzten Tab `Gruppen` die Gruppe auswählen, die du hinzufügen möchtest."
+    "tour_join_group_sheet_grid":"Nachdem du einer Gruppe beigetreten bist, ist es wichtig dieser Gruppe auch einen Sheet zuzuweisen. \n\n In einer Sheet-Ansicht kannst du im letzten Tab `Gruppen` die Gruppe auswählen, die du hinzufügen möchtest.",
+    "howto_header_import_export": "Sheets importieren und exportieren",
+    "howto_text_import_export": "In dieser Tour zeige ich dir, wie du ein Sheet aus einer JSON-Datei wiederherstellst und wie du deine Daten als Sicherung exportierst.\n\n *Du musst eingeloggt sein und entweder bereits ein Sheet besitzen oder eine Exportdatei bereitliegen haben.*",
+    "howto_button_import_export": "Tour starten",
+    "tour_import_export_import_button": "Hier lädst du eine zuvor exportierte JSON-Datei hoch, um sie deiner Sammlung hinzuzufügen.",
+    "tour_import_export_details_button": "Öffne die Detailansicht des Sheets, um die Exportfunktionen zu erreichen.",
+    "tour_import_export_export_button": "Lade das aktuelle Sheet als JSON herunter, um es zu teilen oder zu sichern."
 }

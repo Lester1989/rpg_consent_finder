@@ -1,4 +1,6 @@
 import logging
+from dataclasses import dataclass
+from typing import Optional
 
 from nicegui import app, ui
 
@@ -8,7 +10,8 @@ from components.preference_ordered_sheet_display_component import (
 )
 from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
-from controller.group_controller import (
+from components.tab_components import TabSpec, create_localised_tabs, create_tab_panels
+from services.group_service import (
     assign_consent_sheet_to_group,
     create_new_group,
     unassign_consent_sheet_from_group,
@@ -20,7 +23,7 @@ from controller.sheet_controller import (
 )
 from controller.user_controller import fetch_user_groups, get_user_from_storage
 from guided_tour import NiceGuidedTour
-from localization.language_manager import get_localization, make_localisable
+from localization.language_manager import get_localization
 from models.db_models import (
     User,
 )
@@ -28,156 +31,274 @@ from models.db_models import (
 SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
 
+@dataclass
+class SheetPageTours:
+    """Container for sheet page guided tours."""
+
+    create_sheet: NiceGuidedTour
+    share_sheet: NiceGuidedTour
+    import_export: NiceGuidedTour
+
+
 def content(questioneer_id: str = None, **kwargs):
     logging.getLogger("content_consent_finder").debug(
         f"displaying consent sheet {questioneer_id}"
     )
-    tour_create_sheet = NiceGuidedTour(
-        storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
+    tours = _build_sheet_tours()
+    user = _get_active_user()
+    if not user:
+        return
+    sheet = _resolve_sheet(user, questioneer_id)
+    if not sheet:
+        return
+    _render_sheet_page(user, sheet, tours)
+    _start_active_tour(tours)
+
+
+def _build_sheet_tours() -> SheetPageTours:
+    return SheetPageTours(
+        create_sheet=NiceGuidedTour(
+            storage_key="tour_create_sheet_progress", page_suffix="consentsheet"
+        ),
+        share_sheet=NiceGuidedTour(
+            storage_key="tour_share_sheet_progress", page_suffix="consentsheet"
+        ),
+        import_export=NiceGuidedTour(
+            storage_key="tour_import_export_progress", page_suffix="consentsheet"
+        ),
     )
-    tour_share_sheet = NiceGuidedTour(
-        storage_key="tour_share_sheet_progress", page_suffix="consentsheet"
-    )
-    user: User = get_user_from_storage()
+
+
+def _get_active_user() -> Optional[User]:
+    user = get_user_from_storage()
     if not user:
         ui.navigate.to("/welcome")
-        return
+    return user
+
+
+def _resolve_sheet(user: User, questioneer_id: Optional[str]):
     if not questioneer_id:
         sheet = create_new_consentsheet(user)
         ui.navigate.to(f"/consentsheet/{sheet.id}")
-        return
-    else:
-        sheet = get_consent_sheet_by_id(user.id_name, int(questioneer_id))
+        return None
+    sheet = get_consent_sheet_by_id(user.id_name, int(questioneer_id))
     if not sheet:
         ui.label(f'No sheet found with id "{questioneer_id}" for user "{user.id_name}"')
-        return
+    return sheet
+
+
+def _render_sheet_page(user: User, sheet, tours: SheetPageTours) -> None:
     consent_legend_grid = consent_legend_component()
-    tour_create_sheet.add_step(
+    tours.create_sheet.add_step(
         consent_legend_grid,
         get_localization("tour_create_sheet_consent_legend_grid"),
     )
     ui.separator()
-
-    with ui.tabs() as tabs:
-        display_tab = ui.tab("display")
-        ordered_topics_tab = ui.tab("ordered_topics")
-        edit_tab = ui.tab("edit")
-        groups_tab = ui.tab("groups")
-        named_tabs = {
-            "display": display_tab,
-            "ordered_topics": ordered_topics_tab,
-            "edit": edit_tab,
-            "groups": groups_tab,
-        }
-        tabs.mark("sheet_tabs")
-        edit_tab.mark("edit_tab")
-        display_tab.mark("display_tab")
-        ordered_topics_tab.mark("ordered_topics_tab")
-        tour_create_sheet.add_step(
-            edit_tab, get_localization("tour_create_sheet_edit_tab")
-        )
-        tour_create_sheet.add_step(
-            display_tab, get_localization("tour_create_sheet_display_tab")
-        )
-        tour_create_sheet.add_step(
-            ordered_topics_tab,
-            get_localization("tour_create_sheet_ordered_topics_tab"),
-        )
-        tour_create_sheet.add_step(
-            groups_tab, get_localization("tour_create_sheet_groups_tab")
-        )
-        make_localisable(display_tab, key="display")
-        make_localisable(ordered_topics_tab, key="ordered_topics")
-        make_localisable(edit_tab, key="edit")
-        make_localisable(groups_tab, key="groups")
-    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "display")
-    logging.getLogger("content_consent_finder").warning(f"show_tab {show_tab}")
-    with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
-        "w-full"
-    ) as panels:
-        with ui.tab_panel(display_tab):
-            category_topics_display = SheetDisplayComponent(sheet)
-        with ui.tab_panel(ordered_topics_tab):
-            ordered_topics_display = PreferenceOrderedSheetDisplayComponent(sheet)
-        with ui.tab_panel(edit_tab):
-            sheet_editor = SheetEditableComponent(sheet)
-            tour_create_sheet.add_step(
-                sheet_editor,
-                get_localization("tour_create_sheet_sheet_editor"),
-                lambda: tabs.set_value(edit_tab),
-            )
-            tour_share_sheet.add_step(
-                sheet_editor,
-                get_localization("tour_share_sheet_sheet_editor"),
-                lambda: tabs.set_value(edit_tab),
-            )
-            tour_share_sheet.add_step(
-                sheet_editor.share_button,
-                get_localization("tour_share_sheet_share_button"),
-                lambda: tabs.set_value(edit_tab),
-            )
-            tour_share_sheet.add_step(
-                ordered_topics_tab,
-                get_localization("tour_share_sheet_ordered_topics_tab"),
-            )
-            tour_share_sheet.add_step(
-                ordered_topics_display.share_expansion,
-                get_localization("tour_share_sheet_share_expansion"),
-                lambda: tabs.set_value(ordered_topics_tab),
-            )
-            tour_share_sheet.add_step(
-                ordered_topics_display.share_image,
-                get_localization("tour_share_sheet_share_image"),
-                lambda: ordered_topics_display.share_expansion.set_value(True),
-            )
-
-        with ui.tab_panel(groups_tab):
-            with ui.grid(columns=2) as group_grid:
-                user_groups = fetch_user_groups(user)
-                for group in user_groups:
-                    sheet_groups = fetch_sheet_groups(sheet)
-                    assign_checkbox = ui.checkbox(
-                        group.name, value=group.id in [g.id for g in sheet_groups]
-                    ).on_value_change(
-                        lambda change_evt_args, group=group: (
-                            assign_consent_sheet_to_group(sheet, group)
-                            if change_evt_args.value
-                            else unassign_consent_sheet_from_group(sheet, group)
-                        )
-                    )
-                    is_gm_sheet = group.gm_consent_sheet_id == sheet.id
-                    if is_gm_sheet:
-                        assign_checkbox.enabled = False
-                        assign_checkbox.tooltip(
-                            get_localization("cannot_unassign_gm_sheet")
-                        )
-                if not user_groups:
-                    ui.label(get_localization("no_groups"))
-                create_group_from_sheet_button = ui.button(
-                    get_localization("create_group_from_sheet"),
-                    on_click=lambda: (
-                        create_new_group(user, sheet.id),
-                        ui.navigate.to("/home"),
-                    ),
-                )
-                tour_create_sheet.add_step(
-                    create_group_from_sheet_button,
-                    get_localization(
-                        "tour_create_sheet_create_group_from_sheet_button"
-                    ),
-                    lambda: tabs.set_value(groups_tab),
-                )
-
+    tours.import_export.add_prev_page(_return_to_home_for_import_export)
+    tabs, named_tabs = _build_sheet_tabs()
+    _register_tab_tour_steps(tours, named_tabs)
+    panels, category_topics_display, ordered_topics_display, sheet_editor = (
+        _render_tab_panels(tabs, named_tabs, user, sheet, tours)
+    )
     panels.on_value_change(
         lambda x: storage_show_tab_and_refresh(
             x.value, category_topics_display, ordered_topics_display, sheet_editor
         )
     )
+
+
+def _build_sheet_tabs():
+    tab_specs = [
+        TabSpec("display", "display", mark="display_tab"),
+        TabSpec("ordered_topics", "ordered_topics", mark="ordered_topics_tab"),
+        TabSpec("edit", "edit", mark="edit_tab"),
+        TabSpec("groups", "groups", mark="groups_tab"),
+    ]
+    tabs, named_tabs = create_localised_tabs(tab_specs)
+    tabs.mark("sheet_tabs")
+    return tabs, named_tabs
+
+
+def _register_tab_tour_steps(
+    tours: SheetPageTours, named_tabs: dict[str, ui.tab]
+) -> None:
+    tours.create_sheet.add_step(
+        named_tabs["edit"], get_localization("tour_create_sheet_edit_tab")
+    )
+    tours.create_sheet.add_step(
+        named_tabs["display"], get_localization("tour_create_sheet_display_tab")
+    )
+    tours.create_sheet.add_step(
+        named_tabs["ordered_topics"],
+        get_localization("tour_create_sheet_ordered_topics_tab"),
+    )
+    tours.create_sheet.add_step(
+        named_tabs["groups"], get_localization("tour_create_sheet_groups_tab")
+    )
+
+
+def _render_tab_panels(
+    tabs: ui.tabs,
+    named_tabs: dict[str, ui.tab],
+    user: User,
+    sheet,
+    tours: SheetPageTours,
+):
+    panels = create_tab_panels(
+        tabs,
+        named_tabs,
+        SHOW_TAB_STORAGE_KEY,
+        default_key="display",
+    )
+    logging.getLogger("content_consent_finder").warning(
+        f"show_tab {app.storage.user.get(SHOW_TAB_STORAGE_KEY, 'display')}"
+    )
+    with panels:
+        category_topics_display = _render_display_tab(named_tabs["display"], sheet)
+        ordered_topics_display = _render_ordered_tab(
+            named_tabs["ordered_topics"], sheet
+        )
+        sheet_editor = _render_edit_tab(
+            named_tabs["edit"],
+            tabs,
+            sheet,
+            tours,
+            named_tabs["ordered_topics"],
+            ordered_topics_display,
+        )
+        _render_groups_tab(named_tabs["groups"], user, sheet, tours.create_sheet, tabs)
+    _register_import_export_steps(
+        tours.import_export,
+        category_topics_display,
+        tabs,
+        named_tabs["display"],
+    )
+    return panels, category_topics_display, ordered_topics_display, sheet_editor
+
+
+def _render_display_tab(display_tab: ui.tab, sheet):
+    with ui.tab_panel(display_tab):
+        return SheetDisplayComponent(sheet)
+
+
+def _render_ordered_tab(ordered_tab: ui.tab, sheet):
+    with ui.tab_panel(ordered_tab):
+        return PreferenceOrderedSheetDisplayComponent(sheet)
+
+
+def _render_edit_tab(
+    edit_tab: ui.tab,
+    tabs: ui.tabs,
+    sheet,
+    tours: SheetPageTours,
+    ordered_topics_tab: ui.tab,
+    ordered_topics_display: PreferenceOrderedSheetDisplayComponent,
+):
+    with ui.tab_panel(edit_tab):
+        sheet_editor = SheetEditableComponent(sheet)
+        tours.create_sheet.add_step(
+            sheet_editor,
+            get_localization("tour_create_sheet_sheet_editor"),
+            lambda: tabs.set_value(edit_tab),
+        )
+        tours.share_sheet.add_step(
+            sheet_editor,
+            get_localization("tour_share_sheet_sheet_editor"),
+            lambda: tabs.set_value(edit_tab),
+        )
+        tours.share_sheet.add_step(
+            sheet_editor.share_button,
+            get_localization("tour_share_sheet_share_button"),
+            lambda: tabs.set_value(edit_tab),
+        )
+        tours.share_sheet.add_step(
+            ordered_topics_tab,
+            get_localization("tour_share_sheet_ordered_topics_tab"),
+        )
+        tours.share_sheet.add_step(
+            ordered_topics_display.share_expansion,
+            get_localization("tour_share_sheet_share_expansion"),
+            lambda: tabs.set_value(ordered_topics_tab),
+        )
+        tours.share_sheet.add_step(
+            ordered_topics_display.share_image,
+            get_localization("tour_share_sheet_share_image"),
+            lambda: ordered_topics_display.share_expansion.set_value(True),
+        )
+        return sheet_editor
+
+
+def _render_groups_tab(
+    groups_tab: ui.tab,
+    user: User,
+    sheet,
+    tour_create_sheet: NiceGuidedTour,
+    tabs: ui.tabs,
+):
+    with ui.tab_panel(groups_tab):
+        with ui.grid(columns=2):
+            user_groups = fetch_user_groups(user)
+            for group in user_groups:
+                sheet_groups = fetch_sheet_groups(sheet)
+                assign_checkbox = ui.checkbox(
+                    group.name, value=group.id in [g.id for g in sheet_groups]
+                ).on_value_change(
+                    lambda change_evt_args, group=group: (
+                        assign_consent_sheet_to_group(sheet, group)
+                        if change_evt_args.value
+                        else unassign_consent_sheet_from_group(sheet, group)
+                    )
+                )
+                is_gm_sheet = group.gm_consent_sheet_id == sheet.id
+                if is_gm_sheet:
+                    assign_checkbox.enabled = False
+                    assign_checkbox.tooltip(
+                        get_localization("cannot_unassign_gm_sheet")
+                    )
+            if not user_groups:
+                ui.label(get_localization("no_groups"))
+            create_group_from_sheet_button = ui.button(
+                get_localization("create_group_from_sheet"),
+                on_click=lambda: (
+                    create_new_group(user, sheet.id),
+                    ui.navigate.to("/home"),
+                ),
+            )
+            tour_create_sheet.add_step(
+                create_group_from_sheet_button,
+                get_localization("tour_create_sheet_create_group_from_sheet_button"),
+                lambda: tabs.set_value(groups_tab),
+            )
+
+
+def _register_import_export_steps(
+    tour_import_export: NiceGuidedTour,
+    sheet_display: SheetDisplayComponent,
+    tabs: ui.tabs,
+    display_tab: ui.tab,
+) -> None:
+    if not sheet_display.export_button:
+        return
+    tour_import_export.add_step(
+        sheet_display.export_button,
+        get_localization("tour_import_export_export_button"),
+        lambda: tabs.set_value(display_tab),
+    )
+
+
+def _return_to_home_for_import_export() -> None:
+    app.storage.user["active_tour"] = "import_export"
+    ui.navigate.to("/home")
+
+
+def _start_active_tour(tours: SheetPageTours) -> None:
     active_tour = app.storage.user.get("active_tour", "")
     if active_tour == "create_sheet":
-        ui.timer(0.5, tour_create_sheet.start_tour, once=True)
+        ui.timer(0.5, tours.create_sheet.start_tour, once=True)
     elif active_tour == "share_sheet":
-        ui.timer(0.5, tour_share_sheet.start_tour, once=True)
+        ui.timer(0.5, tours.share_sheet.start_tour, once=True)
+    elif active_tour == "import_export":
+        ui.timer(0.5, tours.import_export.start_tour, once=True)
 
 
 def storage_show_tab_and_refresh(

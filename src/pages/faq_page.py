@@ -49,7 +49,13 @@ def make_tour_card(tour: str):
 
 def content(**kwargs):
     lang = app.storage.user.get("lang", "en")
-    tours = ["create_sheet", "share_sheet", "create_group", "join_group"]
+    tours = [
+        "create_sheet",
+        "share_sheet",
+        "create_group",
+        "join_group",
+        "import_export",
+    ]
     with ui.grid().classes("gap-4 mx-auto lg:grid-cols-4 grid-cols-1 2xl:w-2/3"):
         for tour in tours:
             make_tour_card(tour)

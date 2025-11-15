@@ -18,6 +18,7 @@ from models.db_models import (
     GroupConsentSheetLink,
 )
 from models.model_utils import add_and_refresh, engine
+from services.sheet_service import create_consent_sheet
 
 
 def fetch_sheet_groups(sheet: ConsentSheet) -> list[RPGGroup]:
@@ -39,47 +40,8 @@ def create_share_id():
         return share_id
 
 
-def create_new_consentsheet(user: User, session: Session = None) -> ConsentSheet:
-    if not session:
-        with Session(engine) as session:
-            return create_new_consentsheet(user, session)
-    logging.getLogger("content_consent_finder").info(
-        f"create_new_consentsheet for {user}"
-    )
-    sheet_unique_name = "".join(
-        random.choices(string.ascii_letters + string.digits, k=8)
-    )
-    possible_collision = set(session.exec(select(ConsentSheet.unique_name)).all())
-    while sheet_unique_name in possible_collision:
-        sheet_unique_name = "".join(
-            random.choices(string.ascii_letters + string.digits, k=8)
-        )
-    user = session.get(User, user.id)
-    sheet = ConsentSheet(
-        unique_name=sheet_unique_name,
-        user_id=user.id,
-        user=user,
-    )
-    user.consent_sheets.append(sheet)
-    session.commit()
-    session.refresh(sheet)
-    templates = session.exec(select(ConsentTemplate)).all()
-    for template in templates:
-        entry = ConsentEntry(
-            consent_sheet_id=sheet.id,
-            consent_sheet=sheet,
-            consent_template_id=template.id,
-            consent_template=template,
-        )
-        # session.add(entry)
-        sheet.consent_entries.append(entry)
-    # session.merge(sheet)
-    session.commit()
-    session.refresh(sheet)
-    session.merge(user)
-    session.commit()
-    logging.getLogger("content_consent_finder").info(f"created {sheet}")
-    return sheet
+def create_new_consentsheet(user: User, session: Session | None = None) -> ConsentSheet:
+    return create_consent_sheet(user, session=session)
 
 
 def import_sheet_from_json(json_text: str, user: User):

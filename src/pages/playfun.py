@@ -4,6 +4,10 @@ from components.playfun_plot_component import PlayfunPlot
 from controller.playfun_controller import (
     get_playfun_questions,
     store_playfun_result,
+    get_playfun_answers_for_result,
+    get_playfun_answers_for_user,
+    get_playfun_result_by_id,
+    update_playfun_answer,
 )
 from controller.user_controller import (
     get_user_from_storage,
@@ -11,6 +15,7 @@ from controller.user_controller import (
 from localization.language_manager import get_localization, make_localisable
 from models.db_models import (
     PlayFunQuestion,
+    PlayFunAnswer,
     PlayFunResult,
     User,
 )
@@ -35,7 +40,6 @@ def content(**kwargs):
     """)
 
     user: User = get_user_from_storage()
-    ensure_answers_in_user_storage()
 
     with ui.tabs().classes("w-5/6 mx-auto") as tabs:
         question_tab = ui.tab("questions")
@@ -50,7 +54,7 @@ def content(**kwargs):
         "w-5/6 mx-auto"
     ) as panels:
         with ui.tab_panel(question_tab):
-            question_content()
+            question_content(user)
         with ui.tab_panel(plot_tab):
             plot_content(user)
     panels.on_value_change(lambda x: storage_show_tab_and_refresh(x.value))
@@ -69,23 +73,12 @@ def content(**kwargs):
         )
 
 
-def ensure_answers_in_user_storage(statements: list[PlayFunQuestion] = None):
-    statements = statements or get_playfun_questions()
-    answers: dict[str, dict[str, int]] = app.storage.user.get(
-        "answers",
-        {statement.play_style: {str(statement.id): 0} for statement in statements},
-    )
-    for statement in statements:
-        if statement.play_style not in answers:
-            answers[statement.play_style] = {}
-        if str(statement.id) not in answers[statement.play_style]:
-            answers[statement.play_style][str(statement.id)] = 0
-    app.storage.user["answers"] = answers
-
-
-def question_content():
+def question_content(user: User):
     statements = get_playfun_questions()
-    ensure_answers_in_user_storage(statements)
+    playfun_result = get_playfun_result_by_id(user)
+    answers_by_question_id = {
+        answer.question_id: answer for answer in get_playfun_answers_for_user(user)
+    }
     ui.markdown(get_localization("playfun_questions_introduction")).classes(
         "lg:w-1/2 mx-auto"
     )
@@ -105,12 +98,14 @@ def question_content():
                         min=-2,
                         max=2,
                         step=0.25,
-                    ).bind_value(
-                        app.storage.user.get("answers", {})[
-                            playfun_question.play_style
-                        ],
-                        str(playfun_question.id),
-                    ).on_value_change(plot_content.refresh).props(
+                        value=answers_by_question_id.get(
+                            playfun_question.id, PlayFunAnswer(rating=0)
+                        ).rating,
+                    ).on_value_change(
+                        lambda e, q=playfun_question: update_playfun_answer(
+                            q, e.value, playfun_result
+                        )
+                    ).props(
                         'selection-color="transparent"',
                     ).props("label").props("reverse").classes("w-3/4")
                     ui.space()

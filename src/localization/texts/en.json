@@ -36,6 +36,7 @@
     "details": "Details",
     "remove": "Remove",
     "create_sheet": "Create Sheet",
+    "import_sheet": "Import Sheet",
     "delete": "Delete",
     "leave_group": "Leave Group",
     "create_group": "Create Group",
@@ -101,6 +102,7 @@
     "tour_share_sheet_ordered_topics_tab": "To see the link, switch to one of the view modes",
     "tour_share_sheet_share_expansion": "To see the To see the link and QR code you have to click here",
     "tour_share_sheet_share_image": "Here you can see the link and the QR code that you can share. \n\n The link leads directly to your sheet. The QR code can be scanned by others to go directly to your sheet.",
+    "export_as_json": "Export as JSON",
     "playfun_plot_title": "Playfun Visualisation",
     "no_data": "No data",
     "play_fun_statements": "Playfun make estimation",
@@ -122,5 +124,11 @@
     "tour_join_group_invite_code_input":"There is an invitation code for each group. If you know this code, you can join the group. \n\n Normally this code consists only of numbers and hyphens, but there is one exception, the global group. This is a special case and is only used for explanation and testing. Click on continue. ",
     "tour_join_group_join_button":"In this tutorial you will join the global group. \n\nBy clicking on 'Join group' you will be added to the group and see the groups in the overview.",
     "tour_join_group_group_grid":"You should now see the global group here. \n\n Click on 'Details' to view the group and see the consensus of the group.",
-    "tour_join_group_sheet_grid":"After you have joined a group, it is important to assign a sheet to this group. \n\nIn a sheet view, you can select the group you want to add in the last tab 'Groups'."
+    "tour_join_group_sheet_grid":"After you have joined a group, it is important to assign a sheet to this group. \n\nIn a sheet view, you can select the group you want to add in the last tab 'Groups'.",
+    "howto_header_import_export": "Import and Export Sheets",
+    "howto_text_import_export": "This tour walks you through restoring a sheet from a JSON backup and downloading one for safekeeping.\n\n *You must be logged in and have either an existing sheet or an export file to follow along.*",
+    "howto_button_import_export": "Start Tour",
+    "tour_import_export_import_button": "Upload a previously exported JSON file here to add it to your collection.",
+    "tour_import_export_details_button": "Open the sheet details to access the export tools.",
+    "tour_import_export_export_button": "Download the current sheet as a JSON file to share or archive it."
 }

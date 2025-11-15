@@ -1,5 +1,7 @@
 import os
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 import bcrypt
 from sqlmodel import Session, SQLModel, create_engine
@@ -39,3 +41,19 @@ engine = create_engine(sqlite_url, echo=False)
 
 def generate_group_name_id(group: RPGGroup) -> str:
     return f"{sanitize_name(group.name)}-{group.id}"
+
+
+@contextmanager
+def session_scope(*, commit: bool = False, **session_kwargs) -> Iterator[Session]:
+    """Provide a transactional scope around a series of operations."""
+
+    session = Session(engine, **session_kwargs)
+    try:
+        yield session
+        if commit:
+            session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

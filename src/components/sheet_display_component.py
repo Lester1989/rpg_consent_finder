@@ -32,6 +32,7 @@ class SheetDisplayComponent(ui.column):
     categories: list[int]
     grouped_topics: dict[int, list[ConsentTemplate]]
     text_lookup: dict[int, LocalizedText]
+    export_button: ui.button | None = None
 
     def __init__(
         self,
@@ -59,6 +60,7 @@ class SheetDisplayComponent(ui.column):
             ]
             for category_id in self.categories
         }
+        self.export_button = None
         self.content()
 
     @property
@@ -107,6 +109,7 @@ class SheetDisplayComponent(ui.column):
         self.user = get_user_from_storage()
         self.refresh_sheets()
         self.clear()
+        self.export_button = None
         with self.classes("w-full"):
             self.display_head()
             with ui.grid().classes("w-full lg:grid-cols-5 grid-cols-1"):
@@ -170,7 +173,7 @@ class SheetDisplayComponent(ui.column):
                 ),
                 key="duplicate",
             )
-        ui.button("Export as JSON").on_click(
+        self.export_button = ui.button("Export as JSON").on_click(
             lambda: ui.download.content(
                 ConsentSheet.export_sheets_as_json(
                     [self.sheet] if self.sheet else self.sheets
@@ -178,6 +181,8 @@ class SheetDisplayComponent(ui.column):
                 f"export_consent_sheet_{self.sheet.id if self.sheet else 'group'}.json",
             )
         )
+        self.export_button.mark("export_sheet_button")
+        make_localisable(self.export_button, key="export_as_json")
 
     def display_head(self):
         with ui.row().classes("w-full bg-gray-700 p-2 rounded-lg"):

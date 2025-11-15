@@ -8,7 +8,8 @@ from components.preference_ordered_sheet_display_component import (
 )
 from components.sheet_display_component import SheetDisplayComponent
 from components.sheet_editable_component import SheetEditableComponent
-from controller.group_controller import (
+from components.tab_components import TabSpec, create_localised_tabs, create_tab_panels
+from services.group_service import (
     assign_consent_sheet_to_group,
     create_new_group,
     fetch_group_sheets,
@@ -58,52 +59,38 @@ def content(group_name_id: str = None, **kwargs):
     group_consent_sheets = fetch_group_sheets(group)
     logging.getLogger(LOGGER_NAME).debug(f"consent_sheets {group_consent_sheets}")
     is_gm = user.id == group.gm_user_id
-    with ui.tabs() as tabs:
-        display_tab = ui.tab("Consent").mark("group_display_tab")
-        ordered_topics_tab = ui.tab("ordered_topics")
-        edit_tab = ui.tab("Edit")
-        general_tab = ui.tab("General")
-        make_localisable(display_tab, key="display")
-        make_localisable(edit_tab, key="edit")
-        make_localisable(ordered_topics_tab, key="ordered_topics")
-        make_localisable(general_tab, key="general")
-        tour_create_group.add_step(
-            edit_tab,
-            get_localization("tour_create_group_edit_tab"),
-        )
-        named_tabs = {
-            "consent": display_tab,
-            "ordered_topics": ordered_topics_tab,
-            "edit": edit_tab,
-            "general": general_tab,
-        }
-
+    tabs, named_tabs = _build_group_tabs(tour_create_group)
+    panels = create_tab_panels(
+        tabs,
+        named_tabs,
+        SHOW_TAB_STORAGE_KEY,
+        default_key="ordered_topics",
+    )
     show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "ordered_topics")
-    with ui.tab_panels(tabs, value=named_tabs.get(show_tab, display_tab)).classes(
-        "w-full"
-    ) as panels:
-        with ui.tab_panel(display_tab):
+    logging.getLogger(LOGGER_NAME).debug(f"show_tab {show_tab}")
+    with panels:
+        with ui.tab_panel(named_tabs["consent"]):
             logging.getLogger(LOGGER_NAME).info(f"sheet {group.gm_consent_sheet}")
             sheet_display = SheetDisplayComponent(
                 consent_sheets=group_consent_sheets,
             )
-        with ui.tab_panel(ordered_topics_tab):
+        with ui.tab_panel(named_tabs["ordered_topics"]):
             ordered_topics_display = PreferenceOrderedSheetDisplayComponent(
                 consent_sheets=group_consent_sheets
             )
-        with ui.tab_panel(edit_tab):
+        with ui.tab_panel(named_tabs["edit"]):
             sheet_editor = edit_tab_content(user, group, is_gm, group_consent_sheets)
             tour_create_group.add_step(
                 sheet_editor,
                 get_localization("tour_create_group_sheet_editor"),
-                lambda: panels.set_value(edit_tab),
+                lambda: panels.set_value(named_tabs["edit"]),
             )
             tour_create_group.add_step(
-                general_tab,
+                named_tabs["general"],
                 get_localization("tour_create_group_general_tab"),
-                lambda: panels.set_value(general_tab),
+                lambda: panels.set_value(named_tabs["general"]),
             )
-        with ui.tab_panel(general_tab):
+        with ui.tab_panel(named_tabs["general"]):
             if group.invite_code == "global":
                 ui.label("Global Group")
             else:
@@ -118,6 +105,23 @@ def content(group_name_id: str = None, **kwargs):
     active_tour = app.storage.user.get("active_tour", "")
     if active_tour == "create_group":
         ui.timer(0.5, tour_create_group.start_tour, once=True)
+
+
+def _build_group_tabs(
+    tour_create_group: NiceGuidedTour,
+):
+    tab_specs = [
+        TabSpec("consent", "display", title="Consent", mark="group_display_tab"),
+        TabSpec("ordered_topics", "ordered_topics"),
+        TabSpec("edit", "edit"),
+        TabSpec("general", "general"),
+    ]
+    tabs, named_tabs = create_localised_tabs(tab_specs)
+    tour_create_group.add_step(
+        named_tabs["edit"],
+        get_localization("tour_create_group_edit_tab"),
+    )
+    return tabs, named_tabs
 
 
 def edit_tab_content(
