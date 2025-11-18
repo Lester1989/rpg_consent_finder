@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.consent_entry_component import (
     CategoryEntryComponent,
@@ -25,6 +25,7 @@ from models.db_models import (
     ConsentTemplate,
     CustomConsentEntry,
 )
+from services.session_service import get_current_user_id, session_storage
 
 
 class SheetEditableComponent(ui.grid):
@@ -68,7 +69,7 @@ class SheetEditableComponent(ui.grid):
 
     @ui.refreshable
     def content(self):
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         self.clear()
         with self.classes("lg:grid-cols-3 grid-cols-1"):
             make_localisable(
@@ -153,7 +154,5 @@ class SheetEditableComponent(ui.grid):
             comment="",
         )
         update_custom_entry(self.user, new_entry)
-        self.sheet = get_consent_sheet_by_id(
-            app.storage.user.get("user_id"), self.sheet.id
-        )
+        self.sheet = get_consent_sheet_by_id(get_current_user_id(), self.sheet.id)
         self.content.refresh()

@@ -1,7 +1,7 @@
 import logging
 import os
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.content_question_component import ContentQuestionComponent
 from controller.admin_controller import (
@@ -25,6 +25,7 @@ from models.db_models import (
     User,
 )
 from models.seeder import seed_consent_questioneer
+from services.session_service import get_current_user_id, session_storage
 
 ADMINS = os.getenv("ADMINS", "").split(",")
 
@@ -41,11 +42,11 @@ def reload_after(func, *args, **kwargs):
 
 
 def content(**kwargs):
-    user: User = get_user_by_id_name(app.storage.user.get("user_id"))
+    user_id = get_current_user_id()
+    user: User = get_user_by_id_name(user_id) if user_id else None
     if not user:
         ui.label("No user found")
         return
-    user_id = app.storage.user.get("user_id")
     if user_id not in ADMINS:
         logging.getLogger("content_consent_finder").debug(
             f"User {user_id} is not an admin"
@@ -65,7 +66,7 @@ def content(**kwargs):
         "Contents": trigger_tab,
         "Localized Texts": local_text_tab,
     }
-    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "DB")
+    show_tab = session_storage.get(SHOW_TAB_STORAGE_KEY, "DB")
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, db_tab)).classes(
         "w-full"
     ) as panels:
@@ -83,7 +84,7 @@ def content(**kwargs):
 
 def storage_show_tab_and_refresh(tab: str):
     # tab = tab.lower()
-    app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    session_storage[SHOW_TAB_STORAGE_KEY] = tab
     logging.getLogger("content_consent_finder").debug(
         f"storage_show_tab_and_refresh {tab}"
     )

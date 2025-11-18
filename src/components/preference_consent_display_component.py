@@ -1,9 +1,10 @@
 import random
 
-from nicegui import ui, app
+from nicegui import ui
 
 from controller.sheet_controller import get_consent_template_by_id
 from models.db_models import ConsentStatus, ConsentTemplate
+from services.session_service import session_storage
 
 
 class PreferenceConsentDisplayComponent(ui.row):
@@ -32,7 +33,7 @@ class PreferenceConsentDisplayComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         content_text = (
             self.consent_template.topic_local.get_text(lang)
             if self.consent_template

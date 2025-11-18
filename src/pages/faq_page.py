@@ -1,11 +1,12 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.faq_element_component import FAQElementComponent
 from controller.user_controller import get_user_from_storage
 from controller.util_controller import get_all_faq, store_faq_question
 from localization.language_manager import get_localization, make_localisable
+from services.session_service import session_storage
 
 
 def store_user_faq(user_faq: str):
@@ -19,10 +20,10 @@ def store_user_faq(user_faq: str):
 
 def start_tour(tour_name: str):
     logging.getLogger("content_consent_finder").info(f"Starting tour {tour_name}")
-    app.storage.user["active_tour"] = tour_name
-    for key in app.storage.user.keys():
+    session_storage["active_tour"] = tour_name
+    for key in list(session_storage.keys()):
         if isinstance(key, str) and key.startswith(f"tour_{tour_name}_progress"):
-            app.storage.user[key] = 0
+            session_storage[key] = 0
     ui.navigate.to("/home")
 
 
@@ -48,7 +49,7 @@ def make_tour_card(tour: str):
 
 
 def content(**kwargs):
-    lang = app.storage.user.get("lang", "en")
+    lang = session_storage.get("lang", "en")
     tours = [
         "create_sheet",
         "share_sheet",

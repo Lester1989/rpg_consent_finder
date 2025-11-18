@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.consent_legend_component import consent_legend_component
 from components.preference_ordered_sheet_display_component import (
@@ -27,6 +27,7 @@ from localization.language_manager import get_localization
 from models.db_models import (
     User,
 )
+from services.session_service import session_storage
 
 SHOW_TAB_STORAGE_KEY = "sheet_show_tab"
 
@@ -151,7 +152,7 @@ def _render_tab_panels(
         default_key="display",
     )
     logging.getLogger("content_consent_finder").warning(
-        f"show_tab {app.storage.user.get(SHOW_TAB_STORAGE_KEY, 'display')}"
+        f"show_tab {session_storage.get(SHOW_TAB_STORAGE_KEY, 'display')}"
     )
     with panels:
         category_topics_display = _render_display_tab(named_tabs["display"], sheet)
@@ -287,12 +288,12 @@ def _register_import_export_steps(
 
 
 def _return_to_home_for_import_export() -> None:
-    app.storage.user["active_tour"] = "import_export"
+    session_storage["active_tour"] = "import_export"
     ui.navigate.to("/home")
 
 
 def _start_active_tour(tours: SheetPageTours) -> None:
-    active_tour = app.storage.user.get("active_tour", "")
+    active_tour = session_storage.get("active_tour", "")
     if active_tour == "create_sheet":
         ui.timer(0.5, tours.create_sheet.start_tour, once=True)
     elif active_tour == "share_sheet":
@@ -307,7 +308,7 @@ def storage_show_tab_and_refresh(
     ordered_topics_display: PreferenceOrderedSheetDisplayComponent,
     sheet_editor: SheetEditableComponent,
 ):
-    app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    session_storage[SHOW_TAB_STORAGE_KEY] = tab
     logging.getLogger("content_consent_finder").warning(
         f"storage_show_tab_and_refresh {tab}"
     )

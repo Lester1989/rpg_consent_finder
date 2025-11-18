@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.preference_consent_display_component import (
     PreferenceConsentDisplayComponent,
@@ -22,6 +22,7 @@ from models.db_models import (
     LocalizedText,
 )
 from controller.user_controller import get_user_from_storage
+from services.session_service import get_current_user_id, session_storage
 
 
 class PreferenceOrderedSheetDisplayComponent(ui.column):
@@ -75,15 +76,17 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             ui.notify(get_localization("sheet_not_duplicated"))
 
     def refresh_sheets(self):
+        user_id = get_current_user_id()
         if self.sheet:
-            self.sheet = get_consent_sheet_by_id(
-                app.storage.user.get("user_id"), self.sheet.id
+            self.sheet = (
+                get_consent_sheet_by_id(user_id, self.sheet.id) if user_id else None
             )
         if self.sheets:
             self.sheets = [
-                get_consent_sheet_by_id(app.storage.user.get("user_id"), sheet.id)
+                get_consent_sheet_by_id(user_id, sheet.id) if user_id else None
                 for sheet in self.sheets
             ]
+            self.sheets = [sheet for sheet in self.sheets if sheet is not None]
 
     @ui.refreshable
     def content(self):
@@ -99,7 +102,7 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
             self.display_foot()
 
     def content_topic_displays(self):
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         lookup_consents = {
             template.id: ConsentStatus.get_consent(
                 [

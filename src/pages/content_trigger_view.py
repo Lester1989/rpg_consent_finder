@@ -1,11 +1,12 @@
 import logging
 
-from nicegui import ui, app
+from nicegui import ui
 
 from components.consent_legend_component import consent_legend_component
 from controller.sheet_controller import get_all_consent_topics
 from controller.util_controller import store_content_question
 from localization.language_manager import get_localization, make_localisable
+from services.session_service import session_storage
 
 
 def store_user_question(question: str):
@@ -18,7 +19,7 @@ def store_user_question(question: str):
 
 
 def content(**kwargs):
-    lang = app.storage.user.get("lang", "en")
+    lang = session_storage.get("lang", "en")
     topics = get_all_consent_topics()
 
     consent_legend_component()

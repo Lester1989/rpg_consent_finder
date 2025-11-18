@@ -1,10 +1,11 @@
 import logging
 
-from nicegui import ui, events, app
+from nicegui import ui, events
 
 from controller.sheet_controller import update_entry
 from localization.language_manager import make_localisable
 from models.db_models import ConsentEntry, ConsentStatus, User
+from services.session_service import session_storage
 
 
 class ConsentEntryComponent(ui.row):
@@ -35,7 +36,7 @@ class ConsentEntryComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         with self.classes("w-full pt-6 lg:pt-1 gap-0 lg:gap-2"):
             self.comment_toggle = ui.checkbox("🗨️")
             self.comment_toggle.mark(

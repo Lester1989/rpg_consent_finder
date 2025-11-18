@@ -1,9 +1,10 @@
 import logging
 
-from nicegui import ui, app
+from nicegui import ui
 
 from controller.sheet_controller import get_consent_template_by_id
 from models.db_models import ConsentEntry, ConsentStatus, ConsentTemplate
+from services.session_service import session_storage
 
 
 class ConsentDisplayComponent(ui.row):
@@ -24,7 +25,7 @@ class ConsentDisplayComponent(ui.row):
     @ui.refreshable
     def content(self):
         self.clear()
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         group_consent = ConsentStatus.get_consent(
             [consent.preference for consent in self.consents]
         )

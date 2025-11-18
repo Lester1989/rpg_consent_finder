@@ -6,9 +6,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Optional
 
-from nicegui import app, ui
+from nicegui import ui
 
 from localization.language_manager import make_localisable
+from services.session_service import session_storage
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,7 @@ def create_tab_panels(
     panel_classes: str = "w-full",
 ) -> ui.tab_panels:
     """Return a `tab_panels` element initialised with the stored active tab."""
-    stored_value = app.storage.user.get(storage_key, default_key)
+    stored_value = session_storage.get(storage_key, default_key)
     selected_tab = (
         named_tabs.get(stored_value)
         or named_tabs.get(default_key)

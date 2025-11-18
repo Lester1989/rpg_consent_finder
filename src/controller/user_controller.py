@@ -1,8 +1,8 @@
 import logging
 import random
 import time
+from secrets import token_urlsafe
 
-from nicegui import app
 from sqlmodel import Session, select
 
 from a_logger_setup import LOGGER_NAME
@@ -20,6 +20,7 @@ from models.model_utils import (
     session_scope,
 )
 from controller.sheet_controller import delete_sheet
+from services.session_service import session_storage
 
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -169,14 +170,64 @@ def update_user(user: User, session: Session | None = None) -> None:
         _update(scoped_session)
 
 
-def get_user_from_storage() -> User:
+def get_user_from_storage() -> User | None:
     # TODO fix after implementing cache invalidation on every relevant change (e.g. db change)
-    # if user := app.storage.user.get("user"):
-    #     return User.model_validate_json(user)
-    if user_id := app.storage.user.get("user_id"):
-        if user := get_user_by_id_name(user_id):
-            # app.storage.user["user"] = user.model_dump_json()
-            return user
+    if user_id := session_storage.get("user_id"):
+        return get_user_by_id_name(user_id)
+    return None
+
+
+def get_or_create_sso_user(
+    provider: str,
+    account_id: str,
+    *,
+    display_name: str | None = None,
+    email: str | None = None,
+    session: Session | None = None,
+) -> User:
+    LOGGER.debug("get_or_create_sso_user provider=%s id=%s", provider, account_id)
+    account_name = f"{provider}:{account_id}"
+    id_name = f"{provider}-{account_id}"
+
+    def _ensure(active_session: Session) -> User:
+        login_record = active_session.exec(
+            select(UserLogin).where(UserLogin.account_name == account_name)
+        ).first()
+        if login_record:
+            user = active_session.get(User, login_record.user_id)
+            if user is None:
+                LOGGER.warning(
+                    "dangling login mapping for %s; recreating user", account_name
+                )
+                active_session.delete(login_record)
+                active_session.commit()
+            else:
+                return user
+
+        user = active_session.exec(select(User).where(User.id_name == id_name)).first()
+        if user is None:
+            user = User(id_name=id_name, nickname=display_name or "")
+            add_and_refresh(active_session, user)
+        elif display_name and not user.nickname:
+            user.nickname = display_name
+            active_session.add(user)
+            active_session.commit()
+            active_session.refresh(user)
+
+        random_secret = token_urlsafe(16)
+        user_login = UserLogin(
+            user_id=user.id,
+            account_name=account_name,
+            password_hash=hash_password(random_secret),
+        )
+        add_and_refresh(active_session, user_login)
+        return user
+
+    if session is not None:
+        return _ensure(session)
+
+    with session_scope() as scoped_session:
+        return _ensure(scoped_session)
 
 
 # get_user_by_id_name_chache = {}

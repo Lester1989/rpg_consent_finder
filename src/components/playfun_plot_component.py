@@ -1,10 +1,11 @@
-from nicegui import ui, app
+from nicegui import ui
 import pandas as pd
 import numpy as np
 from matplotlib.axes import Axes
 
 from localization.language_manager import get_localization
 from models.db_models import PlayFunResult
+from services.session_service import session_storage
 
 
 def radar_plot(
@@ -86,7 +87,7 @@ class PlayfunPlot(ui.card):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         data = {"categories": PlayFunResult.categories(lang)}
         if not datas:
             ui.label(get_localization("no_data"))

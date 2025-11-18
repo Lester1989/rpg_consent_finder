@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from components.consent_display_component import ConsentDisplayComponent
 from components.preference_consent_display_component import (
@@ -23,6 +23,7 @@ from models.db_models import (
 )
 from controller.user_controller import get_user_from_storage
 from models.db_models import ConsentStatus
+from services.session_service import session_storage
 
 
 class SheetDisplayComponent(ui.column):
@@ -117,7 +118,7 @@ class SheetDisplayComponent(ui.column):
             self.display_foot()
 
     def content_topic_displays(self):
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         for category_id in self.categories:
             templates = self.grouped_topics[category_id]
             lookup_consents = {

@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import ui, app
+from nicegui import ui
 
 from controller.admin_controller import (
     remove_content_question,
@@ -8,6 +8,7 @@ from controller.admin_controller import (
 )
 from controller.sheet_controller import get_all_consent_topics
 from models.db_models import UserContentQuestion
+from services.session_service import session_storage
 
 
 class ContentQuestionComponent(ui.expansion):
@@ -36,7 +37,7 @@ class ContentQuestionComponent(ui.expansion):
 
     @ui.refreshable
     def content(self):
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         templates = get_all_consent_topics()
         categories = {
             template.category_id: template.category_local.get_text(lang)

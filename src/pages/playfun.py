@@ -1,4 +1,4 @@
-from nicegui import app, ui
+from nicegui import ui
 
 from components.playfun_plot_component import PlayfunPlot
 from controller.playfun_controller import (
@@ -19,6 +19,7 @@ from models.db_models import (
     PlayFunResult,
     User,
 )
+from services.session_service import session_storage
 
 SHOW_TAB_STORAGE_KEY = "playfun_tab"
 
@@ -48,7 +49,7 @@ def content(**kwargs):
         make_localisable(plot_tab, key="play_fun_plot")
 
     named_tabs = {"questions": question_tab, "plot": plot_tab}
-    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "questions")
+    show_tab = session_storage.get(SHOW_TAB_STORAGE_KEY, "questions")
 
     with ui.tab_panels(tabs, value=named_tabs.get(show_tab, question_tab)).classes(
         "w-5/6 mx-auto"
@@ -75,6 +76,22 @@ def content(**kwargs):
 
 def question_content(user: User):
     statements = get_playfun_questions()
+    if user is None:
+        ui.markdown(get_localization("please_log_in_to_store_playfun"))
+        ui.markdown(get_localization("playfun_questions_introduction")).classes(
+            "lg:w-1/2 mx-auto"
+        )
+        lang = session_storage.get("lang", "en")
+        with ui.grid().classes("w-full lg:grid-cols-2 gap-4"):
+            for playfun_question in statements:
+                with ui.card():
+                    with ui.row():
+                        ui.label(playfun_question.question_local.get_text(lang))
+                        ui.label(playfun_question.play_style).classes(
+                            "text-xs text-gray-500"
+                        )
+        return
+
     playfun_result = get_playfun_result_by_id(user)
     answers_by_question_id = {
         answer.question_id: answer for answer in get_playfun_answers_for_user(user)
@@ -82,7 +99,7 @@ def question_content(user: User):
     ui.markdown(get_localization("playfun_questions_introduction")).classes(
         "lg:w-1/2 mx-auto"
     )
-    lang = app.storage.user.get("lang", "en")
+    lang = session_storage.get("lang", "en")
     with ui.grid().classes("w-full lg:grid-cols-2 gap-4"):
         for playfun_question in statements:
             with ui.card():
@@ -122,7 +139,7 @@ def plot_content(user: User):
 
 
 def construct_ratings(user: User):
-    answers: dict[str, dict[int, int]] = app.storage.user.get("answers", {})
+    answers: dict[str, dict[int, int]] = session_storage.get("answers", {})
     weights = {
         str(statement.id): statement.weight for statement in get_playfun_questions()
     }
@@ -142,5 +159,5 @@ def construct_ratings(user: User):
 
 
 def storage_show_tab_and_refresh(tab: str):
-    app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    session_storage[SHOW_TAB_STORAGE_KEY] = tab
     plot_content.refresh()

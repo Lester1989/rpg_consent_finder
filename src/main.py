@@ -16,6 +16,7 @@ from a_logger_setup import LOGGER_NAME, configure_logging
 from controller.user_controller import (
     get_user_by_id_name,
     get_user_from_storage,
+    get_or_create_sso_user,
     update_user,
 )
 from localization.language_manager import make_localisable
@@ -34,8 +35,17 @@ from pages.sheet_page import content as sheet_content
 from pages.news_page import content as news_content
 from public_share_qr import generate_sheet_share_qr_code
 from settings import Settings, get_settings
+from services.session_service import (
+    begin_user_session,
+    end_user_session,
+    ensure_session_middleware,
+    get_current_user_id,
+    session_storage,
+)
 
+print("main module imported", __name__)
 settings = get_settings()
+ensure_session_middleware()
 configure_logging(settings.log_level)
 LOGGER = logging.getLogger(LOGGER_NAME)
 
@@ -60,7 +70,7 @@ discord_sso = DiscordSSO(
 
 def set_language(lang: str):
     # app.storage.user.set("lang", lang)
-    app.storage.user["lang"] = lang
+    session_storage["lang"] = lang
     ui.navigate.reload()
 
 
@@ -72,7 +82,9 @@ def page_header(current_page: str = None):
             ui.label("Lester's Content Pact").classes("text-md lg:text-2xl p-0 m-0")
             ui.label(project_version).classes("text-xs text-gray-500 p-0 m-0")
         ui.space()
-        if user_id := app.storage.user.get("user_id"):
+        shared_user_id = session_storage.get("user_id")
+        print("page_header shared user_id", shared_user_id)
+        if user_id := get_current_user_id():
             user: User = get_user_by_id_name(user_id)
             if not user and current_page in {"home", "admin"}:
                 ui.navigate.to("/welcome")
@@ -80,11 +92,10 @@ def page_header(current_page: str = None):
             ui.label(f"Hi {user.nickname if user else ''}!").classes(
                 "text-md lg:text-xl mt-1"
             )
-
-            user = get_user_from_storage()
-            LOGGER.info("User: %s", user)
         else:
             user = None
+        user = get_user_from_storage()
+        LOGGER.info("User: %s", user)
         ui.space()
         if user:
             home_link = ui.link("Home", "/home").classes(
@@ -108,7 +119,7 @@ def page_header(current_page: str = None):
                 link_classes + (highlight if current_page == "admin" else "")
             )
         ui.space()
-        lang = app.storage.user.get("lang", "en")
+        lang = session_storage.get("lang", "en")
         if lang == "de":
             ui.button("EN", on_click=lambda: set_language("en")).classes(link_classes)
         else:
@@ -238,7 +249,7 @@ def empty_uri_redirect():
 
 
 def welcome_page():
-    if user_id := app.storage.user.get("user_id"):
+    if user_id := get_current_user_id():
         user: User = get_user_by_id_name(user_id)
         LOGGER.debug("welcoming %s", user)
         if not user or not user.nickname:
@@ -279,7 +290,7 @@ def welcome_page():
 
 def logout_page():
     LOGGER.debug("logout")
-    app.storage.user["user_id"] = None
+    end_user_session()
     return ui.navigate.to("/home")
 
 
@@ -294,7 +305,13 @@ async def google_callback_redirect(request: Request):
     async with google_sso:
         user = await google_sso.verify_and_process(request)
     LOGGER.debug("google %s", user)
-    app.storage.user["user_id"] = f"google-{user.id}"
+    linked_user = get_or_create_sso_user(
+        provider="google",
+        account_id=user.id,
+        display_name=getattr(user, "name", ""),
+        email=getattr(user, "email", None),
+    )
+    begin_user_session(linked_user.id_name)
     return ui.navigate.to("/welcome")
 
 
@@ -304,7 +321,12 @@ async def discord_callback_redirect(request: Request):
     async with discord_sso:
         user = await discord_sso.verify_and_process(request)
     LOGGER.debug("discord %s", user)
-    app.storage.user["user_id"] = f"discord-{user.id}"
+    linked_user = get_or_create_sso_user(
+        provider="discord",
+        account_id=user.id,
+        display_name=getattr(user, "username", ""),
+    )
+    begin_user_session(linked_user.id_name)
     return ui.navigate.to("/welcome")
 
 

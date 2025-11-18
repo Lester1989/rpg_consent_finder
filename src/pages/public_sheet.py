@@ -1,4 +1,4 @@
-from nicegui import app, ui
+from nicegui import ui
 
 from components.consent_legend_component import consent_legend_component
 from components.preference_ordered_sheet_display_component import (
@@ -10,13 +10,15 @@ from controller.sheet_controller import (
 from controller.user_controller import get_user_by_id_name
 from localization.language_manager import make_localisable
 from models.db_models import User
+from services.session_service import get_current_user_id
 
 
 def content(share_id: str, sheet_id: str, **kwargs):
     if not share_id:
         make_localisable(ui.label(), key="no_share_id")
         return
-    sheet = get_consent_sheet_by_id(app.storage.user.get("user_id"), int(sheet_id))
+    user_id = get_current_user_id()
+    sheet = get_consent_sheet_by_id(user_id, int(sheet_id)) if user_id else None
     if not sheet or sheet.public_share_id != share_id:
         make_localisable(ui.label(), key="no_sheet")
         return
@@ -24,7 +26,7 @@ def content(share_id: str, sheet_id: str, **kwargs):
     ui.separator().mark("public_sheet_separator")
     consent_legend_component()
     try:
-        user: User = get_user_by_id_name(app.storage.user.get("user_id"))
+        user: User = get_user_by_id_name(user_id) if user_id else None
     except Exception:
         user = None
     if not user:

@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from nicegui import app, events, ui
+from nicegui import events, ui
 from nicegui.element import Element
 
 from components.dialog_components import open_confirmation_dialog
@@ -18,6 +18,11 @@ from services.home_service import (
     UserNotFoundError,
 )
 from utlis import sanitize_name
+from services.session_service import (
+    end_user_session,
+    get_current_user_id,
+    session_storage,
+)
 
 
 @dataclass
@@ -42,7 +47,7 @@ async def content(**kwargs):
         "handler": None,
         "input": None,
     }
-    user_id_name = app.storage.user.get("user_id")
+    user_id_name = get_current_user_id()
     if not user_id_name:
         logging.getLogger("content_consent_finder").debug(
             "No user session; redirecting"
@@ -76,7 +81,7 @@ async def content(**kwargs):
         logging.getLogger("content_consent_finder").warning(
             "Session user %s missing; clearing storage", user_id_name
         )
-        app.storage.user.clear()
+        end_user_session()
         ui.navigate.to("/welcome")
         return
 
@@ -179,7 +184,7 @@ def _render_delete_account_button(actions: "HomeActions") -> None:
 def _start_requested_tour(tours: HomeTours) -> None:
     """Kick off whichever tour the user requested previously."""
 
-    active_tour = app.storage.user.get("active_tour", "")
+    active_tour = session_storage.get("active_tour", "")
     if active_tour == "create_sheet":
         ui.timer(0.5, tours.create_sheet.start_tour, once=True)
     elif active_tour == "share_sheet":
@@ -306,7 +311,7 @@ def _render_sheet_row(
 
 
 def _continue_import_export_tour(target_url: str) -> None:
-    app.storage.user["active_tour"] = "import_export"
+    session_storage["active_tour"] = "import_export"
     ui.navigate.to(target_url)
 
 
@@ -534,7 +539,7 @@ class HomeActions:
             except HomeServiceError as exc:
                 _notify_error(exc)
                 return
-            app.storage.user.clear()
+            end_user_session()
             ui.notify("Bye Bye!")
             ui.navigate.to("/welcome")
 

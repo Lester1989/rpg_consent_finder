@@ -1,6 +1,7 @@
-from nicegui import ui, app
+from nicegui import ui
 import logging
 import pathlib
+from services.session_service import session_storage
 
 
 def load_news() -> list[tuple[str, dict[str, str]]]:
@@ -22,7 +23,7 @@ def content(**kwargs):
     if not news:
         ui.markdown("No news available")
         return
-    lang = app.storage.user.get("lang", "en")
+    lang = session_storage.get("lang", "en")
     for news_point in sorted(news, key=lambda x: x[0], reverse=True):
         _, news_dict = news_point
         ui.markdown(news_dict[lang])

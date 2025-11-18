@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from a_logger_setup import LOGGER_NAME
 from components.preference_ordered_sheet_display_component import (
@@ -28,6 +28,7 @@ from models.db_models import (
     User,
 )
 from models.model_utils import generate_group_name_id
+from services.session_service import get_current_user_id, session_storage
 
 SHOW_TAB_STORAGE_KEY = "group_show_tab"
 
@@ -41,7 +42,8 @@ def content(group_name_id: str = None, **kwargs):
     tour_create_group = NiceGuidedTour(
         storage_key="tour_create_group_progress", page_suffix="home"
     )
-    user: User = get_user_by_id_name(app.storage.user.get("user_id"))
+    user_id = get_current_user_id()
+    user: User = get_user_by_id_name(user_id) if user_id else None
     if not user:
         ui.navigate.to("/welcome")
         return
@@ -66,7 +68,7 @@ def content(group_name_id: str = None, **kwargs):
         SHOW_TAB_STORAGE_KEY,
         default_key="ordered_topics",
     )
-    show_tab = app.storage.user.get(SHOW_TAB_STORAGE_KEY, "ordered_topics")
+    show_tab = session_storage.get(SHOW_TAB_STORAGE_KEY, "ordered_topics")
     logging.getLogger(LOGGER_NAME).debug(f"show_tab {show_tab}")
     with panels:
         with ui.tab_panel(named_tabs["consent"]):
@@ -102,7 +104,7 @@ def content(group_name_id: str = None, **kwargs):
             x.value, sheet_display, ordered_topics_display, sheet_editor
         )
     )
-    active_tour = app.storage.user.get("active_tour", "")
+    active_tour = session_storage.get("active_tour", "")
     if active_tour == "create_group":
         ui.timer(0.5, tour_create_group.start_tour, once=True)
 
@@ -164,7 +166,7 @@ def storage_show_tab_and_refresh(
     sheet_editor: SheetEditableComponent,
 ):
     tab = tab.lower()
-    app.storage.user[SHOW_TAB_STORAGE_KEY] = tab
+    session_storage[SHOW_TAB_STORAGE_KEY] = tab
     logging.getLogger(LOGGER_NAME).debug(f"storage_show_tab_and_refresh {tab}")
     if tab == "consent":
         category_topics_display.content.refresh()

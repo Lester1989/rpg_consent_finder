@@ -4,6 +4,7 @@ import string
 from typing import Callable, Optional
 
 from nicegui import app, ui
+from services.session_service import session_storage
 
 
 class NiceGuidedTour:
@@ -93,7 +94,7 @@ class NiceGuidedTour:
         ][0]
 
         if self.store_user_progress:
-            app.storage.user[self.storage_key] = self.current_step_idx
+            session_storage[self.storage_key] = self.current_step_idx
 
         # set tooltip content
         self.tooltip_content.content = self.steps[element]
@@ -218,17 +219,17 @@ class NiceGuidedTour:
     def start_tour(self, reset_progress: bool = False, reset_all_tours: bool = False):
         """Starts the guided tour."""
         if self.store_user_progress:
-            self.current_step_idx = app.storage.user.get(self.storage_key, 0)
+            self.current_step_idx = session_storage.get(self.storage_key, 0)
             logging.debug(
                 f"Loaded guided tour progress {self.current_step_idx} from storage key {self.storage_key}"
             )
         if reset_progress:
             self.current_step_idx = 0
-            app.storage.user[self.storage_key] = 0
+            session_storage[self.storage_key] = 0
         if reset_all_tours:
-            for key in app.storage.user.keys():
+            for key in list(session_storage.keys()):
                 if isinstance(key, str) and key.startswith(self.base_storage_key):
-                    app.storage.user[key] = 0
+                    session_storage[key] = 0
         logging.debug(
             f"Starting guided tour {self.storage_key} with {len(self.elements)} steps at step {self.current_step_idx}"
         )
@@ -245,12 +246,12 @@ class NiceGuidedTour:
         self.overlay.classes(remove="block", add="hidden")
         self.current_step = None
         if is_close_action:
-            app.storage.user["active_tour"] = ""
+            session_storage["active_tour"] = ""
             self.current_step_idx = -1
             if self.store_user_progress:
-                for key in app.storage.user.keys():
+                for key in list(session_storage.keys()):
                     if isinstance(key, str) and key.startswith(self.base_storage_key):
-                        app.storage.user[key] = -1
+                        session_storage[key] = -1
 
 
 if __name__ in {"__main__", "__mp_main__"}:

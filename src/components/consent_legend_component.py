@@ -1,12 +1,13 @@
-from nicegui import ui, app
+from nicegui import ui
 from models.db_models import (
     ConsentStatus,
 )
 from localization.language_manager import make_localisable
+from services.session_service import session_storage
 
 
 def consent_legend_component():
-    lang = app.storage.user.get("lang", "en")
+    lang = session_storage.get("lang", "en")
     make_localisable(ui.label().classes("text-2xl mx-auto"), key="consent_levels")
     with ui.grid().classes(
         "lg:grid-cols-5 grid-cols-2 gap-2 lg:w-5/6 w-full mx-auto"

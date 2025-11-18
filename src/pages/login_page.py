@@ -1,6 +1,6 @@
 import logging
 
-from nicegui import app, ui
+from nicegui import ui
 
 from controller.user_controller import (
     create_user_account,
@@ -8,11 +8,12 @@ from controller.user_controller import (
     get_user_by_id_name,
 )
 from localization.language_manager import get_localization, make_localisable
+from services.session_service import begin_user_session, get_current_user_id
 
 
 def content(**kwargs):
     logging.getLogger("content_consent_finder").debug("showing login page")
-    if user_id := app.storage.user.get("user_id"):
+    if user_id := get_current_user_id():
         if get_user_by_id_name(user_id):
             ui.navigate.to("/welcome")
             ui.notify(get_localization("already_logged_in"), type="warning")
@@ -64,8 +65,9 @@ def login_form():
 
 
 def login(account: str, password: str):
+    print("login called", account)
     if user := get_user_by_account_and_password(account, password):
-        app.storage.user["user_id"] = user.id_name
+        begin_user_session(user.id_name)
         ui.navigate.to("/welcome")
     else:
         logging.getLogger("content_consent_finder").warning(
