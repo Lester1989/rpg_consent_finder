@@ -95,3 +95,21 @@ async def test_signup(user: User, caplog) -> None:
     await user.should_see("local_sign_in_button")
     await user.should_not_see("home_link")
     # assert len(caplog.records) == 1
+
+
+async def test_nav_updates_after_login(user: User) -> None:
+    await clean_db(user)
+    await user.open("/welcome")
+    await user.should_see("login_nav_button")
+    user.find("login_nav_button").click()
+    await user.should_see("login_account")
+    await user.should_see("login_pw")
+    user.find("login_account").type("testuser")
+    user.find("login_pw").type("123123123")
+    user.find("login_button").click()
+    await user.should_see("logout_btn")
+    await user.open("/home")
+    await user.should_not_see("login_nav_button")
+    await user.should_see("home_button")
+    user.find("home_button").click()
+    await user.should_see("group_join_code_input")

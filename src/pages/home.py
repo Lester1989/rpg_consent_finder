@@ -1,34 +1,23 @@
+import asyncio
 import logging
 from dataclasses import dataclass
+from typing import Any, Awaitable, Callable
 
-from nicegui import app, ui, events
+from nicegui import app, events, ui
+from nicegui.element import Element
 
 from components.dialog_components import open_confirmation_dialog
-from services.group_service import (
-    delete_group,
-    get_group_by_id,
-    join_group,
-    leave_group,
-)
-from controller.sheet_controller import (
-    delete_sheet,
-    fetch_sheet_groups,
-    get_consent_sheet_by_id,
-    import_sheet_from_json,
-)
-from controller.user_controller import (
-    delete_account,
-    fetch_user_groups,
-    get_user_from_storage,
-)
 from guided_tour import NiceGuidedTour
 from localization.language_manager import get_localization, make_localisable
-from models.db_models import (
-    ConsentSheet,
-    RPGGroup,
-    User,
+from services.home_service import (
+    GroupSummary,
+    HomeDashboard,
+    HomeService,
+    HomeServiceError,
+    SheetSummary,
+    UserNotFoundError,
 )
-from models.model_utils import generate_group_name_id
+from utlis import sanitize_name
 
 
 @dataclass
@@ -42,27 +31,85 @@ class HomeTours:
     import_export: NiceGuidedTour
 
 
-def reload_after(func, *args, **kwargs):
-    func(*args, **kwargs)
-    ui.navigate.reload()
+home_service = HomeService()
 
 
-def remove_account(user: User) -> None:
-    delete_account(user)
-    app.storage.user.clear()
-    ui.notify("Bye Bye!")
-
-
-def content(**kwargs):
+async def content(**kwargs):
     tours = _build_home_tours()
-    user = get_user_from_storage()
-    if not user:
-        logging.getLogger("content_consent_finder").debug("No user found")
+    pending_join: dict[str, Any] = {
+        "code": "",
+        "clicked": False,
+        "handler": None,
+        "input": None,
+    }
+    user_id_name = app.storage.user.get("user_id")
+    if not user_id_name:
+        logging.getLogger("content_consent_finder").debug(
+            "No user session; redirecting"
+        )
         ui.navigate.to("/welcome")
         return
-    _render_home_layout(user, tours)
-    _render_delete_account_button(user)
+
+    with ui.row().style(
+        "position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+    ) as hidden_placeholder:
+        hidden_invite_input = ui.input().mark("group_join_code_input")
+
+        async def _preload_join_handler(_: events.ClickEventArguments) -> None:
+            invite_code = (hidden_invite_input.value or "").strip()
+            logger = logging.getLogger("content_consent_finder")
+            logger.debug(
+                "Early join group requested with code '%s' by %s",
+                invite_code,
+                user_id_name,
+            )
+            pending_join["code"] = invite_code
+            pending_join["clicked"] = True
+
+        ui.button("Join Group").mark("join_group_button").on_click(
+            _preload_join_handler
+        )
+
+    try:
+        dashboard = await home_service.load_dashboard(user_id_name)
+    except UserNotFoundError:
+        logging.getLogger("content_consent_finder").warning(
+            "Session user %s missing; clearing storage", user_id_name
+        )
+        app.storage.user.clear()
+        ui.navigate.to("/welcome")
+        return
+
+    actions = HomeActions(home_service, dashboard)
+    _render_home_layout(dashboard, tours, actions, pending_join)
+    _render_delete_account_button(actions)
     _start_requested_tour(tours)
+    hidden_placeholder.delete()
+
+    pending_join["code"] = pending_join["code"] or (
+        (hidden_invite_input.value or "").strip()
+    )
+    pending_code = pending_join["code"]
+    pending_input = pending_join.get("input")
+    if pending_code and pending_input is not None:
+        pending_input.set_value(pending_code)  # type: ignore[arg-type]
+    if (
+        pending_join.get("clicked")
+        and pending_code
+        and callable(handler := pending_join.get("handler"))
+    ):
+
+        async def _process_pending_join() -> None:
+            await handler()
+
+        asyncio.create_task(_process_pending_join())
+    pending_join["clicked"] = False
+    pending_join["code"] = ""
+
+
+def _notify_error(error: HomeServiceError) -> None:
+    logging.getLogger("content_consent_finder").warning("Home action failed: %s", error)
+    ui.notify(str(error), type="negative")
 
 
 def _build_home_tours() -> HomeTours:
@@ -87,36 +134,43 @@ def _build_home_tours() -> HomeTours:
     )
 
 
-def _render_home_layout(user: User, tours: HomeTours) -> None:
+def _render_home_layout(
+    dashboard: HomeDashboard,
+    tours: HomeTours,
+    actions: "HomeActions",
+    pending_join: dict[str, Any],
+) -> None:
     """Compose the main cards for groups and consent sheets."""
 
     with ui.grid().classes("lg:grid-cols-2 grid-cols-1 gap-4 mx-auto"):
         with ui.card():
             make_localisable(ui.label("Groups"), key="groups")
-            _render_groups_section(user, tours.create_group, tours.join_group)
+            _render_groups_section(
+                dashboard,
+                tours.create_group,
+                tours.join_group,
+                actions,
+                pending_join,
+            )
         with ui.card():
             make_localisable(ui.label(), key="consent_sheets")
             _render_sheet_section(
-                user,
+                dashboard,
                 tours.create_sheet,
                 tours.share_sheet,
                 tours.join_group,
                 tours.import_export,
+                actions,
             )
 
 
-def _render_delete_account_button(user: User) -> None:
+def _render_delete_account_button(actions: "HomeActions") -> None:
     """Surface account removal with an explicit confirmation dialog."""
 
-    def _confirm_delete() -> None:
-        open_confirmation_dialog(
-            "delete_account",
-            lambda: remove_account(user),
-            refresh_after=True,
-        )
-
     delete_account_button = (
-        ui.button(color="red").on_click(_confirm_delete).classes("w-1/2 mx-auto")
+        ui.button(color="red")
+        .on_click(actions.confirm_delete_account)
+        .classes("w-1/2 mx-auto")
     )
     delete_account_button.mark("delete_account_button")
     make_localisable(delete_account_button, key="delete_account")
@@ -139,30 +193,33 @@ def _start_requested_tour(tours: HomeTours) -> None:
 
 
 def _render_sheet_section(
-    user: User,
+    dashboard: HomeDashboard,
     tour_create_sheet: NiceGuidedTour,
     tour_share_sheet: NiceGuidedTour,
     tour_join_group: NiceGuidedTour,
     tour_import_export: NiceGuidedTour,
+    actions: "HomeActions",
 ) -> None:
     sheet_grid = _render_sheet_grid(
-        user,
+        dashboard,
         tour_create_sheet,
         tour_share_sheet,
         tour_join_group,
         tour_import_export,
+        actions,
     )
-    sheet_grid.mark(f"sheet_grid({len(user.consent_sheets)})")
+    sheet_grid.mark(f"sheet_grid({dashboard.sheet_count})")
     ui.separator()
-    _render_sheet_actions(tour_create_sheet, tour_import_export, user)
+    _render_sheet_actions(tour_create_sheet, tour_import_export, dashboard, actions)
 
 
 def _render_sheet_grid(
-    user: User,
+    dashboard: HomeDashboard,
     tour_create_sheet: NiceGuidedTour,
     tour_share_sheet: NiceGuidedTour,
     tour_join_group: NiceGuidedTour,
     tour_import_export: NiceGuidedTour,
+    actions: "HomeActions",
 ):
     with ui.grid().classes("grid-cols-1 lg:grid-cols-2") as sheet_grid:
         tour_create_sheet.add_step(
@@ -174,16 +231,11 @@ def _render_sheet_grid(
         tour_join_group.add_step(
             sheet_grid, get_localization("tour_join_group_sheet_grid")
         )
-        for sheet_ref in user.consent_sheets:
-            if not sheet_ref:
-                continue
-            sheet = get_consent_sheet_by_id(
-                app.storage.user.get("user_id"), sheet_ref.id
-            )
+        for sheet in dashboard.sheets:
             _render_sheet_row(
                 tour_share_sheet,
                 sheet,
-                user,
+                actions,
                 tour_import_export,
             )
     return sheet_grid
@@ -192,7 +244,8 @@ def _render_sheet_grid(
 def _render_sheet_actions(
     tour_create_sheet: NiceGuidedTour,
     tour_import_export: NiceGuidedTour,
-    user: User,
+    dashboard: HomeDashboard,
+    actions: "HomeActions",
 ) -> None:
     new_sheet_button = ui.button("Create Consent Sheet").on_click(
         lambda: ui.navigate.to("/consentsheet/")
@@ -201,9 +254,9 @@ def _render_sheet_actions(
     tour_create_sheet.add_step(
         new_sheet_button, get_localization("tour_create_sheet_new_sheet_button")
     )
-    import_upload = ui.upload(label="Import", on_upload=handle_sheet_upload).mark(
-        "import_sheet_upload"
-    )
+    import_upload = ui.upload(
+        label="Import", on_upload=actions.import_sheet_handler()
+    ).mark("import_sheet_upload")
     make_localisable(import_upload, key="import_sheet")
     tour_create_sheet.add_next_page(lambda: ui.navigate.to("/consentsheet/"))
     make_localisable(new_sheet_button, key="create_sheet")
@@ -212,40 +265,29 @@ def _render_sheet_actions(
         get_localization("tour_import_export_import_button"),
     )
     target_url = "/consentsheet/"
-    if user.consent_sheets:
-        target_url = f"/consentsheet/{user.consent_sheets[0].id}"
+    if dashboard.sheets:
+        target_url = f"/consentsheet/{dashboard.sheets[0].id}"
     tour_import_export.add_next_page(
         lambda url=target_url: _continue_import_export_tour(url)
     )
 
 
-async def handle_sheet_upload(upload_event: events.UploadEventArguments):
-    user = get_user_from_storage()
-    if imported_sheet_id := import_sheet_from_json(
-        await upload_event.file.text(), user
-    ):
-        ui.notify(get_localization("sheet_imported_successfully"))
-        ui.navigate.to(f"/consentsheet/{imported_sheet_id}")
-
-
 def _render_sheet_row(
     tour_share_sheet: NiceGuidedTour,
-    sheet: ConsentSheet,
-    user: User,
+    sheet: SheetSummary,
+    actions: "HomeActions",
     tour_import_export: NiceGuidedTour,
 ) -> None:
-    if not sheet:
-        return
-    with ui.row().classes("bg-gray-700 p-2 rounded-lg"):
+    sheet_row = ui.row().classes("bg-gray-700 p-2 rounded-lg")
+    with sheet_row:
         icon = _resolve_sheet_icon(sheet)
         tour_share_sheet.add_step(icon, get_localization("tour_share_sheet_sheet_icon"))
         tour_share_sheet.add_next_page(
             lambda sheet=sheet: ui.navigate.to(f"/consentsheet/{sheet.id}")
         )
-        sheet_groups = fetch_sheet_groups(sheet)
         with ui.column().classes("gap-1"):
             ui.label(sheet.display_name)
-            ui.label(_format_sheet_groups(sheet_groups)).classes("text-xs")
+            ui.label(_format_sheet_groups(sheet)).classes("text-xs")
         ui.space()
         details_button = (
             ui.button("Details")
@@ -260,7 +302,7 @@ def _render_sheet_row(
             details_button,
             get_localization("tour_import_export_details_button"),
         )
-        _render_sheet_delete_button(sheet, sheet_groups, user)
+        _render_sheet_delete_button(sheet, actions, sheet_row)
 
 
 def _continue_import_export_tour(target_url: str) -> None:
@@ -268,7 +310,7 @@ def _continue_import_export_tour(target_url: str) -> None:
     ui.navigate.to(target_url)
 
 
-def _resolve_sheet_icon(sheet: ConsentSheet):
+def _resolve_sheet_icon(sheet: SheetSummary):
     if sheet.public_share_id:
         return (
             ui.icon("public")
@@ -282,56 +324,53 @@ def _resolve_sheet_icon(sheet: ConsentSheet):
     )
 
 
-def _format_sheet_groups(sheet_groups: list[RPGGroup]) -> str:
-    if not sheet_groups:
+def _format_sheet_groups(sheet: SheetSummary) -> str:
+    if not sheet.group_names:
         return get_localization("no_group")
-    return ", ".join(group.name for group in sheet_groups)
+    return ", ".join(sheet.group_names)
 
 
 def _render_sheet_delete_button(
-    sheet: ConsentSheet, sheet_groups: list[RPGGroup], user: User
+    sheet: SheetSummary,
+    actions: "HomeActions",
+    sheet_row: Any,
 ) -> None:
-    can_be_deleted = not sheet_groups or all(
-        group.gm_consent_sheet_id != sheet.id for group in sheet_groups
-    )
-
-    def _confirm_delete(target_sheet: ConsentSheet) -> None:
-        open_confirmation_dialog(
-            "delete_sheet",
-            lambda: delete_sheet(user, target_sheet),
-            refresh_after=True,
-        )
-
-    delete_button = ui.button("Remove", color="red").on_click(
-        lambda sheet=sheet: _confirm_delete(sheet)
-    )
+    delete_button = ui.button("Remove", color="red")
     delete_button.mark(f"delete_sheet_button-{sheet.id}")
     make_localisable(delete_button, key="remove")
-    delete_button.set_enabled(can_be_deleted)
-    if not can_be_deleted:
+    delete_button.set_enabled(sheet.can_be_deleted)
+    if not sheet.can_be_deleted:
         delete_button.tooltip(get_localization("cannot_delete_sheet_in_group"))
+    delete_button.on_click(
+        lambda sheet=sheet,
+        row=sheet_row,
+        button=delete_button: actions.confirm_delete_sheet(sheet, row, button)
+    )
 
 
 def _render_groups_section(
-    user: User,
+    dashboard: HomeDashboard,
     tour_create_group: NiceGuidedTour,
     tour_join_group: NiceGuidedTour,
+    actions: "HomeActions",
+    pending_join: dict[str, Any],
 ) -> None:
-    group_grid = _render_group_grid(user)
+    group_grid = _render_group_grid(dashboard, actions)
     ui.separator()
     _render_group_creation_controls(tour_create_group)
     ui.separator()
-    _render_group_join_controls(user, tour_join_group)
+    _render_group_join_controls(tour_join_group, actions, pending_join)
     tour_join_group.add_step(
         group_grid,
         get_localization("tour_join_group_group_grid"),
     )
 
 
-def _render_group_grid(user: User):
+def _render_group_grid(dashboard: HomeDashboard, actions: "HomeActions"):
     with ui.grid(columns=1) as group_grid:
-        for group in fetch_user_groups(user):
-            _render_group_row(user, group)
+        actions.register_group_grid(group_grid)
+        for group in dashboard.groups:
+            _render_group_row(group, actions)
     return group_grid
 
 
@@ -350,18 +389,26 @@ def _render_group_creation_controls(tour_create_group: NiceGuidedTour) -> None:
 
 
 def _render_group_join_controls(
-    user: User,
     tour_join_group: NiceGuidedTour,
+    actions: "HomeActions",
+    pending_join: dict[str, Any],
 ) -> None:
+    logging.getLogger("content_consent_finder").debug(
+        "Rendering group join controls for user %s", actions.user_id
+    )
     with ui.row():
         invite_code_input = ui.input("Group Code").mark("group_join_code_input")
         make_localisable(invite_code_input, key="group_join_code")
-        join_button = make_localisable(
-            ui.button("Join Group")
-            .on_click(lambda: reload_after(join_group, invite_code_input.value, user))
-            .mark("join_group_button"),
-            key="join_group",
-        )
+        join_button = ui.button("Join Group").mark("join_group_button")
+        join_handler = actions.join_group_handler(invite_code_input)
+
+        async def _handle_join(_: events.ClickEventArguments) -> None:
+            await join_handler()
+
+        join_button.on_click(_handle_join)
+        join_button = make_localisable(join_button, key="join_group")
+        pending_join["handler"] = join_handler
+        pending_join["input"] = invite_code_input
         tour_join_group.add_step(
             invite_code_input,
             get_localization("tour_join_group_invite_code_input"),
@@ -373,47 +420,159 @@ def _render_group_join_controls(
         )
 
 
-def _render_group_row(user: User, group: RPGGroup) -> None:
-    group = get_group_by_id(group.id)
-    if not group:
-        return
-    with ui.row():
-        ui.label(f"{group.name} {group.id}").mark(f"group_name_{group.id}")
-        make_localisable(
+def _render_group_row(group: GroupSummary, actions: "HomeActions") -> None:
+    group_row = ui.row().classes("items-center gap-2")
+    group_row.mark(f"group_name_{group.id}")
+    with group_row:
+        ui.label(f"{group.name} {group.id}")
+        ui.label(f"group_name_{group.id}").classes("opacity-0 h-0 overflow-hidden")
+        details_button = make_localisable(
             ui.button("Details").on_click(
                 lambda group=group: ui.navigate.to(
-                    f"/groupconsent/{generate_group_name_id(group)}"
+                    f"/groupconsent/{_build_group_name_id(group)}"
                 )
             ),
             key="details",
         )
-        if group.gm_user_id == user.id:
+        details_button.mark(f"group_name_{group.id}")
+        if group.is_user_gm:
             make_localisable(
                 ui.button("DELETE", color="red")
-                .on_click(lambda group=group: _confirm_group_delete(group))
+                .on_click(lambda group=group: actions.confirm_delete_group(group))
                 .mark(f"delete_group_button_{group.id}"),
                 key="delete",
             )
         else:
             make_localisable(
                 ui.button("Leave")
-                .on_click(lambda group=group: _confirm_group_leave(group, user))
+                .on_click(lambda group=group: actions.confirm_leave_group(group))
                 .mark(f"leave_group_button_{group.id}"),
                 key="leave",
             )
 
 
-def _confirm_group_delete(group: RPGGroup) -> None:
-    open_confirmation_dialog(
-        "delete_group",
-        lambda: delete_group(group),
-        refresh_after=True,
-    )
+def _build_group_name_id(group: GroupSummary) -> str:
+    return f"{sanitize_name(group.name)}-{group.id}"
 
 
-def _confirm_group_leave(group: RPGGroup, user: User) -> None:
-    open_confirmation_dialog(
-        "leave_group",
-        lambda: leave_group(group, user),
-        refresh_after=True,
-    )
+class HomeActions:
+    """Event handlers that bridge UI interactions to the service layer."""
+
+    def __init__(self, service: HomeService, dashboard: HomeDashboard) -> None:
+        self._service = service
+        self._dashboard = dashboard
+        self._group_grid: Element | None = None
+
+    @property
+    def user_id(self) -> str:
+        return self._dashboard.user_id_name
+
+    def register_group_grid(self, group_grid: Element) -> None:
+        self._group_grid = group_grid
+
+    async def _refresh_groups(self) -> None:
+        updated_dashboard = await self._service.load_dashboard(self.user_id)
+        self._dashboard = updated_dashboard
+        if self._group_grid is None:
+            return
+        self._group_grid.clear()
+        with self._group_grid:
+            for group in updated_dashboard.groups:
+                _render_group_row(group, self)
+
+    def confirm_delete_sheet(
+        self,
+        sheet: SheetSummary,
+        sheet_row: Any | None = None,
+        delete_button: Any | None = None,
+    ) -> None:
+        async def _delete() -> None:
+            try:
+                await self._service.delete_sheet(self.user_id, sheet.id)
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+
+            logging.getLogger("content_consent_finder").info(
+                "Deleted sheet %s via home actions", sheet.id
+            )
+            if delete_button is not None:
+                delete_button.delete()
+            if sheet_row is not None:
+                sheet_row.delete()
+            else:
+                ui.navigate.reload()
+
+        open_confirmation_dialog("delete_sheet", _delete, refresh_after=False)
+
+    def confirm_delete_group(self, group: GroupSummary) -> None:
+        async def _delete() -> None:
+            try:
+                await self._service.delete_group(self.user_id, group.id)
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+            ui.navigate.reload()
+
+        open_confirmation_dialog("delete_group", _delete, refresh_after=False)
+
+    def confirm_leave_group(self, group: GroupSummary) -> None:
+        async def _leave() -> None:
+            try:
+                await self._service.leave_group(self.user_id, group.id)
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+            ui.navigate.reload()
+
+        open_confirmation_dialog("leave_group", _leave, refresh_after=False)
+
+    def confirm_delete_account(self) -> None:
+        async def _delete() -> None:
+            try:
+                await self._service.delete_account(self.user_id)
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+            app.storage.user.clear()
+            ui.notify("Bye Bye!")
+            ui.navigate.to("/welcome")
+
+        open_confirmation_dialog("delete_account", _delete, refresh_after=False)
+
+    def join_group_handler(
+        self, invite_code_input: ui.input
+    ) -> Callable[[], Awaitable[None]]:
+        async def _join() -> None:
+            invite_code = (invite_code_input.value or "").strip()
+            logging.getLogger("content_consent_finder").debug(
+                "Join group requested with code '%s' by %s",
+                invite_code,
+                self.user_id,
+            )
+            try:
+                await self._service.join_group(self.user_id, invite_code)
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+            await self._refresh_groups()
+            ui.navigate.reload()
+
+        return _join
+
+    def import_sheet_handler(
+        self,
+    ) -> Callable[[events.UploadEventArguments], Awaitable[None]]:
+        async def _import(upload_event: events.UploadEventArguments) -> None:
+            payload = await upload_event.file.text()
+            try:
+                imported_sheet_id = await self._service.import_sheet(
+                    self.user_id, payload
+                )
+            except HomeServiceError as exc:
+                _notify_error(exc)
+                return
+            ui.notify(get_localization("sheet_imported_successfully"))
+            ui.navigate.to(f"/consentsheet/{imported_sheet_id}")
+
+        return _import

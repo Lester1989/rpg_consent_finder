@@ -90,7 +90,7 @@ def page_header(current_page: str = None):
             home_link = ui.link("Home", "/home").classes(
                 link_classes + (highlight if current_page == "home" else "")
             )
-            home_link.mark("home_link")
+            home_link.mark("home_link home_button")
         ui.link("News", "/news").classes(
             link_classes + (highlight if current_page == "news" else "")
         )
@@ -121,10 +121,10 @@ def page_header(current_page: str = None):
                 link_classes.replace("bg-gray-600", "bg-red-800")
             ).mark("logout_btn")
         else:
-            ui.link("Login", "/welcome").classes(
+            ui.link("Login", "/login").classes(
                 link_classes
                 + (highlight if current_page in {"welcome", "login"} else "")
-            )
+            ).mark("login_nav_button")
 
 
 def page_frame(current_page=None):

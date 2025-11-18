@@ -8,17 +8,19 @@ from typing import Any
 from nicegui import ui
 
 from localization.language_manager import make_localisable
+from services.async_utils import ensure_awaitable
 
 
-def _handle_confirmation(
+async def _handle_confirmation(
     dialog: ui.dialog,
     on_confirm: Callable[[], Any],
     *,
     refresh_after: bool,
 ) -> None:
     """Close the dialog, execute the action, and optionally refresh the page."""
+
     dialog.close()
-    on_confirm()
+    await ensure_awaitable(on_confirm())
     if refresh_after:
         ui.navigate.reload()
 
@@ -30,12 +32,17 @@ def open_confirmation_dialog(
     refresh_after: bool = False,
 ) -> None:
     """Render a localized confirmation dialog before executing an action."""
+
     with ui.dialog() as dialog, ui.card():
         make_localisable(ui.label(), key=f"{key}_confirm")
         with ui.row():
 
-            def _on_yes() -> None:
-                _handle_confirmation(dialog, on_confirm, refresh_after=refresh_after)
+            async def _on_yes() -> None:
+                await _handle_confirmation(
+                    dialog,
+                    on_confirm,
+                    refresh_after=refresh_after,
+                )
 
             yes_button = ui.button("Yes", on_click=_on_yes)
             no_button = ui.button("No", on_click=dialog.close)
@@ -54,6 +61,7 @@ def confirm_before(
     **kwargs: Any,
 ) -> None:
     """Backwards compatible wrapper that mirrors the historic helper signature."""
+
     open_confirmation_dialog(
         key,
         lambda: func(*args, **kwargs),

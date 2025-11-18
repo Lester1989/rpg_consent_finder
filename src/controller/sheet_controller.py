@@ -19,6 +19,7 @@ from models.db_models import (
 )
 from models.model_utils import add_and_refresh, engine
 from services.sheet_service import create_consent_sheet
+from services.async_utils import run_sync
 
 
 def fetch_sheet_groups(sheet: ConsentSheet) -> list[RPGGroup]:
@@ -287,3 +288,90 @@ def update_consent_sheet(user: User, sheet: ConsentSheet):
             add_and_refresh(session, new_sheet)
             sheet.id = new_sheet.id
             logging.getLogger("content_consent_finder").debug(f"added {new_sheet}")
+
+
+# Async-friendly wrappers ---------------------------------------------------
+
+
+async def fetch_sheet_groups_async(sheet: ConsentSheet) -> list[RPGGroup]:
+    """Asynchronous wrapper for :func:`fetch_sheet_groups`."""
+
+    return await run_sync(fetch_sheet_groups, sheet)
+
+
+async def create_share_id_async() -> str:
+    """Asynchronous wrapper for :func:`create_share_id`."""
+
+    return await run_sync(create_share_id)
+
+
+async def create_new_consentsheet_async(user: User) -> ConsentSheet:
+    """Asynchronous wrapper for :func:`create_new_consentsheet`."""
+
+    return await run_sync(create_new_consentsheet, user)
+
+
+async def import_sheet_from_json_async(json_text: str, user: User) -> int:
+    """Asynchronous wrapper for :func:`import_sheet_from_json`."""
+
+    return await run_sync(import_sheet_from_json, json_text, user)
+
+
+async def duplicate_sheet_async(sheet_id: int, user_id: str | int) -> ConsentSheet:
+    """Asynchronous wrapper for :func:`duplicate_sheet`."""
+
+    return await run_sync(duplicate_sheet, sheet_id, user_id)
+
+
+async def delete_sheet_async(
+    user: User,
+    sheet: ConsentSheet,
+) -> ConsentSheet:
+    """Asynchronous wrapper for :func:`delete_sheet`."""
+
+    return await run_sync(delete_sheet, user, sheet)
+
+
+async def get_all_custom_entries_async() -> list[CustomConsentEntry]:
+    """Asynchronous wrapper for :func:`get_all_custom_entries`."""
+
+    return await run_sync(get_all_custom_entries)
+
+
+async def update_custom_entry_async(user: User, entry: CustomConsentEntry):
+    """Asynchronous wrapper for :func:`update_custom_entry`."""
+
+    await run_sync(update_custom_entry, user, entry)
+
+
+async def update_entry_async(user: User, entry: ConsentEntry):
+    """Asynchronous wrapper for :func:`update_entry`."""
+
+    await run_sync(update_entry, user, entry)
+
+
+async def get_consent_template_by_id_async(template_id: int) -> ConsentTemplate:
+    """Asynchronous wrapper for :func:`get_consent_template_by_id`."""
+
+    return await run_sync(get_consent_template_by_id, template_id)
+
+
+async def get_all_consent_topics_async() -> list[ConsentTemplate]:
+    """Asynchronous wrapper for :func:`get_all_consent_topics`."""
+
+    return await run_sync(get_all_consent_topics)
+
+
+async def get_consent_sheet_by_id_async(
+    user_id_name: str,
+    sheet_id: int,
+) -> ConsentSheet | None:
+    """Asynchronous wrapper for :func:`get_consent_sheet_by_id`."""
+
+    return await run_sync(get_consent_sheet_by_id, user_id_name, sheet_id)
+
+
+async def update_consent_sheet_async(user: User, sheet: ConsentSheet) -> None:
+    """Asynchronous wrapper for :func:`update_consent_sheet`."""
+
+    await run_sync(update_consent_sheet, user, sheet)

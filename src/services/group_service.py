@@ -16,6 +16,7 @@ from models.db_models import (
     UserGroupLink,
 )
 from models.model_utils import add_and_refresh, session_scope
+from services.async_utils import run_sync
 from services.sheet_service import create_consent_sheet
 from utlis import sanitize_name
 
@@ -447,3 +448,87 @@ def _generate_invite_code(group_id: int | None) -> str:
             "".join(random.choices(string.digits, k=3)),
         ]
     )
+
+
+# Async-friendly wrappers ---------------------------------------------------
+
+
+async def get_group_by_id_async(group_id: int) -> RPGGroup | None:
+    """Asynchronous wrapper for :func:`get_group_by_id`."""
+
+    return await run_sync(get_group_by_id, group_id)
+
+
+async def fetch_group_sheets_async(group: RPGGroup) -> list[ConsentSheet]:
+    """Asynchronous wrapper for :func:`fetch_group_sheets`."""
+
+    return await run_sync(fetch_group_sheets, group)
+
+
+async def fetch_group_users_async(group: RPGGroup) -> list[User]:
+    """Asynchronous wrapper for :func:`fetch_group_users`."""
+
+    return await run_sync(fetch_group_users, group)
+
+
+async def get_group_by_name_id_async(group_name_id: str) -> RPGGroup:
+    """Asynchronous wrapper for :func:`get_group_by_name_id`."""
+
+    return await run_sync(get_group_by_name_id, group_name_id)
+
+
+async def assign_consent_sheet_to_group_async(
+    sheet: ConsentSheet,
+    group: RPGGroup,
+) -> RPGGroup:
+    """Asynchronous wrapper for :func:`assign_consent_sheet_to_group`."""
+
+    return await run_sync(assign_consent_sheet_to_group, sheet, group)
+
+
+async def unassign_consent_sheet_from_group_async(
+    sheet: ConsentSheet,
+    group: RPGGroup,
+) -> RPGGroup:
+    """Asynchronous wrapper for :func:`unassign_consent_sheet_from_group`."""
+
+    return await run_sync(unassign_consent_sheet_from_group, sheet, group)
+
+
+async def create_new_group_async(
+    user: User,
+    sheet_id: int | None = None,
+) -> RPGGroup:
+    """Asynchronous wrapper for :func:`create_new_group`."""
+
+    return await run_sync(create_new_group, user, sheet_id)
+
+
+async def update_group_async(group: RPGGroup) -> RPGGroup:
+    """Asynchronous wrapper for :func:`update_group`."""
+
+    return await run_sync(update_group, group)
+
+
+async def regenerate_invite_code_async(group: RPGGroup) -> RPGGroup:
+    """Asynchronous wrapper for :func:`regenerate_invite_code`."""
+
+    return await run_sync(regenerate_invite_code, group)
+
+
+async def delete_group_async(group: RPGGroup) -> RPGGroup:
+    """Asynchronous wrapper for :func:`delete_group`."""
+
+    return await run_sync(delete_group, group)
+
+
+async def join_group_async(code: str, user: User) -> RPGGroup | None:
+    """Asynchronous wrapper for :func:`join_group`."""
+
+    return await run_sync(join_group, code, user)
+
+
+async def leave_group_async(group: RPGGroup, user: User) -> RPGGroup | None:
+    """Asynchronous wrapper for :func:`leave_group`."""
+
+    return await run_sync(leave_group, group, user)

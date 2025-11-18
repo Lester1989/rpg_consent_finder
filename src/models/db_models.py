@@ -409,7 +409,11 @@ class ConsentSheet(SQLModel, table=True):
         return self.human_name or self.unique_name
 
     def __str__(self):
-        return f"<ConsentSheet {self.id} {self.unique_name} {len(self.consent_entries)} entries, Owner:{self.user.nickname}, shared:{self.public_share_id}>"
+        owner = self.user.nickname if getattr(self, "user", None) else self.user_id
+        return (
+            f"<ConsentSheet {self.id} {self.unique_name} {len(self.consent_entries)} entries, "
+            f"Owner:{owner}, shared:{self.public_share_id}>"
+        )
 
 
 class ConsentEntry(SQLModel, table=True):
