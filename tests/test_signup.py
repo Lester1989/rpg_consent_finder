@@ -1,7 +1,3 @@
-from typing import Generator
-
-import pytest
-
 from nicegui.testing import User
 import sys
 

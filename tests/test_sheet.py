@@ -1,12 +1,7 @@
 import asyncio
-import logging
-import time
-from typing import Generator
 
-import pytest
 
 from nicegui.testing import User
-from nicegui import ui
 import sys
 
 sys.path.append("src")
@@ -75,7 +70,7 @@ async def delete_sheet(user: User, sheet_id: str):
 
 
 async def test_create_and_delete_sheet(user: User, caplog) -> None:
-    caplog.set_level(logging.INFO)
+    # caplog.set_level(logging.INFO)
     sheet_id = await login_and_create_sheet(user)
     await delete_sheet(user, sheet_id)
 
@@ -102,7 +97,7 @@ async def test_public_sheet(user: User, caplog) -> None:
     public_sheet_url = user.back_history[-1]
     await user.should_see("logout_btn", retries=5)
     user.find("logout_btn").click()
-    user.open(public_sheet_url)
+    await user.open(public_sheet_url)
     await user.should_see("public_sheet_separator", retries=5)
     await user.should_not_see("logout_btn", retries=5)
     await login(user)

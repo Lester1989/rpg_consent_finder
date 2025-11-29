@@ -89,6 +89,12 @@ class PlayFunQuestion(SQLModel, table=True):
     weight: float = Field(default=0)
     created_at: datetime = Field(default=datetime.now())
 
+    def __repr__(self):
+        return f"<PlayFunQuestion {self.id} {self.play_style} Weight:{self.weight} {self.question_local.get_text()[:20]}...>"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class PlayFunResult(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -108,6 +114,19 @@ class PlayFunResult(SQLModel, table=True):
         cascade_delete=True,
         back_populates="result",
     )
+
+    def __repr__(self):
+        return f"<PlayFunResult {self.id} User:{self.user.nickname if self.user else self.user_id} Ratings:{self.ratings}>"
+
+    def __str__(self):
+        return self.__repr__()
+
+    def get_top_style(self, n: int = 1) -> list[str]:
+        ratings = self.ratings
+        sorted_styles = sorted(ratings.items(), key=lambda item: item[1], reverse=True)[
+            :n
+        ]
+        return [style for style, _ in sorted_styles]
 
     @staticmethod
     def categories(lang: str) -> list[str]:
@@ -148,6 +167,25 @@ class PlayFunResult(SQLModel, table=True):
             "submission": self.submission_rating,
         }
 
+    def set_rating(self, style: str, rating: int) -> None:
+        print(f"Setting rating for {style} to {rating}")
+        if style.lower() == "challenge":
+            self.challenge_rating = rating
+        elif style.lower() == "discovery":
+            self.discovery_rating = rating
+        elif style.lower() == "expression":
+            self.expression_rating = rating
+        elif style.lower() == "fantasy":
+            self.fantasy_rating = rating
+        elif style.lower() == "fellowship":
+            self.fellowship_rating = rating
+        elif style.lower() == "narrative":
+            self.narrative_rating = rating
+        elif style.lower() == "sensation":
+            self.sensation_rating = rating
+        elif style.lower() == "submission":
+            self.submission_rating = rating
+
 
 class PlayFunAnswer(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -160,6 +198,14 @@ class PlayFunAnswer(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": LAZY_MODE},
         back_populates="answers",
     )
+
+    def __repr__(self):
+        return (
+            f"<PlayFunAnswer {self.id} question_id:{self.question_id} R:{self.rating}>"
+        )
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class UserFAQ(SQLModel, table=True):

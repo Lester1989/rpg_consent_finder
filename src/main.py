@@ -15,9 +15,12 @@ from nicegui.page import page
 from a_logger_setup import LOGGER_NAME, configure_logging
 from controller.user_controller import (
     get_user_by_id_name,
-    get_user_from_storage,
     get_or_create_sso_user,
     update_user,
+)
+from components.layout import (
+    page_frame,
+    safe_refresh_header,
 )
 from localization.language_manager import make_localisable
 from models.db_models import User
@@ -40,7 +43,6 @@ from services.session_service import (
     end_user_session,
     ensure_session_middleware,
     get_current_user_id,
-    session_storage,
 )
 
 print("main module imported", __name__)
@@ -48,9 +50,6 @@ settings = get_settings()
 ensure_session_middleware()
 configure_logging(settings.log_level)
 LOGGER = logging.getLogger(LOGGER_NAME)
-
-
-project_version = Path("src/version.txt").read_text().strip()
 
 
 google_sso = GoogleSSO(
@@ -66,104 +65,6 @@ discord_sso = DiscordSSO(
     redirect_uri=f"{settings.base_url}/discord/callback",
     allow_insecure_http=settings.discord_allow_insecure_http,
 )
-
-
-def set_language(lang: str):
-    # app.storage.user.set("lang", lang)
-    session_storage["lang"] = lang
-    ui.navigate.reload()
-
-
-def page_header(current_page: str = None):
-    link_classes = "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
-    highlight = " shadow-md shadow-yellow-500"
-    with ui.row().classes("m-0 w-full bg-gray-800 text-white p-2"):
-        with ui.column(align_items="start").classes("gap-0 p-0 m-0"):
-            ui.label("Lester's Content Pact").classes("text-md lg:text-2xl p-0 m-0")
-            ui.label(project_version).classes("text-xs text-gray-500 p-0 m-0")
-        ui.space()
-        shared_user_id = session_storage.get("user_id")
-        print("page_header shared user_id", shared_user_id)
-        if user_id := get_current_user_id():
-            user: User = get_user_by_id_name(user_id)
-            if not user and current_page in {"home", "admin"}:
-                ui.navigate.to("/welcome")
-                return
-            ui.label(f"Hi {user.nickname if user else ''}!").classes(
-                "text-md lg:text-xl mt-1"
-            )
-        else:
-            user = None
-        user = get_user_from_storage()
-        LOGGER.info("User: %s", user)
-        ui.space()
-        if user:
-            home_link = ui.link("Home", "/home").classes(
-                link_classes + (highlight if current_page == "home" else "")
-            )
-            home_link.mark("home_link home_button")
-        ui.link("News", "/news").classes(
-            link_classes + (highlight if current_page == "news" else "")
-        )
-        ui.link("Contents", "/content_trigger").classes(
-            link_classes + (highlight if current_page == "content_trigger" else "")
-        )
-        ui.link("FAQ", "/faq").classes(
-            link_classes + (highlight if current_page == "faq" else "")
-        )
-        ui.link("Playstyle", "/playstyle").classes(
-            link_classes + (highlight if current_page == "playstyle" else "")
-        )
-        if user_id in settings.admins:
-            ui.link("Admin", "/admin").classes(
-                link_classes + (highlight if current_page == "admin" else "")
-            )
-        ui.space()
-        lang = session_storage.get("lang", "en")
-        if lang == "de":
-            ui.button("EN", on_click=lambda: set_language("en")).classes(link_classes)
-        else:
-            ui.button("DE", on_click=lambda: set_language("de")).classes(link_classes)
-
-        dark = ui.dark_mode(value=True)
-        ui.switch("Dark").bind_value(dark)
-        if user_id:
-            ui.link("Logout", "/logout").classes(
-                link_classes.replace("bg-gray-600", "bg-red-800")
-            ).mark("logout_btn")
-        else:
-            ui.link("Login", "/login").classes(
-                link_classes
-                + (highlight if current_page in {"welcome", "login"} else "")
-            ).mark("login_nav_button")
-
-
-def page_frame(current_page=None):
-    page_header(current_page=current_page)
-    page_footer()
-
-
-def page_footer():
-    impressum_h1_classes = "text-lg lg:text-xl"
-    impressum_p_classes = "text-sm lg:text-md"
-    with ui.footer(fixed=False).classes("m-0 w-full bg-gray-800 text-white p-4"):
-        with ui.row():
-            with ui.column():
-                ui.link("Impressum", "/impressum").classes(
-                    "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
-                )
-                ui.link("DSGVO", "/dsgvo").classes(
-                    "text-lg lg:text-xl text-white hover:text-gray-300 no-underline bg-gray-600 p-1 lg:p-2 rounded"
-                )
-            with ui.column():
-                ui.label("Impressum").classes(impressum_h1_classes)
-                ui.label("Lukas Jaspaert").classes(impressum_p_classes)
-                ui.label("Jürgingsmühle 9").classes(impressum_p_classes)
-                ui.label("33739 Bielefeld").classes(impressum_p_classes)
-            with ui.column():
-                ui.label("Kontakt").classes(impressum_h1_classes)
-                ui.label("Telefon: 015150236860").classes(impressum_p_classes)
-                ui.label("E-Mail: l.ester@gmx.de").classes(impressum_p_classes)
 
 
 def update_user_and_go_home(new_user: User):
@@ -248,7 +149,7 @@ def empty_uri_redirect():
     return ui.navigate.to("/welcome")
 
 
-def welcome_page():
+async def welcome_page():
     if user_id := get_current_user_id():
         user: User = get_user_by_id_name(user_id)
         LOGGER.debug("welcoming %s", user)
@@ -266,6 +167,7 @@ def welcome_page():
             save_nick_button.mark("welcome_save")
         else:
             ui.navigate.to("/home")
+            await safe_refresh_header(current_page="home")
     else:
         LOGGER.debug("no user_id")
         with ui.card().classes("p-4 mx-auto"):

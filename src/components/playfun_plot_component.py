@@ -2,10 +2,13 @@ from nicegui import ui
 import pandas as pd
 import numpy as np
 from matplotlib.axes import Axes
-
+import logging
+from a_logger_setup import LOGGER_NAME
 from localization.language_manager import get_localization
 from models.db_models import PlayFunResult
 from services.session_service import session_storage
+
+LOGGER = logging.getLogger(LOGGER_NAME)
 
 
 def radar_plot(
@@ -87,11 +90,9 @@ class PlayfunPlot(ui.card):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        LOGGER.debug("Initializing PlayfunPlot with datas: %s", datas)
         lang = session_storage.get("lang", "en")
         data = {"categories": PlayFunResult.categories(lang)}
-        if not datas:
-            ui.label(get_localization("no_data"))
-            return
         if isinstance(datas, dict):
             data |= {key: list(data.ratings.values()) for key, data in datas.items()}
         else:

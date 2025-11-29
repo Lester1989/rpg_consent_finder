@@ -1,12 +1,4 @@
-import asyncio
-import logging
-import time
-from typing import Generator
-
-import pytest
-
 from nicegui.testing import User
-from nicegui import ui
 import sys
 
 sys.path.append("src")
@@ -37,5 +29,5 @@ async def test_faq_page(user: User):
 
 async def test_playstyle_page(user: User):
     await user.open("/playstyle")
-    await user.should_not_see("error_label")
+    await user.should_not_see("error")
     await user.should_not_see("notfound_label")

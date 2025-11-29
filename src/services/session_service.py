@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Callable, Iterable, MutableMapping
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
+from datetime import timezone
 from secrets import token_urlsafe
 from typing import Any
 
@@ -22,6 +23,21 @@ _current_session: ContextVar["SessionData | None"] = ContextVar(
     "current_session", default=None
 )
 
+_session_listeners: list[Callable[[SessionData], None]] = []
+
+
+def register_session_listener(callback: Callable[[SessionData], None]) -> None:
+    _session_listeners.append(callback)
+
+
+def _notify_listeners(session: SessionData) -> None:
+    for listener in _session_listeners:
+        try:
+            listener(session)
+        except Exception:
+            LOGGER.exception("Error in session listener")
+
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -30,14 +46,14 @@ class SessionData:
     token: str
     user_id: str | None = None
     data: dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     dirty: bool = False
     rotate: bool = False
     previous_token: str | None = None
 
     def touch(self) -> None:
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
 
 class SessionManager:
@@ -53,14 +69,12 @@ class SessionManager:
         return session
 
     def get(self, token: str | None) -> SessionData | None:
-        if not token:
-            return None
-        return self._sessions.get(token)
+        return self._sessions.get(token) if token else None
 
     def ensure(self, token: str | None) -> tuple[SessionData, bool]:
         session = self.get(token)
         if session is None:
-            print("SessionManager.ensure: creating session for token", token)
+            LOGGER.debug("SessionManager.ensure: creating session for token %s", token)
             session = self._create_session()
             return session, True
         session.touch()
@@ -106,17 +120,27 @@ class SessionMiddleware(BaseHTTPMiddleware):
         existing_token = request.cookies.get(SESSION_COOKIE_NAME)
         session, created = session_manager.ensure(existing_token)
         request.state.session = session
-        print("SessionMiddleware dispatch", existing_token, created, session.user_id)
+        LOGGER.debug(
+            "SessionMiddleware dispatch token=%s created=%s user_id=%s",
+            existing_token,
+            created,
+            session.user_id,
+        )
         token = _current_session.set(session)
         try:
             response = await call_next(request)
         finally:
             _current_session.reset(token)
         if session.rotate:
-            print("rotating session", session.user_id)
+            LOGGER.debug("rotating session user_id=%s", session.user_id)
             session_manager.rotate_token(session)
         if created or session.dirty:
-            print("writing cookie", session.token, session.rotate, session.dirty)
+            LOGGER.debug(
+                "writing cookie token=%s rotate=%s dirty=%s",
+                session.token,
+                session.rotate,
+                session.dirty,
+            )
             session_manager.write_cookie(response, session)
         return response
 
@@ -148,6 +172,7 @@ class SessionStorage(MutableMapping[str, Any]):
             session.data[key] = value
             session.dirty = True
         session.touch()
+        _notify_listeners(session)
 
     def __delitem__(self, key: str) -> None:
         session = self._require_session()
@@ -161,6 +186,7 @@ class SessionStorage(MutableMapping[str, Any]):
             else:
                 raise KeyError(key)
         session.touch()
+        _notify_listeners(session)
 
     def __iter__(self) -> Iterable[str]:
         session = self._current()
@@ -192,14 +218,15 @@ class SessionStorage(MutableMapping[str, Any]):
         session.user_id = None
         session.dirty = True
         session.touch()
+        _notify_listeners(session)
 
 
 session_storage: MutableMapping[str, Any] = SessionStorage()
 
 
 def ensure_session_middleware() -> None:
-    print(
-        "ensure_session_middleware called",
+    LOGGER.debug(
+        "ensure_session_middleware called app_id=%s middleware=%s",
         id(app),
         getattr(app, "user_middleware", None),
     )
@@ -247,8 +274,6 @@ def _resolve_session() -> SessionData | None:
             session.dirty = True
         elif session.user_id is not None:
             shared["user_id"] = session.user_id
-        elif "user_id" in shared:
-            shared.pop("user_id", None)
     if created:
         session.dirty = True
         LOGGER.debug("created session during resolve: token=%s", session.token)
@@ -281,13 +306,14 @@ def begin_user_session(user_id: str) -> None:
     shared = getattr(client, "shared", None)
     if shared is not None:
         shared["user_id"] = user_id
-    print(
-        "begin_user_session",
+    LOGGER.info(
+        "begin_user_session token=%s previous=%s user_id=%s",
         session.token,
         session.previous_token,
         session.user_id,
     )
     session.touch()
+    _notify_listeners(session)
 
 
 def end_user_session() -> None:
@@ -301,6 +327,7 @@ def end_user_session() -> None:
     if shared is not None:
         shared.pop("user_id", None)
     session.touch()
+    _notify_listeners(session)
 
 
 def require_user_id() -> str:

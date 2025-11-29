@@ -81,6 +81,9 @@ def update_playfun_answer(
     LOGGER.debug("update_playfun_answer %s %s %s", question, rating, result)
 
     def _update(active_session: Session) -> PlayFunAnswer:
+        active_result = active_session.get(PlayFunResult, result.id)
+        if not active_result:
+            return None
         answer = active_session.exec(
             select(PlayFunAnswer).where(
                 PlayFunAnswer.question_id == question.id,
@@ -93,6 +96,11 @@ def update_playfun_answer(
             answer = PlayFunAnswer(
                 question_id=question.id, result_id=result.id, rating=rating
             )
+        # Update the ratings in the PlayFunResult
+
+        active_result.set_rating(question.play_style.lower(), rating)
+        LOGGER.debug("Updated PlayFunResult %s", active_result)
+
         add_and_refresh(active_session, answer)
         return answer
 

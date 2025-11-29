@@ -67,6 +67,29 @@ $env:RELOAD = "true"
 
 ---
 
+## Database Migrations (Alembic)
+
+Alembic is already configured via `alembic.ini` and the scripts under `migrations/`. Use it to keep the SQLite (or Postgres) schema in sync with the SQLModel definitions.
+
+1. **Make your model changes** in `src/models/db_models.py` (or related files) and ensure they import cleanly.
+2. **Autogenerate a revision** with Poetry's environment:
+   ```ps1
+   poetry run alembic revision --autogenerate -m "describe_change"
+   ```
+   Alembic reads the `DB_CONNECTION_STRING` env var, so point it at the database you want to diff before running the command.
+3. **Review the generated file** under `migrations/versions/` to verify the `upgrade()`/`downgrade()` logic looks correct; edit as needed for custom data moves.
+4. **Apply the migration** locally with:
+   ```ps1
+   poetry run alembic upgrade head
+   ```
+   Run the same command in staging/production (with the appropriate connection string) when deploying.
+
+Helpful extras:
+- `poetry run alembic history` shows the revision graph.
+- `poetry run alembic downgrade -1` rolls back the last migration if you need to redo it during development.
+
+---
+
 ## Roadmap Snapshot
 
 Tracked tasks that still need attention:

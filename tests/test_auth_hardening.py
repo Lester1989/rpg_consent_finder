@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -33,6 +34,8 @@ async def test_login_sets_secure_session_cookie(user: User) -> None:
     secure_cookie = user.http_client.cookies.get("rpg_session")
 
     assert secure_cookie, "expected login to set a signed session cookie"
+
+    await asyncio.sleep(0.5)
 
 
 @pytest.mark.anyio
