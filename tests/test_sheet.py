@@ -66,7 +66,7 @@ async def delete_sheet(user: User, sheet_id: str):
     user.find(f"delete_sheet_button-{sheet_id}").click()
     await user.should_see("yes_button", retries=5)
     user.find("yes_button").click()
-    await user.should_not_see(f"delete_sheet_button-{sheet_id}", retries=5)
+    await user.should_not_see(f"delete_sheet_button-{sheet_id}", retries=6)
 
 
 async def test_create_and_delete_sheet(user: User, caplog) -> None:

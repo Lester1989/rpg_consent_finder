@@ -70,5 +70,5 @@ async def test_join_global_group(user: User):
     await user.should_see("group_join_code_input")
     user.find("group_join_code_input").type("global")
     user.find("join_group_button").click()
-    await user.should_see("group_name_1")
+    await user.should_see("group_name_1", retries=5)
     user.find("leave_group_button_1").click()

@@ -274,7 +274,20 @@ class ConsentTemplate(SQLModel, table=True):
     )
 
     def __repr__(self):
-        return f"<ConsentTemplate {self.id} {self.category} {self.topic}>"
+        category_text = (
+            f"{self.category_local.get_text()[:20]}..."
+            if self.category_local
+            else f"id:{self.category_id}"
+        )
+        topic_text = (
+            f"{self.topic_local.get_text()[:20]}..."
+            if self.topic_local
+            else f"id:{self.topic_id}"
+        )
+        return f"<ConsentTemplate {self.id} {category_text} {topic_text}>"
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class UserLogin(SQLModel, table=True):

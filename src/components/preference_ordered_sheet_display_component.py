@@ -9,6 +9,7 @@ from controller.sheet_controller import (
     duplicate_sheet,
     get_all_consent_topics,
     get_consent_sheet_by_id,
+    get_consent_sheet_by_share_id,
 )
 from controller.util_controller import (
     get_all_localized_texts,
@@ -40,6 +41,9 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         redact_name: bool = False,
     ):
         super().__init__()
+        logging.getLogger("content_consent_finder").debug(
+            f"PreferenceOrderedSheetDisplayComponent init {consent_sheet} {consent_sheets}"
+        )
         if consent_sheet is None:
             self.sheets = consent_sheets
         else:
@@ -47,6 +51,9 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         self.text_lookup = get_all_localized_texts()
         self.redact_name = redact_name
         self.templates: list[ConsentTemplate] = get_all_consent_topics()
+        logging.getLogger("content_consent_finder").debug(
+            f"initialized with {self.sheet} {self.sheets}"
+        )
         self.content()
 
     @property
@@ -61,11 +68,17 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
 
     @property
     def sheet_comments(self):
-        return (
-            self.sheet.comment
-            if self.sheet
-            else "\n---\n".join(sheet.comment for sheet in self.sheets if sheet.comment)
+        logging.getLogger("content_consent_finder").debug(
+            f"Getting comments for {self.sheet} {self.sheets}"
         )
+        if self.sheet is not None:
+            return self.sheet.comment
+        elif self.sheets is not None:
+            return "\n---\n".join(
+                sheet.comment for sheet in self.sheets if sheet and sheet.comment
+            )
+        else:
+            return ""
 
     def button_duplicate(self, user_id: str):
         logging.getLogger("content_consent_finder").debug(f"Duplicating {self.sheet}")
@@ -79,20 +92,23 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
         user_id = get_current_user_id()
         if self.sheet:
             self.sheet = (
-                get_consent_sheet_by_id(user_id, self.sheet.id) if user_id else None
+                get_consent_sheet_by_id(user_id, self.sheet.id)
+                if user_id
+                else get_consent_sheet_by_share_id(
+                    self.sheet.public_share_id, self.sheet.id
+                )
             )
         if self.sheets:
             self.sheets = [
-                get_consent_sheet_by_id(user_id, sheet.id) if user_id else None
+                get_consent_sheet_by_id(user_id, sheet.id)
+                if user_id
+                else get_consent_sheet_by_share_id(sheet.public_share_id, sheet.id)
                 for sheet in self.sheets
             ]
             self.sheets = [sheet for sheet in self.sheets if sheet is not None]
 
     @ui.refreshable
     def content(self):
-        logging.getLogger("content_consent_finder").warning(
-            f"SheetDisplayComponent {self.sheet} {self.sheets}"
-        )
         self.refresh_sheets()
         self.clear()
         with self.classes("w-full"):
@@ -155,23 +171,17 @@ class PreferenceOrderedSheetDisplayComponent(ui.column):
                     "mx-auto text-center border-2 rounded-lg"
                 ) as status_expansion:
                     ui.markdown(status.explanation(lang))
-                logging.getLogger("content_consent_finder").warning(
+                logging.getLogger("content_consent_finder").debug(
                     f"Displaying {status} with {len(prefence_entries[status])} entries"
                 )
                 status_expansion.mark(f"status_expansion_{status.name}")
                 for template_or_custom in prefence_entries[status]:
                     if isinstance(template_or_custom, ConsentTemplate):
-                        logging.getLogger("content_consent_finder").debug(
-                            f"Displaying {template_or_custom}"
-                        )
                         PreferenceConsentDisplayComponent(
                             status,
                             consent_template_id=template_or_custom.id,
                         )
                     elif isinstance(template_or_custom, CustomConsentEntry):
-                        logging.getLogger("content_consent_finder").debug(
-                            f"Displaying {template_or_custom}"
-                        )
                         PreferenceConsentDisplayComponent(
                             status,
                             custom_text=template_or_custom.content,
