@@ -123,12 +123,12 @@ def plot_content(user: User):
             ui.label(get_localization("no_data"))
             return
         PlayfunPlot({"me": playfun_result})
-        ui.label(f"Top 3: {', '.join(playfun_result.get_top_style(3))}").classes(
-            "w-8"
-        ).mark("top_styles")
         ui.markdown(get_localization("playfun_plot_explanation")).classes(
             "xl:w-2/5 w-full text-sm"
         )
+        ui.label(f"Top 3: {', '.join(playfun_result.get_top_style(3))}").classes(
+            "w-8"
+        ).mark("top_styles")
 
 
 def construct_ratings(user: User) -> PlayFunResult:

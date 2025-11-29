@@ -122,7 +122,6 @@ async def safe_refresh_header(current_page: str | None = None) -> None:
         if client is None or not client.has_socket_connection:
             LOGGER.info("Client disconnected, skipping header refresh")
             return
-        LOGGER.info("CLient is %s", client)
         if any(
             target.container._client() is None
             for target in page_header.targets[0].refreshable.targets

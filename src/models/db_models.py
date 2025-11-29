@@ -168,7 +168,6 @@ class PlayFunResult(SQLModel, table=True):
         }
 
     def set_rating(self, style: str, rating: int) -> None:
-        print(f"Setting rating for {style} to {rating}")
         if style.lower() == "challenge":
             self.challenge_rating = rating
         elif style.lower() == "discovery":
