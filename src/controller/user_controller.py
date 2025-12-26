@@ -21,9 +21,16 @@ from models.model_utils import (
 )
 from controller.sheet_controller import delete_sheet
 from services.session_service import session_storage
+from telemetry import get_metrics_recorder
 
 
 LOGGER = logging.getLogger(LOGGER_NAME)
+
+
+def _record_login_attempt(provider: str, status: str) -> None:
+    recorder = get_metrics_recorder()
+    if recorder:
+        recorder.record_login_attempt(provider, status)
 
 
 def fetch_user_groups(user: User, session: Session | None = None) -> list[RPGGroup]:
@@ -64,6 +71,7 @@ def get_user_by_account_and_password(
         with session_scope() as scoped_session:
             user = _load(scoped_session)
 
+    _record_login_attempt("local", "success" if user else "failure")
     if not user:
         time.sleep(random.random() * 0.1)  # prevent timing attacks
     return user
@@ -227,7 +235,9 @@ def get_or_create_sso_user(
         return _ensure(session)
 
     with session_scope() as scoped_session:
-        return _ensure(scoped_session)
+        user = _ensure(scoped_session)
+        _record_login_attempt(provider, "success")
+        return user
 
 
 # get_user_by_id_name_chache = {}

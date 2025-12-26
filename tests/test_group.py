@@ -17,14 +17,6 @@ from models.db_models import ConsentStatus  # type: ignore
 pytest_plugins = ["nicegui.testing.plugin"]
 
 
-def marked_elements(user: User, marker: str):
-    return {
-        "".join(element._markers): element
-        for element in user.find(marker).elements
-        if element._markers
-    }
-
-
 async def login(
     user: User, account_name: str = "testuser", password: str = "123123123"
 ):

@@ -43,13 +43,22 @@ from services.session_service import (
     end_user_session,
     ensure_session_middleware,
     get_current_user_id,
+    get_session_stats,
+    set_metrics_recorder,
 )
+from telemetry import setup_metrics
+
 
 print("main module imported", __name__)
 settings = get_settings()
 ensure_session_middleware()
 configure_logging(settings.log_level)
 LOGGER = logging.getLogger(LOGGER_NAME)
+
+if request_metrics := setup_metrics(settings):
+    request_metrics.set_session_stats_provider(get_session_stats)
+    set_metrics_recorder(request_metrics)
+    app.middleware("http")(request_metrics.middleware())
 
 
 google_sso = GoogleSSO(
@@ -285,6 +294,9 @@ if __name__ in {"__main__", "__mp_main__"}:
     if settings.seed_on_startup:
         seed_consent_questioneer()
     startup_message(settings)
+    if request_metrics:
+        startup_duration_ms = (perf_counter() - APP_START_TIME) * 1000
+        request_metrics.record_startup_duration(startup_duration_ms)
     storage_secret = settings.storage_secret or "".join(
         random.choices(string.ascii_letters + string.digits, k=32)
     )

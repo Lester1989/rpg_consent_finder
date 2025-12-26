@@ -11,7 +11,7 @@ from nicegui.testing import User
 
 from components.consent_entry_component import ConsentEntryComponent
 from models.db_models import ConsentStatus
-from tests.test_utils import marked_elements
+from tests.utils import marked_elements
 
 pytest_plugins = ["nicegui.testing.plugin"]
 

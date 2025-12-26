@@ -9,6 +9,8 @@ from datetime import timezone
 from secrets import token_urlsafe
 from typing import Any
 
+from telemetry import get_metrics_recorder
+
 from fastapi import Request
 from nicegui import app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -18,16 +20,28 @@ from settings import get_settings
 
 SESSION_COOKIE_NAME = "rpg_session"
 SESSION_TTL = timedelta(days=7)
+LOGGER = logging.getLogger(__name__)
 
 _current_session: ContextVar["SessionData | None"] = ContextVar(
     "current_session", default=None
 )
 
+
 _session_listeners: list[Callable[[SessionData], None]] = []
+try:
+    _metrics_recorder = get_metrics_recorder()
+except Exception:
+    _metrics_recorder = None
+    LOGGER.warning("Failed to initialize metrics recorder", exc_info=True)
 
 
 def register_session_listener(callback: Callable[[SessionData], None]) -> None:
     _session_listeners.append(callback)
+
+
+def set_metrics_recorder(recorder) -> None:
+    global _metrics_recorder
+    _metrics_recorder = recorder
 
 
 def _notify_listeners(session: SessionData) -> None:
@@ -36,9 +50,6 @@ def _notify_listeners(session: SessionData) -> None:
             listener(session)
         except Exception:
             LOGGER.exception("Error in session listener")
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -76,6 +87,8 @@ class SessionManager:
         if session is None:
             LOGGER.debug("SessionManager.ensure: creating session for token %s", token)
             session = self._create_session()
+            if _metrics_recorder:
+                _metrics_recorder.record_session_created()
             return session, True
         session.touch()
         if session.previous_token:
@@ -235,6 +248,13 @@ def ensure_session_middleware() -> None:
             return
     LOGGER.debug("installing session middleware on app id=%s", id(app))
     app.add_middleware(SessionMiddleware)
+
+
+def get_session_stats() -> dict[str, int]:
+    unique_sessions = len(
+        {id(session) for session in session_manager._sessions.values()}
+    )
+    return {"active": unique_sessions}
 
 
 def _resolve_session() -> SessionData | None:

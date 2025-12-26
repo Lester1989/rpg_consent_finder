@@ -12,6 +12,17 @@ def _to_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _parse_headers(value: str | None) -> Tuple[Tuple[str, str], ...]:
+    if not value:
+        return ()
+    parsed: list[Tuple[str, str]] = []
+    for pair in value.split(","):
+        key, _, val = pair.partition("=")
+        if key.strip() and val:
+            parsed.append((key.strip(), val.strip()))
+    return tuple(parsed)
+
+
 @dataclass(frozen=True)
 class Settings:
     google_client_id: str = "..."
@@ -27,6 +38,11 @@ class Settings:
     log_level: str = "DEBUG"
     storage_secret: str | None = None
     discord_allow_insecure_http: bool = True
+    otel_metrics_enabled: bool = False
+    otel_exporter_endpoint: str | None = None
+    otel_exporter_headers: Tuple[Tuple[str, str], ...] = ()
+    otel_service_name: str = "rpg_consent_finder"
+    otel_metrics_export_interval_ms: int = 60000
 
     @property
     def base_url(self) -> str:
@@ -53,5 +69,12 @@ def get_settings() -> Settings:
         storage_secret=os.getenv("STORAGE_SECRET"),
         discord_allow_insecure_http=_to_bool(
             os.getenv("DISCORD_ALLOW_INSECURE_HTTP"), True
+        ),
+        otel_metrics_enabled=_to_bool(os.getenv("OTEL_METRICS_ENABLED"), False),
+        otel_exporter_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+        otel_exporter_headers=_parse_headers(os.getenv("OTEL_EXPORTER_OTLP_HEADERS")),
+        otel_service_name=os.getenv("OTEL_SERVICE_NAME", "rpg_consent_finder"),
+        otel_metrics_export_interval_ms=int(
+            os.getenv("OTEL_METRICS_EXPORT_INTERVAL_MS", "60000")
         ),
     )
