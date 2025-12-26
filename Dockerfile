@@ -11,9 +11,8 @@ WORKDIR /src
 
 COPY pyproject.toml poetry.lock ./
 RUN touch readme.md
-
 # 1. Install app deps
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 
 # 2. Bootstrap: This installs the sensors for FastAPI, SQLAlchemy, etc.
@@ -25,7 +24,7 @@ RUN rm -rf $POETRY_CACHE_DIR
 # The runtime image
 FROM python:3.13-slim AS runtime
 RUN apt-get update && apt-get install libpq5 -y; apt-get -y install curl
-
+RUN apt-get install -y libpq-dev
 ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV=/src/.venv \
     PATH="/src/.venv/bin:$PATH"
