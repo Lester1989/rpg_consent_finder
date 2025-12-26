@@ -15,13 +15,8 @@ RUN touch readme.md
 # 1. Install app deps
 RUN poetry install --no-root --without dev
 
-# 2. Install OpenTelemetry distributor and OTLP exporter into the venv
-# Using poetry run pip ensures they go into the .venv we are copying later
-RUN ./.venv/bin/pip install \
-    opentelemetry-distro==0.60b1 \
-    opentelemetry-exporter-otlp==1.39.1
 
-# 3. Bootstrap: This installs the sensors for FastAPI, SQLAlchemy, etc.
+# 2. Bootstrap: This installs the sensors for FastAPI, SQLAlchemy, etc.
 RUN ./.venv/bin/opentelemetry-bootstrap -a install
 
 RUN rm -rf $POETRY_CACHE_DIR

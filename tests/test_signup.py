@@ -1,11 +1,5 @@
 from nicegui.testing import User
-import sys
 
-import os
-
-os.environ["LOGLEVEL"] = "DEBUG"
-
-sys.path.append("src")
 from controller.admin_controller import get_status
 from models.seeder import seed_consent_questioneer
 

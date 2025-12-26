@@ -1,10 +1,8 @@
 import asyncio
-import sys
 import os
 
 from nicegui.testing import User
 
-sys.path.append("src")
 os.environ["LOGLEVEL"] = "DEBUG"
 
 from controller.playfun_controller import get_playfun_answers_for_user

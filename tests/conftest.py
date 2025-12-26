@@ -11,9 +11,9 @@ from nicegui.testing import User
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
-SRC_PATH = Path(__file__).resolve().parents[1] / "src"
-if str(SRC_PATH) not in sys.path:
-    sys.path.insert(0, str(SRC_PATH))
+# SRC_PATH = Path(__file__).resolve().parents[1] / "src"
+# if str(SRC_PATH) not in sys.path:
+#     sys.path.insert(0, str(SRC_PATH))
 
 os.environ["DB_CONNECTION_STRING"] = "sqlite://"
 
@@ -71,7 +71,26 @@ async def async_test_cleanup():  # sourcery skip: remove-redundant-if
         for task in asyncio.all_tasks()
         if task is not current_task and not task.done()
     ]:
-        done, pending = await asyncio.wait(pending, timeout=2.0)
+        done, still_pending = await asyncio.wait(pending, timeout=2.0)
+
+        # Handle tasks that didn't complete within timeout
+        if still_pending:
+            task_details = []
+            for task in still_pending:
+                coro = task.get_coro()
+                task_info = (
+                    f"{task.get_name()}: {coro}"
+                    if hasattr(task, "get_name")
+                    else repr(task)
+                )
+                task_details.append(task_info)
+                task.cancel()  # Cancel to prevent leaking into other tests
+
+            # Fail the test with details about hung tasks
+            pytest.fail(
+                f"Background tasks did not complete within 2s timeout:\n"
+                + "\n".join(f"  - {detail}" for detail in task_details)
+            )
 
 
 @pytest.fixture
@@ -110,7 +129,10 @@ def component_page():
                     "hidden"
                 )  # Hidden label for debugging
                 # Call the setup function to create the component
-                component = setup_func()
+                if asyncio.iscoroutinefunction(setup_func):
+                    component = await setup_func()
+                else:
+                    component = setup_func()
                 return component
 
             created_pages.append(path)

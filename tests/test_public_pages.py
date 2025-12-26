@@ -1,10 +1,5 @@
 from nicegui.testing import User
-import sys
 
-sys.path.append("src")
-import os
-
-os.environ["LOGLEVEL"] = "INFO"
 
 pytest_plugins = ["nicegui.testing.plugin"]
 

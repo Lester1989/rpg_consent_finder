@@ -5,16 +5,13 @@ These tests create minimal pages with just the component being tested,
 allowing for isolated testing without full page context.
 """
 
-import sys
-
-sys.path.append("src")
-
 import pytest
 from nicegui import ui
 from nicegui.testing import User
 
 from components.consent_entry_component import ConsentEntryComponent
 from models.db_models import ConsentStatus
+from tests.test_utils import marked_elements
 
 pytest_plugins = ["nicegui.testing.plugin"]
 
@@ -39,14 +36,6 @@ async def test_consent_entry_renders(
 
     # Check that the comment toggle exists
     await user.should_see(f"comment_toggle_{sample_consent_entry.consent_template.id}")
-
-
-def marked_elements(user: User, marker: str):
-    return {
-        "".join(element._markers): element
-        for element in user.find(marker).elements
-        if element._markers
-    }
 
 
 async def test_consent_entry_toggle_changes(
@@ -95,7 +84,7 @@ async def test_consent_entry_comment_visibility(
 ):
     """Test that comment input shows/hides based on toggle."""
     if not sample_consent_entry:
-        return
+        pytest.skip("No consent entry available")
 
     @component_page("/test-consent-comment")
     def setup():

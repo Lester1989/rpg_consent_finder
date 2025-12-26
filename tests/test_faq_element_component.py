@@ -4,10 +4,6 @@ Component tests for FAQElementComponent.
 Example of testing a simpler component without database dependencies.
 """
 
-import sys
-
-sys.path.append("src")
-
 from nicegui import ui
 from nicegui.testing import User
 

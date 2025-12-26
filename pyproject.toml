@@ -20,6 +20,8 @@ pandas = "^2.2.3"
 matplotlib = "^3.10.0"
 pydantic-core = "^2.31.1"
 pydantic = "^2.10.6"
+opentelemetry-distro = "^0.60b1"
+opentelemetry-exporter-otlp = "^1.39.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
