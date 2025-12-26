@@ -24,7 +24,9 @@ def content(**kwargs):
         ui.markdown("No news available")
         return
     lang = session_storage.get("lang", "en")
-    for news_point in sorted(news, key=lambda x: x[0], reverse=True):
+    for news_point in sorted(
+        news, key=lambda x: tuple(map(int, x[0].split("."))), reverse=True
+    ):
         _, news_dict = news_point
         ui.markdown(news_dict[lang])
         ui.separator()
