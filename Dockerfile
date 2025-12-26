@@ -13,7 +13,7 @@ COPY pyproject.toml poetry.lock ./
 RUN touch readme.md
 
 # 1. Install app deps
-RUN poetry install --no-root --without dev
+RUN poetry install --no-root
 
 
 # 2. Bootstrap: This installs the sensors for FastAPI, SQLAlchemy, etc.
