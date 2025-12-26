@@ -94,8 +94,8 @@ Helpful extras:
 
 Tracked tasks that still need attention:
 
-- Guided tour coverage for import/export flows.
-- Additional automated tests (playstyle scoring, feedback loop, import/export edge cases, localisation fallbacks).
+- [x] Guided tour coverage for import/export flows.
+- [x] Additional automated tests (playstyle scoring, feedback loop, import/export edge cases, localisation fallbacks).
 - Integrate radar plot summaries into group views and provide campaign-level summaries.
 - Anonymous public sheets with passcode protection and printable/PDF exports.
 - Performance work: caching hot localisation lookups and reducing N+1 queries.

@@ -1,10 +1,13 @@
+import asyncio
 import importlib
 import os
 import sys
 from pathlib import Path
-from typing import Generator
+from typing import Callable, Generator
 
 import pytest
+from nicegui import ui
+from nicegui.testing import User
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
@@ -55,3 +58,95 @@ def in_memory_database() -> Generator[None, None, None]:
 
     SQLModel.metadata.drop_all(test_engine)
     test_engine.dispose()
+
+
+@pytest.fixture
+async def async_test_cleanup():  # sourcery skip: remove-redundant-if
+    """Cleanup fixture that runs after each async test to allow background tasks to complete."""
+    yield
+    # Wait for pending asyncio tasks to complete
+    current_task = asyncio.current_task()
+    if pending := [
+        task
+        for task in asyncio.all_tasks()
+        if task is not current_task and not task.done()
+    ]:
+        done, pending = await asyncio.wait(pending, timeout=2.0)
+
+
+@pytest.fixture
+def component_page():
+    """
+    Factory fixture for creating minimal test pages with isolated components.
+
+    Usage:
+        async def test_my_component(user: User, component_page):
+            @component_page('/test-component')
+            def setup_page():
+                my_component = MyComponent(some_arg="test")
+                return my_component
+
+            await user.open('/test-component')
+            # ... test interactions
+    """
+    created_pages = []
+
+    def create_page(path: str):
+        """
+        Decorator to create a minimal test page at the specified path.
+
+        Args:
+            path: URL path for the test page (e.g., '/test-component')
+
+        Returns:
+            Decorator function that wraps the component setup function
+        """
+
+        def decorator(setup_func: Callable):
+            @ui.page(path)
+            async def test_page():
+                # Minimal page setup
+                ui.label(f"Test Page: {path}").classes(
+                    "hidden"
+                )  # Hidden label for debugging
+                # Call the setup function to create the component
+                component = setup_func()
+                return component
+
+            created_pages.append(path)
+            return test_page
+
+        return decorator
+
+    yield create_page
+
+    # Cleanup: Remove registered pages after test
+    # Note: NiceGUI doesn't provide easy way to unregister pages,
+    # but they'll be isolated per test run
+
+
+@pytest.fixture
+def test_user():
+    """Fixture providing a test user instance for component testing."""
+    user_controller = importlib.import_module("controller.user_controller")
+    return user_controller.get_user_by_account_and_password("testuser", "123123123")
+
+
+@pytest.fixture
+def sample_consent_entry(test_user):
+    """Fixture providing a sample consent entry for component testing."""
+    sheet_controller = importlib.import_module("controller.sheet_controller")
+    from models.db_models import ConsentEntry, ConsentStatus
+
+    # Get or create a sheet for the test user
+    if test_user.consent_sheets:
+        sheet = test_user.consent_sheets[0]
+    else:
+        sheet = sheet_controller.create_new_consentsheet(test_user)
+
+    # Get consent entries from the sheet
+    if sheet.consent_entries:
+        return sheet.consent_entries[0]
+
+    # If no entries exist, return None (tests should handle this)
+    return None

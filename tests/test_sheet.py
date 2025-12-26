@@ -116,8 +116,6 @@ async def test_modify_sheet_by_category(user: User, caplog) -> None:
     marked_elements(user, "🟠").get("category_toggle_horror").set_value(
         ConsentStatus.maybe
     )
-    # await user.should_see("🟠", kind=ui.select)
-    # user.find("🟠", kind=ui.select).click()
     await asyncio.sleep(2)
     # goto ordered_topics
     user.find("sheet_tabs").elements.pop().set_value(
