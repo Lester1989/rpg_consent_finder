@@ -18,6 +18,15 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `method`, `route`, `status_code`  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# P95 latency by route
+histogram_quantile(0.95, sum(rate(http_server_request_duration_bucket[5m])) by (le, http_route))
+
+# Average latency by route and method
+rate(http_server_request_duration_sum[5m]) / rate(http_server_request_duration_count[5m])
+```
 **Purpose**: Track request latency distribution across different endpoints  
 **Use**: 
 - Identify slow endpoints
@@ -26,9 +35,18 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 - Optimize critical user paths
 
 ### `http.server.active_requests`
-**Type**: Gauge  
+**Type**: Gauge (up/down counter)  
 **Unit**: count  
 **Labels**: `method`, `route`  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Current active requests by route
+http_server_active_requests
+
+# Peak active requests in last 15 minutes
+max_over_time(http_server_active_requests[15m])
+```
 **Purpose**: Track concurrent requests being processed  
 **Use**:
 - Detect traffic spikes
@@ -40,6 +58,18 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `method`, `route`, `status_code`  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Request rate by route
+rate(http_server_request_count[5m])
+
+# Total requests in last hour
+sum(increase(http_server_request_count[1h])) by (http_route)
+
+# Error rate (4xx and 5xx)
+sum(rate(http_server_request_count{http_status_code=~"[45].."}[5m])) / sum(rate(http_server_request_count[5m]))
+```
 **Purpose**: Total count of HTTP requests  
 **Use**:
 - Track traffic patterns
@@ -55,6 +85,18 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `provider` (google, discord, local), `status` (success, failure)  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Login success rate by provider
+sum(rate(auth_login_attempts{status="success"}[5m])) by (provider) / sum(rate(auth_login_attempts[5m])) by (provider)
+
+# Failed login attempts
+sum(rate(auth_login_attempts{status="failure"}[5m])) by (provider)
+
+# Total logins in last hour
+sum(increase(auth_login_attempts{status="success"}[1h]))
+```
 **Purpose**: Track authentication attempts and success rates  
 **Use**:
 - Monitor authentication health
@@ -66,6 +108,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `provider` (google, discord, local)  
+**Status**: 🔄 **Planned** (requires user creation tracking)  
 **Purpose**: Track new user registrations  
 **Use**:
 - Monitor user growth
@@ -74,8 +117,20 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 - Business analytics
 
 ### `session.active.count`
-**Type**: Gauge  
+**Type**: Gauge (observable)  
 **Unit**: count  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Current active sessions
+session_active_count
+
+# Peak sessions today
+max_over_time(session_active_count[24h])
+
+# Average sessions over last hour
+avg_over_time(session_active_count[1h])
+```
 **Purpose**: Number of active user sessions  
 **Use**:
 - Monitor concurrent users
@@ -86,6 +141,15 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `session.created.count`
 **Type**: Counter  
 **Unit**: count  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Session creation rate
+rate(session_created_count[5m])
+
+# Sessions created in last 24h
+increase(session_created_count[24h])
+```
 **Purpose**: Total sessions created  
 **Use**:
 - Track session churn
@@ -95,6 +159,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `session.duration`
 **Type**: Histogram  
 **Unit**: seconds  
+**Status**: 🔄 **Planned** (requires session lifecycle tracking)  
 **Purpose**: How long users stay logged in  
 **Use**:
 - Understand user engagement
@@ -105,6 +170,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Gauge  
 **Unit**: bytes  
 **Labels**: `session_type` (authenticated, guest)  
+**Status**: 🔄 **Planned** (requires session memory instrumentation)  
 **Purpose**: Track session storage size  
 **Use**:
 - Monitor memory usage
@@ -118,6 +184,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `operation` (select, insert, update, delete), `table`  
+**Status**: 🔄 **Planned** (requires SQLModel/database instrumentation)  
 **Purpose**: Track database query performance  
 **Use**:
 - Identify slow queries
@@ -129,6 +196,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `operation` (select, insert, update, delete), `table`, `status` (success, error)  
+**Status**: 🔄 **Planned** (requires database instrumentation)  
 **Purpose**: Count database operations  
 **Use**:
 - Track database load
@@ -140,6 +208,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `operation` (create_sheet, create_group, join_group, etc.)  
+**Status**: 🔄 **Planned** (requires transaction-level instrumentation)  
 **Purpose**: Track business transaction performance  
 **Use**:
 - Monitor complex operations
@@ -150,6 +219,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `db.connection.active`
 **Type**: Gauge  
 **Unit**: count  
+**Status**: 🔄 **Planned** (requires connection pool instrumentation)  
 **Purpose**: Active database connections  
 **Use**:
 - Connection pool monitoring
@@ -160,6 +230,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `db.connection.wait_time`
 **Type**: Histogram  
 **Unit**: milliseconds  
+**Status**: 🔄 **Planned** (requires connection pool instrumentation)  
 **Purpose**: Time waiting for database connection  
 **Use**:
 - Detect pool exhaustion
@@ -174,6 +245,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Gauge  
 **Unit**: count  
 **Labels**: `time_window` (last_hour, last_day, last_week)  
+**Status**: 🔄 **Planned** (requires activity tracking)  
 **Purpose**: Active users by time window  
 **Use**:
 - Track daily/weekly/monthly active users
@@ -185,6 +257,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `user_type` (new, existing)  
+**Status**: 🔄 **Planned** (requires sheet controller instrumentation)  
 **Purpose**: Track consent sheet creation  
 **Use**:
 - Monitor feature usage
@@ -196,6 +269,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `field_type` (entry, custom_entry, metadata)  
+**Status**: 🔄 **Planned** (requires sheet controller instrumentation)  
 **Purpose**: Track consent sheet modifications  
 **Use**:
 - Monitor user activity
@@ -206,6 +280,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `status` (yes, okay, maybe, no, unknown), `template_id`  
+**Status**: 🔄 **Planned** (requires entry component instrumentation)  
 **Purpose**: Track consent preference changes  
 **Use**:
 - Monitor consent patterns
@@ -216,6 +291,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `group.created`
 **Type**: Counter  
 **Unit**: count  
+**Status**: 🔄 **Planned** (requires group service instrumentation)  
 **Purpose**: Track RPG group creation  
 **Use**:
 - Monitor platform adoption
@@ -225,6 +301,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `group.members.count`
 **Type**: Histogram  
 **Unit**: count  
+**Status**: 🔄 **Planned** (requires group service instrumentation)  
 **Purpose**: Distribution of group sizes  
 **Use**:
 - Understand typical group sizes
@@ -236,6 +313,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `status` (success, invalid_code, already_member)  
+**Status**: 🔄 **Planned** (requires group controller instrumentation)  
 **Purpose**: Track group join attempts  
 **Use**:
 - Monitor invite code effectiveness
@@ -245,6 +323,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `group.leave.count`
 **Type**: Counter  
 **Unit**: count  
+**Status**: 🔄 **Planned** (requires group controller instrumentation)  
 **Purpose**: Track users leaving groups  
 **Use**:
 - Monitor group churn
@@ -254,6 +333,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `playfun.questionnaire.completed`
 **Type**: Counter  
 **Unit**: count  
+**Status**: 🔄 **Planned** (requires playfun controller instrumentation)  
 **Purpose**: Track playstyle questionnaire completions  
 **Use**:
 - Monitor feature adoption
@@ -264,6 +344,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `question_id`, `play_style`  
+**Status**: 🔄 **Planned** (requires playfun controller instrumentation)  
 **Purpose**: Track questionnaire answer modifications  
 **Use**:
 - Identify confusing questions
@@ -274,6 +355,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `share_type` (qr_code, link)  
+**Status**: 🔄 **Planned** (requires sheet controller instrumentation)  
 **Purpose**: Track public sheet sharing  
 **Use**:
 - Monitor feature usage
@@ -284,6 +366,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `has_share_id`  
+**Status**: 🔄 **Planned** (requires public sheet page instrumentation)  
 **Purpose**: Track public sheet views  
 **Use**:
 - Monitor sharing effectiveness
@@ -297,6 +380,15 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `app.startup.duration`
 **Type**: Histogram  
 **Unit**: milliseconds  
+**Status**: ✅ **Implemented**  
+**Query**:
+```promql
+# Average startup time
+rate(app_startup_duration_sum[5m]) / rate(app_startup_duration_count[5m])
+
+# P95 startup time
+histogram_quantile(0.95, sum(rate(app_startup_duration_bucket[5m])) by (le))
+```
 **Purpose**: Application startup time  
 **Use**:
 - Monitor deployment health
@@ -307,6 +399,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `page` (home, sheet, group_overview, playfun, admin, etc.)  
+**Status**: 🔄 **Planned** (requires page-level instrumentation)  
 **Purpose**: Time to render each page  
 **Use**:
 - Optimize page performance
@@ -317,6 +410,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `component` (ConsentEntryComponent, SheetDisplayComponent, etc.)  
+**Status**: 🔄 **Planned** (requires component-level instrumentation)  
 **Purpose**: Component rendering performance  
 **Use**:
 - Optimize component performance
@@ -327,6 +421,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `task_type`  
+**Status**: 🔄 **Planned** (requires async task instrumentation)  
 **Purpose**: Async operation performance  
 **Use**:
 - Monitor background task performance
@@ -337,6 +432,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `cache_type` (consent_template, localized_text), `result` (hit, miss)  
+**Status**: 🔄 **Planned** (requires cache layer instrumentation)  
 **Purpose**: Track cache effectiveness  
 **Use**:
 - Optimize caching strategy
@@ -347,6 +443,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Gauge  
 **Unit**: bytes  
 **Labels**: `type` (rss, vms, shared)  
+**Status**: 🔄 **Planned** (requires process instrumentation)  
 **Purpose**: Process memory usage  
 **Use**:
 - Detect memory leaks
@@ -357,6 +454,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `cpu.usage`
 **Type**: Gauge  
 **Unit**: percent (0-100)  
+**Status**: 🔄 **Planned** (requires process instrumentation)  
 **Purpose**: CPU utilization  
 **Use**:
 - Performance monitoring
@@ -369,6 +467,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `error_type`, `severity`, `page`, `component`  
+**Status**: 🔄 **Planned** (requires error handling instrumentation)  
 **Purpose**: Track application errors  
 **Use**:
 - Monitor application health
@@ -380,6 +479,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `exception_type`, `route`  
+**Status**: 🔄 **Planned** (requires exception handler instrumentation)  
 **Purpose**: Track unhandled exceptions  
 **Use**:
 - Critical error monitoring
@@ -390,6 +490,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `operation`, `error_type` (timeout, connection, constraint, etc.)  
+**Status**: 🔄 **Planned** (requires database error instrumentation)  
 **Purpose**: Database-specific errors  
 **Use**:
 - Database health monitoring
@@ -400,6 +501,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `provider`, `error_type`  
+**Status**: 🔄 **Planned** (requires auth error instrumentation)  
 **Purpose**: Authentication errors  
 **Use**:
 - SSO provider reliability
@@ -410,6 +512,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Histogram  
 **Unit**: milliseconds  
 **Labels**: `provider` (google, discord)  
+**Status**: 🔄 **Planned** (requires SSO callback instrumentation)  
 **Purpose**: SSO callback processing time  
 **Use**:
 - Monitor SSO performance
@@ -419,6 +522,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 ### `healthcheck.status`
 **Type**: Gauge  
 **Unit**: 0 (down) or 1 (up)  
+**Status**: 🔄 **Planned** (requires healthcheck endpoint instrumentation)  
 **Purpose**: Service health status  
 **Use**:
 - Service monitoring
@@ -429,6 +533,7 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 **Type**: Counter  
 **Unit**: count  
 **Labels**: `field`, `error_type`  
+**Status**: 🔄 **Planned** (requires form validation instrumentation)  
 **Purpose**: Track data validation failures  
 **Use**:
 - Identify problematic inputs
@@ -437,27 +542,36 @@ This document outlines the key metrics to collect for monitoring the RPG Consent
 
 ---
 
-## Implementation Priority
+## Implementation Status Summary
 
-### Phase 1 (Critical)
-1. `http.server.request.duration`
-2. `http.server.request.count`
-3. `error.count`
-4. `db.query.duration`
-5. `auth.login.attempts`
+### ✅ Implemented (7 metrics)
+1. `http.server.request.duration` - Request latency tracking
+2. `http.server.request.count` - Request counting with status codes
+3. `http.server.active_requests` - Concurrent request tracking
+4. `auth.login.attempts` - Authentication attempt tracking (local + SSO)
+5. `session.active.count` - Active session gauge
+6. `session.created.count` - Session creation counter
+7. `app.startup.duration` - Application startup time
 
-### Phase 2 (Important)
-1. `session.active.count`
-2. `consent.sheet.created`
-3. `group.created`
-4. `page.render.duration`
-5. `db.connection.active`
+### 🔄 Planned - Phase 1 (Critical)
+1. `error.count` - Application error tracking
+2. `error.unhandled.count` - Unhandled exception tracking
+3. `db.query.duration` - Database query performance
+4. `db.query.count` - Database operation counting
+5. `auth.signup.count` - User registration tracking
 
-### Phase 3 (Enhanced)
-1. All business domain metrics
-2. Detailed performance metrics
-3. Advanced error tracking
-4. Resource utilization metrics
+### 🔄 Planned - Phase 2 (Important)
+1. `consent.sheet.created` - Sheet creation tracking
+2. `consent.sheet.updated` - Sheet modification tracking
+3. `group.created` - Group creation tracking
+4. `page.render.duration` - Page rendering performance
+5. `db.connection.active` - Connection pool monitoring
+
+### 🔄 Planned - Phase 3 (Enhanced)
+1. All remaining business domain metrics
+2. Detailed performance metrics (component, async tasks)
+3. Resource utilization metrics (CPU, memory)
+4. Advanced error tracking and validation metrics
 
 ---
 
