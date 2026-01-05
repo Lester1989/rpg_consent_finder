@@ -4,7 +4,7 @@ import random
 import string
 import traceback
 from pathlib import Path
-
+from time import perf_counter
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi_sso.sso.discord import DiscordSSO
@@ -48,6 +48,7 @@ from services.session_service import (
 )
 from telemetry import setup_metrics
 
+APP_START_TIME = perf_counter()
 
 print("main module imported", __name__)
 settings = get_settings()
