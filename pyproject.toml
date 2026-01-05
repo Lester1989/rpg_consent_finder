@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rpg-consent-finder"
-version = "0.2.17"
+version = "0.2.18"
 description = ""
 authors = ["Lester1989 <l.ester@gmx.de>"]
 readme = "README.md"
